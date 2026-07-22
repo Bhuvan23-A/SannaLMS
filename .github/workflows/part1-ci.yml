@@ -22,3 +22,7 @@ jobs:
         run: |
           cd services/part1-infra-auth/auth-service
           npm install
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config
