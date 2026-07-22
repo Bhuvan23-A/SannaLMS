@@ -1,0 +1,24 @@
+name: Part 1 - Infra & Auth CI
+
+on:
+  push:
+    branches: [ part1/infra-auth-identity, develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies & verify Auth Service
+        run: |
+          cd services/part1-infra-auth/auth-service
+          npm install

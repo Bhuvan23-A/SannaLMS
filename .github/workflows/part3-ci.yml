@@ -1,0 +1,24 @@
+name: Part 3 - Sandbox & Assessment CI
+
+on:
+  push:
+    branches: [ part3/assessment-coding-sandbox, develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Verify Go Sandbox Engine
+        run: |
+          cd services/part3-assessment-sandbox/coding-service
+          go build -v ./...

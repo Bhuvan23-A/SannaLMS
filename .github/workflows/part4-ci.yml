@@ -1,0 +1,25 @@
+name: Part 4 - AI & Analytics CI
+
+on:
+  push:
+    branches: [ part4/ai-analytics-placements, develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Verify FastAPI AI Service
+        run: |
+          cd services/part4-ai-analytics/ai-service
+          pip install -r requirements.txt
+          python -c "import main; print('FastAPI AI Service Verified')"

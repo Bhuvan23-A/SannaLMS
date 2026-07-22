@@ -1,0 +1,24 @@
+name: Part 2 - LMS Core & Realtime CI
+
+on:
+  push:
+    branches: [ part2/core-lms-content-chat, develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Verify Chat Service
+        run: |
+          cd services/part2-core-lms/chat-service
+          npm install
