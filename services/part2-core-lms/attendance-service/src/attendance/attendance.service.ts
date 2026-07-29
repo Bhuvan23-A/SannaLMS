@@ -1,0 +1,100 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import * as crypto from 'crypto';
+
+@Injectable()
+export class AttendanceService {
+  constructor(private prisma: PrismaService) {}
+
+  // ─── Sessions ─────────────────────────────────────────────
+  async createSession(data: Record<string, any>, tenantId: string) {
+    return this.prisma.session.create({
+      data: {
+        tenant_id: tenantId,
+        course_id: data.course_id,
+        title: data.title,
+        date: new Date(data.date),
+        location: data.location,
+        lat: data.lat,
+        lng: data.lng,
+        radius_m: data.radius_m || 100,
+        // Auto-generate a QR token for every session
+        qr_token: crypto.randomBytes(16).toString('hex'),
+      }
+    });
+  }
+
+  async getSessions(tenantId: string, courseId: string) {
+    return this.prisma.session.findMany({
+      where: { tenant_id: tenantId, course_id: courseId },
+      orderBy: { date: 'desc' },
+      include: { _count: { select: { records: true } } }
+    });
+  }
+
+  // ─── Manual Attendance ───────────────────────────────────
+  async markManual(sessionId: string, userId: string, status: string, tenantId: string) {
+    return this.prisma.attendanceRecord.upsert({
+      where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+      create: { session_id: sessionId, user_id: userId, tenant_id: tenantId, status, method: 'MANUAL' },
+      update: { status, method: 'MANUAL', check_in_at: new Date() }
+    });
+  }
+
+  // ─── QR Attendance ───────────────────────────────────────
+  async checkInByQR(qrToken: string, userId: string, tenantId: string) {
+    const session = await this.prisma.session.findUnique({ where: { qr_token: qrToken } });
+    if (!session) throw new Error('Invalid QR code or session not found');
+    return this.prisma.attendanceRecord.upsert({
+      where: { session_id_user_id: { session_id: session.id, user_id: userId } },
+      create: { session_id: session.id, user_id: userId, tenant_id: tenantId, status: 'PRESENT', method: 'QR' },
+      update: { status: 'PRESENT', method: 'QR', check_in_at: new Date() }
+    });
+  }
+
+  // ─── GPS Attendance ──────────────────────────────────────
+  async checkInByGPS(sessionId: string, userId: string, lat: number, lng: number, tenantId: string) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error('Session not found');
+
+    // Haversine distance calculation
+    const R = 6371000; // Earth radius in meters
+    const phi1 = (session.lat ?? 0) * Math.PI / 180;
+    const phi2 = lat * Math.PI / 180;
+    const dPhi = (lat - (session.lat ?? 0)) * Math.PI / 180;
+    const dLambda = (lng - (session.lng ?? 0)) * Math.PI / 180;
+    const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    if (dist > (session.radius_m ?? 100)) {
+      throw new Error(`You are ${Math.round(dist)}m away. Must be within ${session.radius_m}m.`);
+    }
+
+    return this.prisma.attendanceRecord.upsert({
+      where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+      create: { session_id: sessionId, user_id: userId, tenant_id: tenantId, status: 'PRESENT', method: 'GPS' },
+      update: { status: 'PRESENT', method: 'GPS', check_in_at: new Date() }
+    });
+  }
+
+  // ─── Reports ─────────────────────────────────────────────
+  async getSessionRecords(sessionId: string) {
+    return this.prisma.attendanceRecord.findMany({ where: { session_id: sessionId } });
+  }
+
+  async getStudentAttendance(courseId: string, userId: string, tenantId: string) {
+    const sessions = await this.prisma.session.findMany({ where: { tenant_id: tenantId, course_id: courseId } });
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: { user_id: userId, session_id: { in: sessions.map(s => s.id) } }
+    });
+    const total = sessions.length;
+    const present = records.filter(r => r.status === 'PRESENT').length;
+    return {
+      total_sessions: total,
+      present: present,
+      absent: total - present,
+      percentage: total > 0 ? Math.round((present / total) * 100) : 0,
+      records
+    };
+  }
+}

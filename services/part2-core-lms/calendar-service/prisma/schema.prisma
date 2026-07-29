@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventType {
+  CLASS
+  EXAM
+  ASSIGNMENT_DEADLINE
+  HOLIDAY
+  OTHER
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  start_time  DateTime
+  end_time    DateTime
+  event_type  EventType @default(OTHER)
+  course_id   String?  // Logical link to course-service
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+}

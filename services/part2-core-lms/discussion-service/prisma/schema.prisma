@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Discussion Forums ────────────────────────────────────
+model Forum {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  course_id   String?
+  title       String
+  description String?
+  is_locked   Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  threads     Thread[]
+}
+
+model Thread {
+  id          String   @id @default(uuid())
+  forum_id    String
+  user_id     String
+  tenant_id   String
+  title       String
+  content     String
+  is_solved   Boolean  @default(false)
+  is_locked   Boolean  @default(false)
+  views       Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  forum       Forum    @relation(fields: [forum_id], references: [id], onDelete: Cascade)
+  posts       Post[]
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  thread_id   String
+  user_id     String
+  tenant_id   String
+  content     String
+  is_answer   Boolean  @default(false)
+  attachments String[]
+  read_by     String[] // Array of user_ids who have read this post
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  thread      Thread   @relation(fields: [thread_id], references: [id], onDelete: Cascade)
+}
+
+// ─── Direct Messaging (1-to-1 Chat) ──────────────────────
+model DirectMessage {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  from_user   String
+  to_user     String
+  content     String
+  file_url    String?  // File sharing
+  is_read     Boolean  @default(false)
+  read_at     DateTime?
+  created_at  DateTime @default(now())
+
+  // Index for fetching conversation between two users
+  @@index([from_user, to_user])
+  @@index([to_user, from_user])
+}
+
+// ─── Group Chat ───────────────────────────────────────────
+model ChatRoom {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  name        String
+  description String?
+  type        String   @default("GROUP") // GROUP | COURSE | COHORT
+  course_id   String?
+  created_by  String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  members     ChatMember[]
+  messages    ChatMessage[]
+}
+
+model ChatMember {
+  id          String   @id @default(uuid())
+  room_id     String
+  user_id     String
+  role        String   @default("MEMBER") // ADMIN | MEMBER
+  joined_at   DateTime @default(now())
+  last_read_at DateTime?
+
+  room        ChatRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  @@unique([room_id, user_id])
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  room_id     String
+  user_id     String
+  tenant_id   String
+  content     String
+  file_url    String?  // File sharing
+  created_at  DateTime @default(now())
+
+  room        ChatRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+}
