@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+﻿FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -7,6 +7,9 @@ COPY tsconfig.build.json ./
 COPY tsconfig.json ./
 
 RUN npm ci
+
+COPY prisma ./prisma
+RUN npx prisma generate
 
 COPY . .
 
@@ -19,6 +22,9 @@ WORKDIR /app
 COPY package*.json ./
 
 RUN npm ci --only=production
+
+COPY prisma ./prisma
+RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
 
