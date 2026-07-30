@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ControlCenter from './ControlCenter';
 import { Dashboard } from './pages/Dashboard';
+import Part3Console from './pages/Part3Console';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, login } = useAuth();
@@ -15,7 +16,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 const App: React.FC = () => {
-  const { isInitialized, initError } = useAuth();
+  const { isInitialized } = useAuth();
 
   if (!isInitialized) {
     return (
@@ -25,12 +26,11 @@ const App: React.FC = () => {
     );
   }
 
-
-
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ControlCenter />} />
+        <Route path="/part3" element={<Part3Console />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />

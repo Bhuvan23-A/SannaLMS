@@ -18,7 +18,7 @@ export default function ControlCenter() {
         </p>
 
         {/* Auth Integration */}
-        <div style={{ marginTop: '2rem' }}>
+        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
           {!isAuthenticated ? (
             <button 
               onClick={login}
@@ -40,6 +40,16 @@ export default function ControlCenter() {
               Go to Secure User Dashboard →
             </button>
           )}
+
+          <button 
+            onClick={() => navigate('/part3')}
+            style={{
+              background: 'linear-gradient(135deg, #14b8a6, #0f766e)',
+              color: 'white', border: 'none', padding: '12px 24px', 
+              borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '1rem'
+            }}>
+            Go to Part 3 Sandbox Console →
+          </button>
         </div>
       </header>
 

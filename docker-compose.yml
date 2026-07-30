@@ -132,6 +132,64 @@ services:
     depends_on:
       - kong
 
+  # -----------------------------------------------------------------
+  # Part 3 Services
+  # -----------------------------------------------------------------
+  coding-service:
+    build:
+      context: ./services/part3-assessment-sandbox/coding-service
+      dockerfile: Dockerfile
+    container_name: sannalms-coding-service
+    restart: always
+    ports:
+      - "4003:4003"
+    environment:
+      - PORT=4003
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - postgres
+
+  assessment-service:
+    build:
+      context: ./services/part3-assessment-sandbox/assessment-service
+      dockerfile: Dockerfile
+    container_name: sannalms-assessment-service
+    restart: always
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=SannaLMS_Pass_2026!
+      - POSTGRES_DB=sannalms_master
+    depends_on:
+      - postgres
+      - redis
+
+  assignment-service:
+    build:
+      context: ./services/part3-assessment-sandbox/assignment-service
+      dockerfile: Dockerfile
+    container_name: sannalms-assignment-service
+    restart: always
+    ports:
+      - "4005:4005"
+    environment:
+      - PORT=4005
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=SannaLMS_Pass_2026!
+      - POSTGRES_DB=sannalms_master
+      - MINIO_ENDPOINT=minio
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin_secure
+    depends_on:
+      - postgres
+      - minio
+
 volumes:
   postgres_data:
   kong_data:
