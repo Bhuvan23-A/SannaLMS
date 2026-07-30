@@ -29,14 +29,15 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<ControlCenter />} />
-        <Route path="/part3" element={<Part3Console />} />
-        <Route path="/dashboard" element={
+        <Route path="/" element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
         } />
+        <Route path="/control-center" element={<ControlCenter />} />
+        <Route path="/part3" element={<Part3Console />} />
       </Routes>
+
     </BrowserRouter>
   );
 };
