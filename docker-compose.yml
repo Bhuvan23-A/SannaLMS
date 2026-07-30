@@ -127,6 +127,7 @@ services:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./frontend/saas-web-app/dist:/usr/share/nginx/html:ro
     depends_on:
+      - keycloak
       - kong
 
   # -----------------------------------------------------------------
