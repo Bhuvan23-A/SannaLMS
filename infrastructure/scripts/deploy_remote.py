@@ -114,9 +114,11 @@ def deploy():
         line = stdout.readline()
         if not line:
             break
-        print(f"   [DOCKER] {line.strip()}")
+        # Strip out any non-ascii characters to prevent Windows console encoding crashes
+        clean_line = line.strip().encode('ascii', errors='ignore').decode('ascii')
+        print(f"   [DOCKER] {clean_line}")
         
-    err_output = stderr.read().decode('utf-8')
+    err_output = stderr.read().decode('utf-8', errors='ignore')
     if err_output:
         print(f"   [DOCKER ERR] {err_output}")
 
