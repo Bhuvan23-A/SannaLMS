@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Get, Param } from '@nestjs/common';
-import { CreateUserUseCase, CreateUserRequest } from '../../application/use-cases/create-user.use-case';
+import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
+import type { CreateUserRequest } from '../../application/use-cases/create-user.use-case';
 
 @Controller('users')
 export class UserController {
