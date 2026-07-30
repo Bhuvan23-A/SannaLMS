@@ -179,12 +179,13 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 	// Wait for container completion with timeout handler
 	resultChan, errChan := dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
 	var waitErr error
-	var waitResult container.ContainerWaitOKBody
+	var statusCode int64 = -1
 	timedOut := false
 
 	select {
-	case waitResult = <-resultChan:
+	case waitResult := <-resultChan:
 		// Completed normally
+		statusCode = waitResult.StatusCode
 	case waitErr = <-errChan:
 		// Err or ctx timeout
 		if ctx.Err() != nil {
@@ -238,7 +239,7 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 	stdoutStr := stdoutBuf.String()
 
 	status := "PASSED"
-	if waitResult.StatusCode != 0 {
+	if statusCode != 0 {
 		status = "RUNTIME_ERROR"
 		// If compiler outputs error, it could also be compilation error
 		if req.Language == "cpp" || req.Language == "java" {
