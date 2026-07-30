@@ -25,17 +25,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (initError) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: '#ef4444', background: '#0f172a', padding: '2rem', textAlign: 'center' }}>
-        <div>
-          <h2>Connection Error</h2>
-          <p>{initError}</p>
-          <p style={{ color: '#94a3b8', marginTop: '1rem', fontSize: '0.9rem' }}>Please run `docker-compose up -d` to start Keycloak on port 8080.</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <BrowserRouter>
