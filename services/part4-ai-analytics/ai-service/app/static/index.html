@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Enterprise LMS - Production Master Control Hub</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #070A13;
+            --bg-surface: #0F172A;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-hover: rgba(30, 41, 59, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(59, 130, 246, 0.3);
+            
+            --accent-blue: #3B82F6;
+            --accent-cyan: #06B6D4;
+            --accent-purple: #8B5CF6;
+            --accent-green: #10B981;
+            --accent-rose: #F43F5E;
+            --accent-amber: #F59E0B;
+            
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --text-subtle: #64748B;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-full: 9999px;
+            
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-card: 0 12px 32px -4px rgba(0, 0, 0, 0.4), 0 4px 12px -2px rgba(0, 0, 0, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        html, body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 24px 60px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #60A5FA, #C084FC, #38BDF8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .system-status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+            transition: var(--transition-fast);
+        }
+
+        .status-badge:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-main);
+        }
+
+        .dot-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+
+        .nav-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 6px 0 16px;
+            margin-bottom: 24px;
+            scrollbar-width: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .nav-filter-bar::-webkit-scrollbar { display: none; }
+
+        .filter-tab {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 9px 18px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition-fast);
+        }
+
+        .filter-tab:hover, .filter-tab.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border-color: var(--accent-blue);
+            color: var(--text-main);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (min-width: 1200px) {
+            .grid-container { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (min-width: 1600px) {
+            .grid-container { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .span-2 { grid-column: span 1; }
+        @media (min-width: 768px) { .span-2 { grid-column: span 2; } }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-card);
+            transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 18px;
+            color: var(--accent-blue);
+        }
+
+        .card-title h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .day-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: var(--radius-sm);
+            background: rgba(59, 130, 246, 0.15);
+            color: #93C5FD;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            flex-grow: 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .input-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-size: 13px;
+            font-family: inherit;
+            transition: var(--transition-fast);
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        textarea.input-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: auto;
+            padding-top: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #10B981);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .output-box {
+            background: #040711;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #A7F3D0;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 12px;
+            scrollbar-width: thin;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: #000;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 12px;
+        }
+
+        video#webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        canvas#proctoring-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .camera-overlay-hud {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #38BDF8;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            backdrop-filter: blur(6px);
+            z-index: 10;
+        }
+
+        .meter-wrapper { margin-top: 8px; }
+        .meter-labels { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; font-weight: 600; }
+        .meter-bar { height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: var(--radius-full); overflow: hidden; }
+        .meter-fill { height: 100%; width: 0%; background: var(--accent-green); transition: width 0.4s ease; }
+
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        th { color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+
+        .chart-container { position: relative; width: 100%; height: 180px; margin-top: 14px; }
+
+        .toast-container {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px 20px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+        }
+
+        .toast-danger { border-color: var(--accent-rose); color: #FECDD3; }
+        .toast-warning { border-color: var(--accent-amber); color: #FEF3C7; }
+        .toast-success { border-color: var(--accent-green); color: #D1FAE5; }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            max-width: 650px;
+            width: 100%;
+            padding: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: var(--text-muted);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .badge-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .badge-card i {
+            font-size: 22px;
+            color: var(--accent-amber);
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <header>
+            <div class="brand">
+                <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                <div class="brand-text">
+                    <h1>Enterprise LMS Control Hub</h1>
+                    <p>Production Microservices Unit (Complete Suite)</p>
+                </div>
+            </div>
+
+            <div class="system-status-bar">
+                <div class="status-badge" id="badge-mongo">
+                    <span class="dot-indicator"></span>
+                    <span>MongoDB: Connected</span>
+                </div>
+                <div class="status-badge" id="badge-security">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--accent-green)"></i>
+                    <span>OWASP Headers: Enforced</span>
+                </div>
+                <div class="status-badge" id="badge-ratelimit">
+                    <i class="fa-solid fa-gauge-high" style="color: var(--accent-cyan)"></i>
+                    <span>Rate Limit: 120 req/m</span>
+                </div>
+                <button class="btn btn-secondary" onclick="openSecurityAuditModal()" style="padding: 6px 14px; font-size: 12px;">
+                    <i class="fa-solid fa-lock"></i> Security Audit
+                </button>
+            </div>
+        </header>
+
+        <div class="nav-filter-bar">
+            <button class="filter-tab active" onclick="filterCategory('all', this)"><i class="fa-solid fa-cubes"></i> All 12 Modules</button>
+            <button class="filter-tab" onclick="filterCategory('data', this)"><i class="fa-solid fa-database"></i> Dynamic Data Hub</button>
+            <button class="filter-tab" onclick="filterCategory('analytics', this)"><i class="fa-solid fa-chart-pie"></i> Analytics & BI</button>
+            <button class="filter-tab" onclick="filterCategory('placements', this)"><i class="fa-solid fa-briefcase"></i> Placements & Resumes</button>
+            <button class="filter-tab" onclick="filterCategory('proctoring', this)"><i class="fa-solid fa-eye"></i> AI Vision Proctoring</button>
+            <button class="filter-tab" onclick="filterCategory('tutor', this)"><i class="fa-solid fa-brain"></i> AI Tutor & Gamification</button>
+        </div>
+
+
+        <div id="toast-container" class="toast-container"></div>
+
+        <div class="grid-container">
+
+            <!-- DYNAMIC DATA CARD 1: Add New Dynamic Student -->
+            <div class="card cat-data span-2">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-user-plus" style="color: var(--accent-cyan);"></i>
+                        <h2>Register Dynamic Student Record</h2>
+                    </div>
+                    <span class="day-badge" style="background: rgba(6, 182, 212, 0.15); color: #67E8F9; border-color: rgba(6, 182, 212, 0.3);">DYNAMIC HUB</span>
+                </div>
+                <p class="card-desc">Inject custom real-time student profiles into MongoDB / In-Memory store. Analytics, Risk Predictor, & Leaderboards update live!</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Student ID</label>
+                        <input type="text" id="dyn-stu-id" class="input-control" value="STU_201" placeholder="STU_201">
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="dyn-stu-name" class="input-control" value="Kavya Nair" placeholder="Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="dyn-stu-email" class="input-control" value="kavya@example.com">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Batch ID</label>
+                        <select id="dyn-stu-batch" class="input-control">
+                            <option value="BATCH_2026_A">BATCH_2026_A</option>
+                            <option value="BATCH_2026_B">BATCH_2026_B</option>
+                            <option value="BATCH_2026_C">BATCH_2026_C</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tenant ID</label>
+                        <select id="dyn-stu-tenant" class="input-control">
+                            <option value="TENANT_ALPHA">TENANT_ALPHA</option>
+                            <option value="TENANT_BETA">TENANT_BETA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Branch</label>
+                        <select id="dyn-stu-branch" class="input-control">
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Mechanical">Mechanical</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>CGPA (0-10)</label>
+                        <input type="number" step="0.1" id="dyn-stu-cgpa" class="input-control" value="8.9">
+                    </div>
+                    <div class="form-group">
+                        <label>Attendance %</label>
+                        <input type="number" id="dyn-stu-att" class="input-control" value="94">
+                    </div>
+                    <div class="form-group">
+                        <label>Quiz Score %</label>
+                        <input type="number" id="dyn-stu-quiz" class="input-control" value="91">
+                    </div>
+                    <div class="form-group">
+                        <label>Days Inactive</label>
+                        <input type="number" id="dyn-stu-days" class="input-control" value="1">
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="registerDynamicStudent()"><i class="fa-solid fa-plus-circle"></i> Add Dynamic Student</button>
+                    <button class="btn btn-secondary" onclick="resetDynamicDataset()"><i class="fa-solid fa-rotate-left"></i> Reset Baseline Data</button>
+                </div>
+            </div>
+
+            <!-- DYNAMIC DATA CARD 2: Dynamic Students Data Directory Table -->
+            <div class="card cat-data span-2">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-users-gear" style="color: var(--accent-purple);"></i>
+                        <h2>Live Student Data Directory</h2>
+                    </div>
+                    <span class="day-badge" style="background: rgba(139, 92, 246, 0.15); color: #C084FC; border-color: rgba(139, 92, 246, 0.3);">REAL-TIME STORE</span>
+                </div>
+                <p class="card-desc">Active database records currently feeding Pandas aggregation & ML prediction engines.</p>
+
+                <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table id="dynamic-students-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name & Branch</th>
+                                <th>CGPA</th>
+                                <th>Attendance</th>
+                                <th>Quiz Avg</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dynamic-students-body">
+                            <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Fetching registered students...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CARD 1: Analytics Data Aggregation -->
+            <div class="card cat-analytics">
+
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h2>Data Aggregation Engine</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Pandas grouping across attendance, quiz scores, and completions by <code>batch_id</code> & <code>tenant_id</code> with rolling averages.</p>
+                <button class="btn" onclick="fetchAnalytics()"><i class="fa-solid fa-bolt"></i> Run Pandas Aggregation</button>
+                <div id="analytics-output" class="output-box">Click button to calculate aggregated metrics...</div>
+                
+                <div class="chart-container">
+                    <canvas id="analyticsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- CARD 2: AI Dropout Risk Model -->
+            <div class="card cat-analytics">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-brain"></i>
+                        <h2>Ensemble AI Dropout Predictor</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Advanced Voting Ensemble (Random Forest + Gradient Boosting) evaluating dropout risk probability, feature drivers, and remediation steps.</p>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Days Inactive</label>
+                        <input type="number" id="ml-days" class="input-control" value="28">
+                    </div>
+                    <div class="form-group">
+                        <label>Quiz Score %</label>
+                        <input type="number" id="ml-quiz" class="input-control" value="38">
+                    </div>
+                    <div class="form-group">
+                        <label>Attendance %</label>
+                        <input type="number" id="ml-att" class="input-control" value="42">
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="predictDropout()"><i class="fa-solid fa-wand-magic-sparkles"></i> Predict Risk & Remediation</button>
+                    <button class="btn btn-secondary" onclick="fetchHighRiskWatchlist()"><i class="fa-solid fa-user-ninja"></i> Risk Watchlist</button>
+                </div>
+                <div id="ml-output" class="output-box">Ensemble prediction analysis will appear here...</div>
+            </div>
+
+            <!-- CARD 3: Power BI Data Exporter -->
+            <div class="card cat-analytics">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <h2>Power BI CSV Formatter</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Utility exporter formatting JSON metrics into denormalized, flat CSV structures with ISO dates and foreign keys.</p>
+                
+                <div style="margin-top: 10px;">
+                    <a href="/api/analytics/export-powerbi-csv" class="btn btn-secondary" style="width: 100%;" target="_blank">
+                        <i class="fa-solid fa-download"></i> Export Power BI CSV Stream
+                    </a>
+                </div>
+            </div>
+
+            <!-- CARD 4: Placement Drive System -->
+            <div class="card cat-placements">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-building"></i>
+                        <h2>Placement Drive System</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Post job drives, enforce eligibility rules (min CGPA, branches), and submit student applications.</p>
+                
+                <div class="form-group">
+                    <label>Target Job Drive</label>
+                    <select id="placement-drive-select" class="input-control">
+                        <option value="DRIVE_2026_TECH">Google DeepMind - AI Engineer (Min CGPA: 7.5)</option>
+                        <option value="DRIVE_2026_DATA">Antigravity Analytics - Data Scientist (Min CGPA: 7.0)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Student CGPA</label>
+                        <input type="number" step="0.1" id="app-cgpa" class="input-control" value="8.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Branch</label>
+                        <input type="text" id="app-branch" class="input-control" value="Computer Science">
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="submitApplication()"><i class="fa-solid fa-paper-plane"></i> Apply Now</button>
+                    <button class="btn btn-secondary" onclick="checkATSScore()"><i class="fa-solid fa-bullseye"></i> ATS Matcher</button>
+                </div>
+                <div id="placement-output" class="output-box">Application submission & ATS match logs...</div>
+            </div>
+
+
+            <!-- CARD 5 & 6: Resume & RSA Certificate -->
+            <div class="card cat-placements">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <h2>PDF Resumes & RSA Certificates</h2>
+                    </div>
+                </div>
+                <p class="card-desc">ReportLab dynamic PDF resume generator and RSA-2048 cryptographically signed completion certificate with QR verification.</p>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="generateResume()"><i class="fa-solid fa-file-arrow-down"></i> PDF Resume</button>
+                    <button class="btn" onclick="generateCertificate()"><i class="fa-solid fa-shield"></i> RSA Certificate</button>
+                </div>
+                <div id="pdf-output" class="output-box">Document generation logs...</div>
+            </div>
+
+            <!-- CARD 7 & 8: AI Proctoring Stream -->
+            <div class="card cat-proctoring span-2">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-video"></i>
+                        <h2>AI Vision Proctoring Stream</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Real-time OpenCV webcam frame stream via WebSocket evaluating zero faces, multiple faces, and gaze direction.</p>
+                
+                <div class="video-container">
+                    <video id="webcam" autoplay playsinline muted></video>
+                    <canvas id="proctoring-canvas"></canvas>
+                    <div class="camera-overlay-hud">
+                        <span><i class="fa-solid fa-signal" style="color: var(--accent-green)"></i> LIVE 1 FPS</span>
+                        <span id="hud-gaze" style="color: var(--accent-cyan)">GAZE: CENTER</span>
+                        <span id="hud-faces">FACES: 0</span>
+                    </div>
+                </div>
+
+                <div class="meter-wrapper">
+                    <div class="meter-labels">
+                        <span>Suspicious Activity Index</span>
+                        <span id="score-text">0.00</span>
+                    </div>
+                    <div class="meter-bar">
+                        <div id="meter-fill" class="meter-fill"></div>
+                    </div>
+                </div>
+
+                <div class="btn-group" style="margin-top: 14px;">
+                    <button class="btn btn-success" onclick="startProctoring()"><i class="fa-solid fa-camera"></i> Start Camera Stream</button>
+                    <button class="btn btn-secondary" onclick="stopProctoring()"><i class="fa-solid fa-stop"></i> Stop Camera</button>
+                </div>
+            </div>
+
+            <!-- CARD 9: Exam Browser Lockdown -->
+            <div class="card cat-proctoring">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-shield-cat"></i>
+                        <h2>Auto Browser Lockdown Logger</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Automated listener tracking tab switching, window blur, right-click, and copy-paste attempts logged to MongoDB in real-time.</p>
+
+                <div class="status-badge" style="width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); margin-bottom: 12px;">
+                    <span class="dot-indicator"></span>
+                    <span>AUTOMATIC MONITORING ACTIVE</span>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="simulateViolation('tab_switch')">Test Tab Switch</button>
+                    <button class="btn btn-secondary" onclick="fetchExamSummary('EXAM_DEMO')"><i class="fa-solid fa-clipboard-check"></i> Audit Summary</button>
+                </div>
+                <button class="btn btn-secondary" onclick="fetchViolations()" style="margin-top: 10px; width: 100%;"><i class="fa-solid fa-list-check"></i> Refresh Violation Log</button>
+                <div id="violations-output" class="output-box">Violation log entries...</div>
+            </div>
+
+            <!-- CARD 10: Gemini RAG AI Tutor & Practice Quiz Generator -->
+            <div class="card cat-tutor span-2">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <h2>RAG AI Tutor & Quiz Generator</h2>
+                    </div>
+                </div>
+                <p class="card-desc">Chunk-based retrieval augmented generation prompting Google Gemini API strictly constrained to course materials.</p>
+                
+                <div class="form-group">
+                    <label>Course Context / Module Transcript</label>
+                    <textarea id="tutor-context" class="input-control">Python functions are declared using def. Arguments can be positional or keyword based. Default parameter values are evaluated once when the function definition is executed.</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Student Question</label>
+                    <input type="text" id="tutor-query" class="input-control" value="How are default parameters evaluated in Python functions?">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" onclick="queryTutor()"><i class="fa-solid fa-paper-plane"></i> Ask Gemini AI Tutor</button>
+                    <button class="btn btn-secondary" onclick="generatePracticeQuiz()"><i class="fa-solid fa-vial"></i> Generate RAG Practice Quiz</button>
+                </div>
+                <div id="tutor-output" class="output-box">AI Tutor answer & generated quiz will appear here...</div>
+            </div>
+
+            <!-- CARD 11 & 12: Gamification & Redis Leaderboard -->
+            <div class="card cat-tutor span-2">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-trophy"></i>
+                        <h2>Gamification & Real-Time Leaderboard</h2>
+                    </div>
+                </div>
+                <p class="card-desc">FastAPI XP/level microservice integrated with Redis Sorted Sets (ZADD/ZREVRANGE) for real-time student rankings.</p>
+                
+                <div class="btn-group">
+                    <button class="btn" onclick="awardXP('STU_101', 'completed_module')"><i class="fa-solid fa-plus"></i> +100 XP (Module)</button>
+                    <button class="btn btn-secondary" onclick="awardXP('STU_101', 'quiz_ace')"><i class="fa-solid fa-star"></i> +200 XP (Quiz Ace)</button>
+                    <button class="btn btn-secondary" onclick="fetchBadgeCatalog()"><i class="fa-solid fa-award"></i> Badges Catalog</button>
+                </div>
+
+                <div id="badge-catalog-view" class="badge-grid" style="display: none;"></div>
+
+                <div class="table-responsive">
+                    <table id="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student ID & Name</th>
+                                <th>XP Points</th>
+                                <th>Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading live rankings...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Security Audit Modal Window -->
+    <div id="security-modal" class="modal-overlay">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeSecurityAuditModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <i class="fa-solid fa-shield-virus" style="font-size: 24px; color: var(--accent-green)"></i>
+                <h2 style="font-size: 20px; font-weight: 700;">System Security Audit & OWASP Report</h2>
+            </div>
+            <div id="security-audit-content" class="output-box" style="max-height: 350px;">Fetching audit report...</div>
+        </div>
+    </div>
+
+    <script src="/static/lockdown.js"></script>
+    <script>
+        function filterCategory(category, element) {
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
+            const cards = document.querySelectorAll('.grid-container .card');
+            cards.forEach(card => {
+                if (category === 'all' || card.classList.contains(`cat-${category}`)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            let icon = 'fa-info-circle';
+            if (type === 'danger') icon = 'fa-triangle-exclamation';
+            if (type === 'warning') icon = 'fa-shield-cat';
+            if (type === 'success') icon = 'fa-circle-check';
+
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        async function openSecurityAuditModal() {
+            const modal = document.getElementById('security-modal');
+            const content = document.getElementById('security-audit-content');
+            modal.style.display = 'flex';
+            content.textContent = "Loading security audit data from server...";
+            
+            try {
+                const res = await fetch('/api/security/status');
+                const data = await res.json();
+                content.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                content.textContent = "Security Audit Error: " + err.message;
+            }
+        }
+
+        function closeSecurityAuditModal() {
+            document.getElementById('security-modal').style.display = 'none';
+        }
+
+        let analyticsChart = null;
+
+        async function fetchAnalytics() {
+            const out = document.getElementById('analytics-output');
+            out.textContent = "Executing Pandas aggregation over MongoDB collections...";
+            
+            try {
+                const res = await fetch('/api/analytics/aggregated-metrics');
+                if (res.status === 429) {
+                    showToast("Rate limit hit! Please wait 60 seconds.", "warning");
+                    return;
+                }
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+                renderAnalyticsChart(data.grouped_analytics);
+                showToast("Analytics aggregation updated successfully!", "success");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+                showToast("Failed to fetch analytics", "danger");
+            }
+        }
+
+        function renderAnalyticsChart(analyticsData) {
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
+            if (analyticsChart) analyticsChart.destroy();
+
+            const labels = analyticsData.map(d => `${d.tenant_id} (${d.batch_id})`);
+            const attendanceData = analyticsData.map(d => d.avg_attendance);
+            const quizData = analyticsData.map(d => d.avg_quiz_score);
+            const completionData = analyticsData.map(d => d.avg_completion_rate * 100);
+
+            analyticsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Attendance %', data: attendanceData, backgroundColor: '#3B82F6' },
+                        { label: 'Quiz Score %', data: quizData, backgroundColor: '#8B5CF6' },
+                        { label: 'Completion %', data: completionData, backgroundColor: '#10B981' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94A3B8', font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, max: 100 }
+                    }
+                }
+            });
+        }
+
+        async function predictDropout() {
+            const out = document.getElementById('ml-output');
+            out.textContent = "Invoking Advanced Ensemble AI model pipeline...";
+            try {
+                const res = await fetch('/api/analytics/predict-dropout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        days_since_last_login: parseInt(document.getElementById('ml-days').value),
+                        average_quiz_score: parseFloat(document.getElementById('ml-quiz').value),
+                        attendance_percentage: parseFloat(document.getElementById('ml-att').value)
+                    })
+                });
+                const data = await res.json();
+                
+                let remediationHtml = "";
+                if (data.remediation_steps && data.remediation_steps.length > 0) {
+                    remediationHtml = `\n\n[RECOMMENDED ACTION PLAN]:\n` + data.remediation_steps.map(s => `• ${s}`).join("\n");
+                }
+                
+                out.textContent = JSON.stringify(data, null, 2) + remediationHtml;
+                showToast(`Ensemble Risk Assessment: ${data.risk_level}`, data.dropout_risk ? "danger" : "success");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        async function fetchHighRiskWatchlist() {
+            const out = document.getElementById('ml-output');
+            out.textContent = "Scanning all student profiles for dropout risk factors...";
+            try {
+                const res = await fetch('/api/analytics/high-risk-watchlist');
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+                showToast(`High-Risk Students Watchlist Compiled (${data.high_risk_count} Flagged)`, "warning");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        async function submitApplication() {
+            const out = document.getElementById('placement-output');
+            const driveId = document.getElementById('placement-drive-select').value;
+            out.textContent = "Checking eligibility constraints & saving application...";
+            try {
+                const res = await fetch('/api/placements/applications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        drive_id: driveId,
+                        student_id: 'STU_101',
+                        student_name: 'Aarav Sharma',
+                        cgpa: parseFloat(document.getElementById('app-cgpa').value),
+                        branch: document.getElementById('app-branch').value
+                    })
+                });
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+                if (res.ok) showToast("Placement application submitted!", "success");
+                else showToast(data.detail || "Application failed eligibility check", "danger");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        async function generateResume() {
+            const out = document.getElementById('pdf-output');
+            out.textContent = "Building ReportLab PDF resume document...";
+            try {
+                const payload = {
+                    name: "Aarav Sharma",
+                    email: "aarav@example.com",
+                    phone: "+91 98765 43210",
+                    summary: "High-performing AI Backend Developer specializing in FastAPI, MongoDB, and computer vision.",
+                    education: [{ degree: "B.Tech Computer Science", institution: "IIT Bombay", year: "2026", grade: "8.8 CGPA" }],
+                    skills: ["Python", "FastAPI", "MongoDB", "OpenCV", "Scikit-Learn", "Redis"],
+                    projects: [{ title: "LMS Unit Platform", tech_stack: "FastAPI, MongoDB, Gemini RAG", description: "Production-ready enterprise LMS unit." }]
+                };
+                const res = await fetch('/api/placements/generate-resume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Resume_Aarav_Sharma.pdf";
+                a.click();
+                out.textContent = "✅ ReportLab PDF Resume generated and downloaded!";
+                showToast("PDF Resume Downloaded", "success");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        async function generateCertificate() {
+            const out = document.getElementById('pdf-output');
+            out.textContent = "Signing certificate metadata with RSA-2048/SHA256 & generating QR Code...";
+            try {
+                const res = await fetch('/api/placements/generate-certificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: "STU_101",
+                        student_name: "Aarav Sharma",
+                        course_name: "Enterprise LMS Architecture & AI Systems"
+                    })
+                });
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Certificate_STU_101.pdf";
+                a.click();
+                out.textContent = "✅ RSA Signed Certificate generated with embedded QR Code verification URL!";
+                showToast("RSA Certificate Downloaded", "success");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        let ws = null;
+        let videoStream = null;
+        let frameInterval = null;
+
+        async function startProctoring() {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('proctoring-canvas');
+            const ctx = canvas.getContext('2d');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+                video.srcObject = videoStream;
+                
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${protocol}//${window.location.host}/ws/proctoring`);
+
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    document.getElementById('score-text').textContent = data.suspicious_activity_score;
+                    document.getElementById('hud-gaze').textContent = "GAZE: " + (data.estimated_gaze || "CENTER");
+                    document.getElementById('hud-faces').textContent = "FACES: " + (data.face_count || 0);
+                    
+                    const fill = document.getElementById('meter-fill');
+                    const score = data.suspicious_activity_score * 100;
+                    fill.style.width = score + "%";
+                    fill.style.backgroundColor = score > 60 ? "#F43F5E" : (score > 30 ? "#F59E0B" : "#10B981");
+
+                    drawProctoringOverlay(ctx, canvas.width, canvas.height, data);
+                };
+
+                canvas.width = 320;
+                canvas.height = 240;
+
+                const sendCanvas = document.createElement('canvas');
+                const sendCtx = sendCanvas.getContext('2d');
+                sendCanvas.width = 320;
+                sendCanvas.height = 240;
+
+                frameInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        sendCtx.drawImage(video, 0, 0, 320, 240);
+                        const base64Frame = sendCanvas.toDataURL('image/jpeg', 0.5);
+                        ws.send(JSON.stringify({ frame: base64Frame, student_id: 'STU_101', exam_id: 'EXAM_1' }));
+                    }
+                }, 1000);
+
+                showToast("Proctoring Camera Stream Started", "info");
+
+            } catch (err) {
+                showToast("Camera access required: " + err.message, "danger");
+            }
+        }
+
+        function drawProctoringOverlay(ctx, width, height, data) {
+            ctx.clearRect(0, 0, width, height);
+            const color = data.suspicious_activity_score > 0.6 ? "#F43F5E" : (data.suspicious_activity_score > 0.3 ? "#F59E0B" : "#10B981");
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(40, 30, width - 80, height - 60);
+
+            ctx.fillStyle = color;
+            ctx.fillRect(35, 25, 10, 3);
+            ctx.fillRect(35, 25, 3, 10);
+            ctx.fillRect(width - 45, 25, 10, 3);
+            ctx.fillRect(width - 38, 25, 3, 10);
+
+            if (data.estimated_gaze === "LOOKING_LEFT") {
+                ctx.fillStyle = "#F59E0B";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText("← LOOKING AWAY LEFT", 15, height - 15);
+            } else if (data.estimated_gaze === "LOOKING_RIGHT") {
+                ctx.fillStyle = "#F59E0B";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText("LOOKING AWAY RIGHT →", width - 170, height - 15);
+            }
+        }
+
+        function stopProctoring() {
+            if (frameInterval) clearInterval(frameInterval);
+            if (ws) ws.close();
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            
+            const canvas = document.getElementById('proctoring-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showToast("Proctoring camera stopped", "info");
+        }
+
+        function simulateViolation(type) {
+            fetch('/api/proctoring/violations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id: "STU_101",
+                    exam_id: "EXAM_DEMO",
+                    event_type: type,
+                    details: { simulated: true }
+                })
+            }).then(() => fetchViolations());
+        }
+
+        async function fetchViolations() {
+            const out = document.getElementById('violations-output');
+            try {
+                const res = await fetch('/api/proctoring/violations');
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                out.textContent = "Error fetching violations: " + err.message;
+            }
+        }
+
+        async function fetchExamSummary(examId) {
+            const out = document.getElementById('violations-output');
+            try {
+                const res = await fetch(`/api/proctoring/exam-summary/${examId}`);
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+                showToast(`Exam Audit Integrity Score: ${data.integrity_score}% (${data.official_proctoring_decision})`, data.official_proctoring_decision === "PASS" ? "success" : "danger");
+            } catch (err) {
+                out.textContent = "Error fetching exam summary: " + err.message;
+            }
+        }
+
+        window.addEventListener('lmsViolationEvent', (e) => {
+            showToast(`🚨 Security Violation Logged: ${e.detail.event_type}`, "danger");
+            fetchViolations();
+        });
+
+        async function queryTutor() {
+            const out = document.getElementById('tutor-output');
+            out.textContent = "Performing vector context retrieval & asking Gemini API...";
+            try {
+                const res = await fetch('/api/tutor/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        course_context: document.getElementById('tutor-context').value,
+                        student_query: document.getElementById('tutor-query').value
+                    })
+                });
+                const data = await res.json();
+                out.textContent = `[Gemini Response]:\n${data.answer}\n\n[Confidence]: ${data.confidence_score} | [Chunks Retrieved]: ${data.context_chunks_used}`;
+                showToast("Gemini RAG Tutor response received", "success");
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        }
+
+        async function generatePracticeQuiz() {
+            const out = document.getElementById('tutor-output');
+            out.textContent = "Analyzing course transcript & generating RAG practice quiz questions...";
+            try {
+                const res = await fetch('/api/tutor/generate-quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        course_context: document.getElementById('tutor-context').value,
+                        num_questions: 3
+                    })
+                });
+                const data = await res.json();
+                out.textContent = JSON.stringify(data, null, 2);
+                showToast("Generated 3 RAG Practice Questions!", "success");
+            } catch (err) {
+                out.textContent = "Error generating quiz: " + err.message;
+            }
+        }
+
+        async function awardXP(studentId, action) {
+            try {
+                const res = await fetch('/api/gamification/award-xp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: studentId, action_type: action })
+                });
+                const data = await res.json();
+                showToast(`🎉 XP Awarded! Level ${data.level} (Total XP: ${data.xp_points})`, "success");
+                fetchLeaderboard();
+            } catch (err) {
+                showToast("Failed to award XP", "danger");
+            }
+        }
+
+        async function fetchBadgeCatalog() {
+            const container = document.getElementById('badge-catalog-view');
+            container.style.display = container.style.display === 'none' ? 'grid' : 'none';
+            if (container.style.display === 'grid') {
+                try {
+                    const res = await fetch('/api/gamification/badges/catalog');
+                    const data = await res.json();
+                    container.innerHTML = data.badges.map(b => `
+                        <div class="badge-card">
+                            <i class="fa-solid fa-award"></i>
+                            <div style="font-weight:700; color:var(--text-main);">${b.name}</div>
+                            <div style="color:var(--accent-cyan); font-size:10px; margin-top:2px;">${b.required_xp} XP</div>
+                        </div>
+                    `).join('');
+                } catch (err) {
+                    container.textContent = "Failed to load badges catalog";
+                }
+            }
+        }
+
+        async function fetchLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            try {
+                const res = await fetch('/api/gamification/leaderboard/global');
+                const data = await res.json();
+                
+                tbody.innerHTML = data.map(entry => `
+                    <tr>
+                        <td><b style="color: var(--accent-cyan);">#${entry.rank}</b></td>
+                        <td><b>${entry.student_name}</b> <span style="font-size: 11px; color: var(--text-subtle);">(${entry.student_id})</span></td>
+                        <td><span style="color:#10B981; font-weight:700;">${entry.xp_points} XP</span></td>
+                        <td><span class="day-badge" style="background: rgba(139,92,246,0.15); color: #C084FC; border-color: rgba(139,92,246,0.3);">Lvl ${entry.level}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: var(--accent-rose);">Error loading leaderboard data</td></tr>`;
+            }
+        }
+
+        async function fetchDynamicStudents() {
+            const tbody = document.getElementById('dynamic-students-body');
+            if (!tbody) return;
+            try {
+                const res = await fetch('/api/data/students');
+                const data = await res.json();
+                if (!data.students || data.students.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No student records found.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = data.students.map(s => `
+                    <tr>
+                        <td><b style="color:var(--accent-cyan);">${s.student_id}</b></td>
+                        <td><b>${s.name}</b><br><span style="font-size:11px; color:var(--text-subtle);">${s.branch} (${s.batch_id})</span></td>
+                        <td><span style="color:#F59E0B; font-weight:700;">${s.cgpa}</span></td>
+                        <td><span style="color:#10B981;">${s.attendance_percentage}%</span></td>
+                        <td><span style="color:#8B5CF6;">${s.average_quiz_score}%</span></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="deleteDynamicStudent('${s.student_id}')" style="padding:4px 8px; font-size:11px; background:rgba(244,63,94,0.15); border-color:rgba(244,63,94,0.3); color:#FECDD3;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="color:var(--accent-rose);">Error fetching students list</td></tr>`;
+            }
+        }
+
+        async function registerDynamicStudent() {
+            const payload = {
+                student_id: document.getElementById('dyn-stu-id').value,
+                name: document.getElementById('dyn-stu-name').value,
+                email: document.getElementById('dyn-stu-email').value,
+                batch_id: document.getElementById('dyn-stu-batch').value,
+                tenant_id: document.getElementById('dyn-stu-tenant').value,
+                branch: document.getElementById('dyn-stu-branch').value,
+                cgpa: parseFloat(document.getElementById('dyn-stu-cgpa').value),
+                attendance_percentage: parseFloat(document.getElementById('dyn-stu-att').value),
+                average_quiz_score: parseFloat(document.getElementById('dyn-stu-quiz').value),
+                days_since_last_login: parseInt(document.getElementById('dyn-stu-days').value)
+            };
+
+            try {
+                const res = await fetch('/api/data/students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ Student '${payload.name}' registered!`, "success");
+                    fetchDynamicStudents();
+                    fetchAnalytics();
+                    fetchLeaderboard();
+                } else {
+                    showToast(data.detail || "Registration failed", "danger");
+                }
+            } catch (err) {
+                showToast("Error registering student: " + err.message, "danger");
+            }
+        }
+
+        async function deleteDynamicStudent(studentId) {
+            try {
+                const res = await fetch(`/api/data/students/${studentId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Deleted student ${studentId}`, "success");
+                    fetchDynamicStudents();
+                    fetchAnalytics();
+                    fetchLeaderboard();
+                } else {
+                    showToast(data.detail || "Delete failed", "danger");
+                }
+            } catch (err) {
+                showToast("Error deleting student: " + err.message, "danger");
+            }
+        }
+
+        async function resetDynamicDataset() {
+            try {
+                const res = await fetch('/api/data/reset', { method: 'POST' });
+                const data = await res.json();
+                showToast("Database reset to sample dataset!", "success");
+                fetchDynamicStudents();
+                fetchAnalytics();
+                fetchLeaderboard();
+            } catch (err) {
+                showToast("Reset failed: " + err.message, "danger");
+            }
+        }
+
+        fetchLeaderboard();
+        fetchAnalytics();
+        fetchViolations();
+        fetchDynamicStudents();
+    </script>
+</body>
+</html>
+
