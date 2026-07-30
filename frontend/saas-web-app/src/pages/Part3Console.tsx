@@ -246,9 +246,7 @@ export default function Part3Console() {
       const score = Math.round(((intersect / union) * 100) * 10) / 10;
       if (score > maxScore) maxScore = score;
     });
-
-    const status = maxScore >= 60 ? 'FLAGGED' : 'CLEAN';
-
+    const status: 'CLEAN' | 'FLAGGED' = maxScore >= 60 ? 'FLAGGED' : 'CLEAN';
     const newSub = {
       id: `sub-${Math.floor(100 + Math.random() * 900)}`,
       studentName: studentNameInput,
