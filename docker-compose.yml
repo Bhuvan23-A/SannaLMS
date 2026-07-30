@@ -188,6 +188,39 @@ services:
       - postgres
       - minio
 
+  # -----------------------------------------------------------------
+  # Part 2 Admin UI
+  # -----------------------------------------------------------------
+  admin-ui:
+    build:
+      context: ./frontend/admin-ui
+      dockerfile: Dockerfile
+    container_name: sannalms-admin-ui
+    restart: always
+    ports:
+      - "8086:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - postgres
+
+  # -----------------------------------------------------------------
+  # Part 4 AI, Analytics & Placements
+  # -----------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./services/part4-ai-analytics/ai-service
+      dockerfile: Dockerfile
+    container_name: sannalms-ai-service
+    restart: always
+    ports:
+      - "8008:8000"
+    environment:
+      - PORT=8000
+    depends_on:
+      - postgres
+      - redis
+
 volumes:
   postgres_data:
   kong_data:
