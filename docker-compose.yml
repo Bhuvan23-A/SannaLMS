@@ -188,9 +188,9 @@ services:
       - postgres
       - minio
 
-  # -----------------------------------------------------------------
-  # Part 2 Admin UI
-  # -----------------------------------------------------------------
+  # ================================================================
+  # Part 2 Admin UI (Next.js)
+  # ================================================================
   admin-ui:
     build:
       context: ./frontend/admin-ui
@@ -201,12 +201,13 @@ services:
       - "8086:3000"
     environment:
       - PORT=3000
+      - NEXT_PUBLIC_API_URL=/api/v1
     depends_on:
       - postgres
 
-  # -----------------------------------------------------------------
-  # Part 4 AI, Analytics & Placements
-  # -----------------------------------------------------------------
+  # ================================================================
+  # Part 4: AI, Analytics & Placements (Python FastAPI)
+  # ================================================================
   ai-service:
     build:
       context: ./services/part4-ai-analytics/ai-service
@@ -217,9 +218,220 @@ services:
       - "8008:8000"
     environment:
       - PORT=8000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
       - redis
+
+  # ================================================================
+  # Part 1: Infrastructure, Auth & Identity
+  # ================================================================
+  auth-service:
+    build:
+      context: ./services/part1-infra-auth/auth-service
+      dockerfile: Dockerfile
+    container_name: sannalms-auth-service
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=sannalms
+      - KEYCLOAK_CLIENT_ID=sannalms-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-service:
+    build:
+      context: ./services/part1-infra-auth/user-service
+      dockerfile: Dockerfile
+    container_name: sannalms-user-service
+    restart: always
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ================================================================
+  # Part 2: Core LMS Microservices (NestJS)
+  # ================================================================
+  college-service:
+    build:
+      context: ./services/part2-core-lms/college-service
+      dockerfile: Dockerfile
+    container_name: sannalms-college-service
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  course-service:
+    build:
+      context: ./services/part2-core-lms/course-service
+      dockerfile: Dockerfile
+    container_name: sannalms-course-service
+    restart: always
+    ports:
+      - "3003:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  assessment-p2:
+    build:
+      context: ./services/part2-core-lms/assessment-service
+      dockerfile: Dockerfile
+    container_name: sannalms-assessment-p2
+    restart: always
+    ports:
+      - "3004:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  attendance-service:
+    build:
+      context: ./services/part2-core-lms/attendance-service
+      dockerfile: Dockerfile
+    container_name: sannalms-attendance-service
+    restart: always
+    ports:
+      - "3005:3003"
+    environment:
+      - PORT=3003
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  calendar-service:
+    build:
+      context: ./services/part2-core-lms/calendar-service
+      dockerfile: Dockerfile
+    container_name: sannalms-calendar-service
+    restart: always
+    ports:
+      - "3006:3004"
+    environment:
+      - PORT=3004
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  certificate-service:
+    build:
+      context: ./services/part2-core-lms/certificate-service
+      dockerfile: Dockerfile
+    container_name: sannalms-certificate-service
+    restart: always
+    ports:
+      - "3007:3005"
+    environment:
+      - PORT=3005
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  discussion-service:
+    build:
+      context: ./services/part2-core-lms/discussion-service
+      dockerfile: Dockerfile
+    container_name: sannalms-discussion-service
+    restart: always
+    ports:
+      - "3008:3006"
+    environment:
+      - PORT=3006
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  liveclass-service:
+    build:
+      context: ./services/part2-core-lms/liveclass-service
+      dockerfile: Dockerfile
+    container_name: sannalms-liveclass-service
+    restart: always
+    ports:
+      - "3009:3008"
+    environment:
+      - PORT=3008
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./services/part2-core-lms/notification-service
+      dockerfile: Dockerfile
+    container_name: sannalms-notification-service
+    restart: always
+    ports:
+      - "3010:3009"
+    environment:
+      - PORT=3009
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  search-service:
+    build:
+      context: ./services/part2-core-lms/search-service
+      dockerfile: Dockerfile
+    container_name: sannalms-search-service
+    restart: always
+    ports:
+      - "3011:3010"
+    environment:
+      - PORT=3010
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -1,57 +1,32 @@
+// All API requests go through Kong Gateway → NGINX proxies /api/ → Kong → correct microservice
+// In production: relative /api/v1 is proxied by NGINX to Kong at sannalms-kong:8000
+// In local dev: use NEXT_PUBLIC_API_URL env var pointing to http://localhost:8010/api/v1
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  // Try to get role from localStorage (or default to SUPER_ADMIN for testing)
-  const role = typeof window !== 'undefined' ? localStorage.getItem('mockRole') || 'SUPER_ADMIN' : 'SUPER_ADMIN';
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('mockUserId') || 'u-1' : 'u-1';
-  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('mockTenantId') || 't-1' : 't-1';
-
-  // Route to correct microservice based on endpoint prefix
-  let baseUrl = 'http://localhost:3000'; // Default: college-service / org-service
-
-  if (
-    endpoint.startsWith('/api/v1/courses') ||
-    endpoint.startsWith('/api/v1/course-trainers') ||
-    endpoint.startsWith('/api/v1/prerequisites') ||
-    endpoint.startsWith('/api/v1/enrollments')
-  ) {
-    baseUrl = 'http://localhost:3001'; // course-service
-  } else if (endpoint.startsWith('/api/v1/events') || endpoint.startsWith('/api/v1/calendar')) {
-    baseUrl = 'http://localhost:3003'; // calendar-service
-  } else if (
-    endpoint.startsWith('/api/v1/notifications')
-  ) {
-    baseUrl = 'http://localhost:3004'; // notification-service
-  } else if (
-    endpoint.startsWith('/api/v1/forums') ||
-    endpoint.startsWith('/api/v1/threads')
-  ) {
-    baseUrl = 'http://localhost:3005'; // discussion-service
-  } else if (endpoint.startsWith('/api/v1/search')) {
-    baseUrl = 'http://localhost:3006'; // search-service
-  } else if (
-    endpoint.startsWith('/api/v1/questions') ||
-    endpoint.startsWith('/api/v1/quizzes') ||
-    endpoint.startsWith('/api/v1/assignments') ||
-    endpoint.startsWith('/api/v1/gradebook')
-  ) {
-    baseUrl = 'http://localhost:3007'; // assessment-service
-  } else if (endpoint.startsWith('/api/v1/attendance')) {
-    baseUrl = 'http://localhost:3008'; // attendance-service
-  } else if (endpoint.startsWith('/api/v1/liveclasses')) {
-    baseUrl = 'http://localhost:3009'; // liveclass-service
-  } else if (endpoint.startsWith('/api/v1/certificates')) {
-    baseUrl = 'http://localhost:3010'; // certificate-service
-  } else if (endpoint.startsWith('/api/v1/chat')) {
-    baseUrl = 'http://localhost:3005'; // discussion-service (chat endpoints)
-  }
+  // Get auth context from localStorage (populated after Keycloak login)
+  const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'SUPER_ADMIN' : 'SUPER_ADMIN';
+  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('tenantId') || '' : '';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
 
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    'x-mock-roles': role,
-    'x-mock-user-id': userId,
-    'x-mock-tenant-id': tenantId,
+    'X-Tenant-ID': tenantId,
   };
 
-  const response = await fetch(`${baseUrl}${endpoint}`, {
+  // Attach Bearer token if available (from Keycloak)
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  } else {
+    // Fallback mock headers for development testing
+    defaultHeaders['x-mock-roles'] = role;
+    defaultHeaders['x-mock-user-id'] = userId || 'u-1';
+    defaultHeaders['x-mock-tenant-id'] = tenantId || 't-1';
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       ...defaultHeaders,
