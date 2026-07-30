@@ -243,10 +243,8 @@ services:
       - KEYCLOAK_REALM=sannalms
       - KEYCLOAK_CLIENT_ID=sannalms-api
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
   user-service:
     build:
@@ -261,8 +259,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   # ================================================================
   # Part 2: Core LMS Microservices (NestJS)
@@ -279,8 +276,7 @@ services:
       - PORT=3000
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   course-service:
     build:
@@ -298,8 +294,7 @@ services:
       - MINIO_ACCESS_KEY=admin
       - MINIO_SECRET_KEY=minioadmin
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   assessment-p2:
     build:
@@ -313,8 +308,7 @@ services:
       - PORT=3002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   attendance-service:
     build:
@@ -328,8 +322,7 @@ services:
       - PORT=3003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   calendar-service:
     build:
@@ -343,8 +336,7 @@ services:
       - PORT=3004
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   certificate-service:
     build:
@@ -358,8 +350,7 @@ services:
       - PORT=3005
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
 
   discussion-service:
     build:
@@ -374,10 +365,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
   liveclass-service:
     build:
@@ -392,10 +381,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
   notification-service:
     build:
@@ -410,10 +397,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
   search-service:
     build:
@@ -428,10 +413,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
 
 volumes:
   postgres_data:
