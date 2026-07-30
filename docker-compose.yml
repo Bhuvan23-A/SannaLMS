@@ -125,10 +125,10 @@ services:
     image: nginx:1.25-alpine
     container_name: sannalms-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8085:80"
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/saas-web-app/dist:/usr/share/nginx/html:ro
     depends_on:
       - kong
 

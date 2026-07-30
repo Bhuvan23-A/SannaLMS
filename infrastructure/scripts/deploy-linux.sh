@@ -36,6 +36,13 @@ MINIO_CONSOLE_PORT=9001
 JWT_SECRET=sannalms_prod_jwt_secret_2026
 EOF
 fi
+echo "[INFO] Installing frontend dependencies and compiling static bundle..."
+if [ -d "frontend/saas-web-app" ]; then
+    cd frontend/saas-web-app
+    npm install --no-audit --no-fund
+    npm run build
+    cd ../..
+fi
 
 echo "[INFO] Pulling and building Docker infrastructure containers..."
 docker-compose up -d --build
@@ -45,6 +52,6 @@ docker-compose ps
 
 echo "=========================================="
 echo " Deployment Complete!"
-echo " Services live at http://localhost:8080"
+echo " Services live at http://localhost:8085"
 echo " MinIO Console: http://localhost:9001"
 echo "=========================================="
