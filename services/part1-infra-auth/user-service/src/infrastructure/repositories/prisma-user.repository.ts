@@ -21,7 +21,7 @@ export class PrismaUserRepository implements UserRepository {
 
   async findAll(): Promise<User[]> {
     const data = await this.prisma.user.findMany();
-    return data.map((d) => User.create(d, d.id));
+    return data.map((d: (typeof data)[number]) => User.create(d, d.id));
   }
 
   async create(entity: User): Promise<User> {
