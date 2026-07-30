@@ -51,7 +51,9 @@ services:
       retries: 3
 
   keycloak:
-    image: quay.io/keycloak/keycloak:22.0.1
+    build:
+      context: ./infrastructure/keycloak
+      dockerfile: Dockerfile
     container_name: sannalms-keycloak
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
@@ -233,8 +235,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-auth-service
     restart: always
-    ports:
-      - "3001:3001"
     environment:
       - PORT=3001
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -252,8 +252,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-user-service
     restart: always
-    ports:
-      - "3002:3002"
     environment:
       - PORT=3002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -270,8 +268,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-college-service
     restart: always
-    ports:
-      - "3000:3000"
     environment:
       - PORT=3000
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -284,8 +280,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-course-service
     restart: always
-    ports:
-      - "3003:3001"
     environment:
       - PORT=3001
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -302,8 +296,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-assessment-p2
     restart: always
-    ports:
-      - "3004:3002"
     environment:
       - PORT=3002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -316,8 +308,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-attendance-service
     restart: always
-    ports:
-      - "3005:3003"
     environment:
       - PORT=3003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -330,8 +320,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-calendar-service
     restart: always
-    ports:
-      - "3006:3004"
     environment:
       - PORT=3004
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -344,8 +332,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-certificate-service
     restart: always
-    ports:
-      - "3007:3005"
     environment:
       - PORT=3005
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -358,8 +344,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-discussion-service
     restart: always
-    ports:
-      - "3008:3006"
     environment:
       - PORT=3006
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -374,8 +358,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-liveclass-service
     restart: always
-    ports:
-      - "3009:3008"
     environment:
       - PORT=3008
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -390,8 +372,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-notification-service
     restart: always
-    ports:
-      - "3010:3009"
     environment:
       - PORT=3009
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -406,8 +386,6 @@ services:
       dockerfile: Dockerfile
     container_name: sannalms-search-service
     restart: always
-    ports:
-      - "3011:3010"
     environment:
       - PORT=3010
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
@@ -415,6 +393,7 @@ services:
     depends_on:
       - postgres
       - redis
+
 
 volumes:
   postgres_data:
