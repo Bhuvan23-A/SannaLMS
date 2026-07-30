@@ -1,0 +1,47 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: auth-service
+    url: http://host.docker.internal:3001
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/v1/auth
+        strip_path: false
+
+  - name: user-service
+    url: http://host.docker.internal:3002
+    routes:
+      - name: user-routes
+        paths:
+          - /api/v1/users
+        strip_path: false
+
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+      exposed_headers:
+        - Authorization
+      credentials: true
+      max_age: 3600

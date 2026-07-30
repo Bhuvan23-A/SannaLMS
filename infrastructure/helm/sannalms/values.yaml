@@ -1,0 +1,43 @@
+authService:
+  replicaCount: 2
+  image:
+    repository: sannalms/auth-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3001
+  env:
+    NODE_ENV: production
+    PORT: 3001
+
+userService:
+  replicaCount: 2
+  image:
+    repository: sannalms/user-service
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3002
+  env:
+    NODE_ENV: production
+    PORT: 3002
+
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgrespassword
+    database: sannalms
+
+redis:
+  enabled: true
+  auth:
+    password: redispassword
+
+keycloak:
+  enabled: true
+  auth:
+    adminUser: admin
+    adminPassword: adminpassword
