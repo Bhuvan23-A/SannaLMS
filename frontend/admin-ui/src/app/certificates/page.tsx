@@ -1,0 +1,174 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/api';
+import { useRole } from '@/hooks/useRole';
+
+export default function CertificatesPage() {
+  const { isAdmin, isTrainer, role } = useRole();
+  const [certificates, setCertificates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [verifyNo, setVerifyNo] = useState('');
+  const [verifyResult, setVerifyResult] = useState<any>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [issueForm, setIssueForm] = useState({ course_id: 'c-1', user_id: '', course_title: '', student_name: '', grade: 'A', cgpa: 4.0 });
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [flash, setFlash] = useState('');
+
+  useEffect(() => { loadCertificates(); }, []);
+
+  const loadCertificates = async () => {
+    try {
+      setLoading(true);
+      const d = await fetchApi('/api/v1/certificates/my');
+      setCertificates(d || []);
+    } catch { } finally { setLoading(false); }
+  };
+
+  const issueCert = async (e: any) => {
+    e.preventDefault();
+    try {
+      await fetchApi('/api/v1/certificates/issue', { method: 'POST', body: JSON.stringify(issueForm) });
+      setShowIssueForm(false);
+      showFlash('✅ Certificate issued successfully!');
+      loadCertificates();
+    } catch { alert('Failed to issue certificate'); }
+  };
+
+  const verifyCert = async (e: any) => {
+    e.preventDefault();
+    try {
+      setVerifying(true);
+      setVerifyResult(null);
+      const data = await fetchApi(`/api/v1/certificates/verify/${verifyNo}`).catch(() => null);
+      setVerifyResult(data);
+    } catch { setVerifyResult(null); } finally { setVerifying(false); }
+  };
+
+  const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
+
+  if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading certificates...</div>;
+
+  return (
+    <div className="fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎓 Certificates</h1>
+        {(isAdmin || isTrainer) && (
+          <button className="btn-primary" onClick={() => setShowIssueForm(!showIssueForm)}>+ Issue Certificate</button>
+        )}
+      </div>
+
+      {flash && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{flash}</div>}
+
+      {/* Public Verify Panel */}
+      <div className="panel" style={{ marginBottom: '30px' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>🔍 Verify a Certificate</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '14px' }}>Enter a certificate number to verify its authenticity.</p>
+        <form onSubmit={verifyCert} style={{ display: 'flex', gap: '10px' }}>
+          <input required className="input-field" style={{ flex: 1 }} placeholder="e.g. LMS-2026-12345" value={verifyNo} onChange={e => setVerifyNo(e.target.value)} />
+          <button type="submit" className="btn-primary" disabled={verifying}>{verifying ? 'Verifying...' : 'Verify'}</button>
+        </form>
+        {verifyResult !== null && (
+          <div style={{ marginTop: '20px', padding: '20px', borderRadius: '8px', background: verifyResult && !verifyResult.is_revoked ? 'rgba(0,200,100,0.1)' : 'rgba(255,71,87,0.1)', border: `1px solid ${verifyResult && !verifyResult.is_revoked ? '#00c864' : '#ff4757'}` }}>
+            {verifyResult && !verifyResult.is_revoked ? (
+              <div>
+                <div style={{ fontSize: '24px', marginBottom: '10px' }}>✅ Valid Certificate</div>
+                <p><strong>Student:</strong> {verifyResult.student_name}</p>
+                <p><strong>Course:</strong> {verifyResult.course_title}</p>
+                <p><strong>Grade:</strong> {verifyResult.grade} (CGPA: {verifyResult.cgpa?.toFixed(1)})</p>
+                <p><strong>Issued:</strong> {new Date(verifyResult.issued_at).toLocaleDateString()}</p>
+              </div>
+            ) : verifyResult?.is_revoked ? (
+              <div style={{ color: '#ff4757' }}>❌ This certificate has been revoked: {verifyResult.revoke_reason}</div>
+            ) : (
+              <div style={{ color: '#ff4757' }}>❌ Certificate not found. It may be invalid.</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Issue Certificate Form */}
+      {showIssueForm && (isAdmin || isTrainer) && (
+        <form onSubmit={issueCert} className="panel" style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Issue New Certificate</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Student Name</label>
+              <input required className="input-field" value={issueForm.student_name} onChange={e => setIssueForm({ ...issueForm, student_name: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Student ID</label>
+              <input required className="input-field" value={issueForm.user_id} onChange={e => setIssueForm({ ...issueForm, user_id: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Course Title</label>
+              <input required className="input-field" value={issueForm.course_title} onChange={e => setIssueForm({ ...issueForm, course_title: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Course ID</label>
+              <input required className="input-field" value={issueForm.course_id} onChange={e => setIssueForm({ ...issueForm, course_id: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Grade</label>
+              <select className="input-field" value={issueForm.grade} onChange={e => setIssueForm({ ...issueForm, grade: e.target.value })}>
+                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>CGPA</label>
+              <input type="number" step="0.1" min="0" max="4" className="input-field" value={issueForm.cgpa} onChange={e => setIssueForm({ ...issueForm, cgpa: parseFloat(e.target.value) })} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" className="btn-primary">Issue Certificate</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowIssueForm(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {/* My Certificates */}
+      <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>
+        {(isAdmin || isTrainer) ? 'All Certificates' : 'My Certificates'}
+      </h2>
+      {certificates.length === 0 ? (
+        <div className="panel" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎓</div>
+          <p>No certificates issued yet. Complete a course to earn one!</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+          {certificates.map(c => (
+            <div key={c.id} className="panel" style={{
+              background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+              border: '1px solid rgba(139,92,246,0.3)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative seal */}
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(139,92,246,0.2)', border: '2px solid rgba(139,92,246,0.4)' }} />
+              <div style={{ position: 'absolute', top: '0px', right: '0px', fontSize: '40px', opacity: 0.3 }}>🏅</div>
+
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                  <div>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Certificate of Completion</p>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--primary-color)' }}>{c.course_title}</h3>
+                  </div>
+                </div>
+                <p style={{ marginBottom: '5px' }}><strong>Awarded to:</strong> {c.student_name}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '15px' }}>
+                  Issued: {new Date(c.issued_at).toLocaleDateString()}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {c.grade && <span className="badge badge-success">Grade: {c.grade}</span>}
+                  {c.cgpa && <span className="badge badge-info">CGPA: {c.cgpa.toFixed(1)}</span>}
+                  <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>#{c.certificate_no}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

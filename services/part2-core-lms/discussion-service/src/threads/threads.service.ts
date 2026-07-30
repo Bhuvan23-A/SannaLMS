@@ -1,0 +1,60 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+
+@Injectable()
+export class ThreadsService {
+  constructor(private prisma: PrismaService) {}
+
+  async createThread(data: Record<string, any>, userId: string, tenantId: string) {
+    return this.prisma.thread.create({
+      data: {
+        forum_id: data.forum_id,
+        user_id: userId,
+        tenant_id: tenantId,
+        title: data.title,
+        content: data.content,
+      }
+    });
+  }
+
+  async getThreads(forumId: string) {
+    return this.prisma.thread.findMany({
+      where: { forum_id: forumId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  async createPost(threadId: string, data: Record<string, any>, userId: string, tenantId: string) {
+    return this.prisma.post.create({
+      data: {
+        thread_id: threadId,
+        user_id: userId,
+        tenant_id: tenantId,
+        content: data.content,
+        attachments: data.attachments || [],
+        read_by: [userId],
+      }
+    });
+  }
+
+  async getPosts(threadId: string) {
+    return this.prisma.post.findMany({
+      where: { thread_id: threadId },
+      orderBy: { created_at: 'asc' }
+    });
+  }
+
+  async markPostRead(postId: string, userId: string) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) return null;
+    const readBy = [...new Set([...(post.read_by || []), userId])];
+    return this.prisma.post.update({ where: { id: postId }, data: { read_by: readBy } });
+  }
+
+  async markSolved(threadId: string) {
+    return this.prisma.thread.update({
+      where: { id: threadId },
+      data: { is_solved: true }
+    });
+  }
+}

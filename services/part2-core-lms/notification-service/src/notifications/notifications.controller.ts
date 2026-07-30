@@ -1,0 +1,45 @@
+import { Controller, Get, Post, Body, Param, Put, Req } from '@nestjs/common';
+import { NotificationsService } from './notifications.service';
+import { Roles } from '../roles.guard';
+
+@Controller('api/v1/notifications')
+export class NotificationsController {
+  constructor(private readonly notificationsService: NotificationsService) {}
+
+  @Post('send')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  send(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+    const tenantId = req['headers']['x-mock-tenant-id'] || 't-1';
+    return this.notificationsService.enqueueNotification(body, String(tenantId));
+  }
+
+  @Get('preferences')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
+  getPreferences(@Req() req: Record<string, any>) {
+    const userId = req['headers']['x-mock-user-id'] || 'u-1';
+    const tenantId = req['headers']['x-mock-tenant-id'] || 't-1';
+    return this.notificationsService.getPreferences(String(userId), String(tenantId));
+  }
+
+  @Put('preferences')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
+  updatePreferences(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+    const userId = req['headers']['x-mock-user-id'] || 'u-1';
+    const tenantId = req['headers']['x-mock-tenant-id'] || 't-1';
+    return this.notificationsService.updatePreferences(String(userId), String(tenantId), body);
+  }
+
+  @Get('history')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
+  getHistory(@Req() req: Record<string, any>) {
+    const userId = req['headers']['x-mock-user-id'] || 'u-1';
+    return this.notificationsService.getHistory(String(userId));
+  }
+
+  @Put(':id/read')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
+  markAsRead(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const userId = req['headers']['x-mock-user-id'] || 'u-1';
+    return this.notificationsService.markAsRead(id, String(userId));
+  }
+}
