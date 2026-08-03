@@ -8,7 +8,7 @@ from app.config import settings
 from app.db.schemas import TutorQueryRequest, TutorQueryResponse, QuizGenRequest
 
 
-router = APIRouter(prefix="/api/tutor", tags=["RAG-based AI Tutor"])
+router = APIRouter(prefix="/api/v1/tutor", tags=["RAG-based AI Tutor"])
 
 logger = logging.getLogger("lms.tutor")
 

@@ -4,7 +4,7 @@
   "displayName": "SannaLMS",
   "displayNameHtml": "<div class=\"kc-logo-text\"><span>SannaLMS</span></div>",
   "enabled": true,
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,

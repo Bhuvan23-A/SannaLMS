@@ -1311,7 +1311,7 @@
             const out = document.getElementById('tutor-output');
             out.textContent = "Performing vector context retrieval & asking Gemini API...";
             try {
-                const res = await fetch('/api/tutor/query', {
+                const res = await fetch('/api/v1/tutor/query', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1331,7 +1331,7 @@
             const out = document.getElementById('tutor-output');
             out.textContent = "Analyzing course transcript & generating RAG practice quiz questions...";
             try {
-                const res = await fetch('/api/tutor/generate-quiz', {
+                const res = await fetch('/api/v1/tutor/generate-quiz', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

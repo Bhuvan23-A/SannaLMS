@@ -5,6 +5,15 @@ export default function Topbar({ title }: { title: string }) {
   const [role, setRole] = useState('SUPER_ADMIN');
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlRole = params.get('role');
+    if (urlRole) {
+      setRole(urlRole);
+      localStorage.setItem('mockRole', urlRole);
+      window.dispatchEvent(new Event('roleChanged'));
+      return;
+    }
+
     const saved = localStorage.getItem('mockRole');
     if (saved) setRole(saved);
   }, []);
@@ -37,6 +46,7 @@ export default function Topbar({ title }: { title: string }) {
           >
             <option style={{ background: '#0b0f19' }} value="SUPER_ADMIN">Super Admin</option>
             <option style={{ background: '#0b0f19' }} value="COLLEGE_ADMIN">College Admin</option>
+            <option style={{ background: '#0b0f19' }} value="PRIMARY_TRAINER">Trainer</option>
             <option style={{ background: '#0b0f19' }} value="STUDENT">Student</option>
           </select>
         </div>

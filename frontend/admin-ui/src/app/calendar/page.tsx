@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRole } from '@/hooks/useRole';
+import { fetchApi } from '@/lib/api';
 
 export default function CalendarPage() {
   const { role, isAdmin, isTrainer, isStudent } = useRole();
@@ -23,14 +24,7 @@ export default function CalendarPage() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3003/api/v1/events', {
-        headers: {
-          'x-mock-roles': role,
-          'x-mock-tenant-id': 'stanford',
-        }
-      });
-      if (!res.ok) throw new Error('Failed to fetch events');
-      const data = await res.json();
+      const data = await fetchApi('/api/v1/events');
       setEvents(data);
     } catch (err: any) {
       setError(err.message);
@@ -42,14 +36,8 @@ export default function CalendarPage() {
   const createEvent = async (e: any) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3003/api/v1/events', {
+      await fetchApi('/api/v1/events', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-mock-roles': role,
-          'x-mock-tenant-id': 'stanford',
-          'x-mock-user-id': 'u-1',
-        },
         body: JSON.stringify({
           title,
           description,
@@ -59,11 +47,6 @@ export default function CalendarPage() {
           tenant_id: 'stanford'
         })
       });
-      
-      if (!res.ok) {
-        if (res.status === 403) throw new Error('You do not have permission to create events.');
-        throw new Error('Failed to create event');
-      }
       
       setShowModal(false);
       fetchEvents();
@@ -75,17 +58,9 @@ export default function CalendarPage() {
   const deleteEvent = async (id: string) => {
     if (!confirm('Are you sure?')) return;
     try {
-      const res = await fetch(`http://localhost:3003/api/v1/events/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-mock-roles': role,
-          'x-mock-tenant-id': 'stanford',
-        }
+      await fetchApi(`/api/v1/events/${id}`, {
+        method: 'DELETE'
       });
-      if (!res.ok) {
-        if (res.status === 403) throw new Error('You do not have permission to delete events.');
-        throw new Error('Failed to delete event');
-      }
       fetchEvents();
     } catch (err: any) {
       alert(err.message);

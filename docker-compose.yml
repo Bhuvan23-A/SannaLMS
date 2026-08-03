@@ -62,12 +62,16 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sannalms}
       KC_DB_USERNAME: ${POSTGRES_USER:-postgres}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      KC_HOSTNAME: localhost
-    command: start-dev --import-realm
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: edge
+    command: start-dev --import-realm --http-relative-path=/auth
     ports:
       - "8180:8080"
     volumes:
       - ./infrastructure/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./infrastructure/keycloak/themes/sannalms:/opt/keycloak/themes/sannalms
     depends_on:
       - postgres
 
@@ -101,10 +105,8 @@ services:
     image: kong:3.4.0-ubuntu
     container_name: sannalms-kong
     environment:
-      KONG_DATABASE: postgres
-      KONG_PG_HOST: kong-db
-      KONG_PG_USER: ${KONG_PG_USER:-kong}
-      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kongpass}
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -118,7 +120,7 @@ services:
     volumes:
       - ./infrastructure/kong/kong.yml:/usr/local/kong/declarative/kong.yml
     depends_on:
-      - kong-migrations
+      - postgres
 
   nginx:
     image: nginx:1.25-alpine
@@ -203,7 +205,10 @@ services:
       - "8086:3000"
     environment:
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=/api/v1
+      - NEXT_PUBLIC_API_URL=http://103.160.144.225:8010/api/v1
+      - NEXT_PUBLIC_KEYCLOAK_URL=http://103.160.144.225:8085/auth
+      - NEXT_PUBLIC_KEYCLOAK_REALM=sannalms
+      - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=sannalms-client
     depends_on:
       - postgres
 

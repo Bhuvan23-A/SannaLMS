@@ -98,10 +98,15 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch(
-        `http://localhost:3001/api/v1/content/upload/${topicId}?course_id=${courseId}`,
+        `/api/v1/content/upload/${topicId}?course_id=${courseId}`,
         {
           method: 'POST',
-          headers: { 'x-mock-roles': localStorage.getItem('lms_role') || 'PRIMARY_TRAINER', 'x-mock-tenant-id': 't-1', 'x-mock-user-id': 'u-1' },
+          headers: { 
+            'Authorization': localStorage.getItem('access_token') ? `Bearer ${localStorage.getItem('access_token')}` : '',
+            'x-mock-roles': localStorage.getItem('mockRole') || 'PRIMARY_TRAINER', 
+            'x-mock-tenant-id': localStorage.getItem('tenantId') || 'stanford', 
+            'x-mock-user-id': localStorage.getItem('userId') || 'u-1' 
+          },
           body: formData,
         }
       );

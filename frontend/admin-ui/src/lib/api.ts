@@ -2,7 +2,7 @@
 // In production: relative /api/v1 is proxied by NGINX to Kong at sannalms-kong:8000
 // In local dev: use NEXT_PUBLIC_API_URL env var pointing to http://localhost:8010/api/v1
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   // Get auth context from localStorage (populated after Keycloak login)

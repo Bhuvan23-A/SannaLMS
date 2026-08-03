@@ -21,7 +21,7 @@ export function useRole() {
 
   const isAdmin = role === 'SUPER_ADMIN' || role === 'COLLEGE_ADMIN';
   const isStudent = role === 'STUDENT';
-  const isTrainer = role === 'PRIMARY_TRAINER' || role === 'TEACHING_ASSISTANT';
+  const isTrainer = role === 'PRIMARY_TRAINER' || role === 'TEACHING_ASSISTANT' || role === 'INSTRUCTOR';
 
   return { role, isAdmin, isStudent, isTrainer };
 }

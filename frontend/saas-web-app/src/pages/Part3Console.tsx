@@ -8,9 +8,9 @@ export default function Part3Console() {
 
   // API Configuration
   const BACKEND_URLS = {
-    sandbox: 'http://localhost:8080/api/v1/sandbox/execute',
-    assessment: 'http://localhost:8080/api/v1/assessment',
-    assignment: 'http://localhost:8080/api/v1/assignment',
+    sandbox: '/api/v1/sandbox/execute',
+    assessment: '/api/v1/assessment',
+    assignment: '/api/v1/assignment',
   };
 
   // --- TAB 1: Code Sandbox State ---

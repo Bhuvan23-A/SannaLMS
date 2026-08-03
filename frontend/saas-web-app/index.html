@@ -10,6 +10,119 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      // Polyfill Web Crypto API subtle.digest('SHA-256') for insecure HTTP contexts (like raw IP addresses)
+      (function() {
+        // Force isSecureContext to true to bypass Keycloak-js check on HTTP raw IPs
+        try {
+          Object.defineProperty(window, 'isSecureContext', {
+            value: true,
+            configurable: true,
+            writable: true
+          });
+        } catch (e) {
+          console.warn("Failed to override isSecureContext:", e);
+        }
+
+        if (!window.crypto) {
+          window.crypto = {};
+        }
+        if (!window.crypto.subtle) {
+          function rightRotate(v, n) {
+            return (v >>> n) | (v << (32 - n));
+          }
+          function sha256Words(w, len) {
+            w[len >> 5] |= 0x80 << (24 - len % 32);
+            w[((len + 64 >> 9) << 4) + 15] = len;
+            var h0 = 0x6a09e667, h1 = 0xbb67ae85, h2 = 0x3c6ef372, h3 = 0xa54ff53a;
+            var h4 = 0x510e527f, h5 = 0x9b05688c, h6 = 0x1f83d9ab, h7 = 0x5be0cd19;
+            var k = [
+              0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+              0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+              0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+              0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+              0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+              0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+              0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+              0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+            ];
+            for (var i = 0; i < w.length; i += 16) {
+              var a = h0, b = h1, c = h2, d = h3, e = h4, f = h5, g = h6, h = h7;
+              var temp = new Array(64);
+              for (var j = 0; j < 64; j++) {
+                if (j < 16) {
+                  temp[j] = w[i + j] || 0;
+                } else {
+                  var s0 = (rightRotate(temp[j-15], 7) ^ rightRotate(temp[j-15], 18) ^ (temp[j-15] >>> 3));
+                  var s1 = (rightRotate(temp[j-2], 17) ^ rightRotate(temp[j-2], 19) ^ (temp[j-2] >>> 10));
+                  temp[j] = (temp[j-16] + s0 + temp[j-7] + s1) | 0;
+                }
+                var S1 = (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25));
+                var ch = ((e & f) ^ (~e & g));
+                var temp1 = (h + S1 + ch + k[j] + temp[j]) | 0;
+                var S0 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22));
+                var maj = ((a & b) ^ (a & c) ^ (b & c));
+                var temp2 = (S0 + maj) | 0;
+                h = g; g = f; f = e; e = (d + temp1) | 0; d = c; c = b; b = a; a = (temp1 + temp2) | 0;
+              }
+              h0 = (h0 + a) | 0; h1 = (h1 + b) | 0; h2 = (h2 + c) | 0; h3 = (h3 + d) | 0;
+              h4 = (h4 + e) | 0; h5 = (h5 + f) | 0; h6 = (h6 + g) | 0; h7 = (h7 + h) | 0;
+            }
+            return [h0, h1, h2, h3, h4, h5, h6, h7];
+          }
+          function sha256ArrayBuffer(buffer) {
+            var bytes = new Uint8Array(buffer);
+            var words = [];
+            for (var i = 0; i < bytes.length; i++) {
+              words[i >> 2] |= bytes[i] << (24 - (i % 4) * 8);
+            }
+            var hash = sha256Words(words, bytes.length * 8);
+            var result = new ArrayBuffer(32);
+            var view = new DataView(result);
+            for (var i = 0; i < 8; i++) {
+              view.setUint32(i * 4, hash[i], false);
+            }
+            return result;
+          }
+          window.crypto.subtle = {
+            digest: function(algorithm, data) {
+              return new Promise(function(resolve, reject) {
+                var algoName = typeof algorithm === 'string' ? algorithm : (algorithm && algorithm.name);
+                if (algoName === 'SHA-256') {
+                  try {
+                    resolve(sha256ArrayBuffer(data));
+                  } catch (err) {
+                    reject(err);
+                  }
+                } else {
+                  reject(new Error("Unsupported algorithm: " + algoName));
+                }
+              });
+            }
+          };
+        }
+      })();
+
+      // Global diagnostic error boundary to catch and render browser JavaScript crashes visually
+      window.onerror = function(message, source, lineno, colno, error) {
+        showCrashReport("JavaScript Runtime Error", message + "\nLine: " + lineno + ", Col: " + colno + "\nSource: " + source + "\nStack: " + (error ? error.stack : 'N/A'));
+        return false;
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        showCrashReport("Unhandled Promise Rejection", event.reason ? (event.reason.stack || event.reason.message || JSON.stringify(event.reason)) : 'Unknown rejection');
+      });
+      function showCrashReport(type, details) {
+        var root = document.getElementById("root");
+        if (root) {
+          root.innerHTML = '<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; color: #f87171; background: #0f172a; font-family: monospace; padding: 20px; white-space: pre-wrap; word-break: break-all; text-align: left;">' +
+            '<div style="background: rgba(220, 38, 38, 0.15); border: 2px solid #ef4444; padding: 30px; border-radius: 12px; max-width: 800px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);">' +
+            '<h1 style="color: #ef4444; margin: 0 0 15px 0; font-size: 24px; border-bottom: 1px solid rgba(239, 68, 68, 0.3); padding-bottom: 10px;">🚨 Browser Window Crash (' + type + ')</h1>' +
+            '<div style="background: #1e293b; color: #f1f5f9; padding: 15px; border-radius: 6px; font-size: 13px; line-height: 1.6; margin-bottom: 20px; overflow-x: auto;">' + details + '</div>' +
+            '<button onclick="window.location.reload(true)" style="background: #ef4444; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: sans-serif; font-size: 14px;">Reload & Bypass Cache</button>' +
+            '</div></div>';
+        }
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
