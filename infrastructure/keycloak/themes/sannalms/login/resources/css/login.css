@@ -1,0 +1,163 @@
+/* SannaLMS Custom SSO Login Theme */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap');
+
+body {
+    background: radial-gradient(circle at 10% 20%, #0c1020 0%, #030408 100%) !important;
+    font-family: 'Outfit', sans-serif !important;
+    color: #e2e8f0 !important;
+    margin: 0 !important;
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Hide Default Keycloak Header & Logo */
+#kc-header, #kc-header-wrapper, #kc-logo-wrapper, #kc-logo {
+    display: none !important;
+}
+
+/* Container & Card Alignment */
+#kc-container-wrapper {
+    width: 100% !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+}
+
+/* Glassmorphic Login Card */
+.login-pf-page .card-pf {
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 20px !important;
+    padding: 40px !important;
+    margin: 0 !important;
+}
+
+/* Brand Logo pseudo-element */
+#kc-page-title {
+    color: #ffffff !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    margin-bottom: 25px !important;
+    text-align: center !important;
+    text-transform: none !important;
+}
+#kc-page-title::before {
+    content: "SannaLMS" !important;
+    display: block !important;
+    font-size: 32px !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.03em !important;
+    background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    margin-bottom: 6px !important;
+    text-transform: none !important;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px !important;
+}
+
+label {
+    color: #94a3b8 !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    margin-bottom: 8px !important;
+    display: block !important;
+}
+
+input[type="text"], input[type="password"] {
+    width: 100% !important;
+    background: rgba(4, 6, 15, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-sizing: border-box !important;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+    background: rgba(4, 6, 15, 0.8) !important;
+    outline: none !important;
+}
+
+/* Login Action Button */
+.btn-primary, #kc-login {
+    width: 100% !important;
+    background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    margin-top: 15px !important;
+}
+
+.btn-primary:hover, #kc-login:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.35) !important;
+    filter: brightness(1.05) !important;
+}
+
+/* Utility Links styling */
+a {
+    color: #06b6d4 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    transition: color 0.2s ease !important;
+}
+
+a:hover {
+    color: #22d3ee !important;
+}
+
+.login-pf-settings {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 15px !important;
+    margin-bottom: 20px !important;
+}
+
+#kc-registration {
+    color: #94a3b8 !important;
+    font-size: 14px !important;
+    text-align: center !important;
+    margin-top: 25px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding-top: 20px !important;
+}
+
+#kc-registration a {
+    margin-left: 5px !important;
+}
+
+/* Alert Message Formatting */
+.alert {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    font-size: 14px !important;
+    text-align: center !important;
+}

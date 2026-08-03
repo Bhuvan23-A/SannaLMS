@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------
+// ENUMS
+// ----------------------------------------------------------------------
+
+enum CourseStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AssetStatus {
+  UPLOADING
+  SCANNING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum AssetType {
+  VIDEO
+  DOCUMENT
+  SCORM
+  QUIZ
+}
+
+// ----------------------------------------------------------------------
+// COURSE ENGINE
+// ----------------------------------------------------------------------
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  status      CourseStatus @default(DRAFT)
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  modules       Module[]
+  trainers      CourseTrainer[]
+  enrollments   Enrollment[]
+  prerequisites CoursePrerequisite[]
+  history       CourseVersionHistory[]
+}
+
+model CourseTrainer {
+  id        String @id @default(uuid())
+  course_id String
+  user_id   String // Foreign key to the User in college-service (logical reference)
+  role      String @default("PRIMARY_TRAINER") // e.g., PRIMARY_TRAINER, TEACHING_ASSISTANT, GUEST_FACULTY
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  course Course @relation(fields: [course_id], references: [id])
+
+  @@unique([course_id, user_id])
+}
+
+model Module {
+  id          String @id @default(uuid())
+  title       String
+  course_id   String
+  sequence_no Int    @default(1)
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  course  Course   @relation(fields: [course_id], references: [id])
+  lessons Lesson[]
+}
+
+model Lesson {
+  id          String @id @default(uuid())
+  title       String
+  module_id   String
+  sequence_no Int    @default(1)
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  module Module  @relation(fields: [module_id], references: [id])
+  topics Topic[]
+}
+
+model Topic {
+  id          String  @id @default(uuid())
+  title       String
+  content     String? // Rich text or video URL placeholder
+  lesson_id   String
+  sequence_no Int     @default(1)
+
+  // Mandatory Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  lesson Lesson         @relation(fields: [lesson_id], references: [id])
+  asset  AssetMetadata?
+}
+
+// ----------------------------------------------------------------------
+// ENROLLMENTS & PROGRESS
+// ----------------------------------------------------------------------
+
+model Enrollment {
+  id           String           @id @default(uuid())
+  user_id      String // From college-service
+  course_id    String
+  status       EnrollmentStatus @default(ACTIVE)
+  enrolled_at  DateTime         @default(now())
+  completed_at DateTime?
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  course Course @relation(fields: [course_id], references: [id])
+
+  @@unique([user_id, course_id])
+}
+
+model TopicProgress {
+  id               String         @id @default(uuid())
+  user_id          String
+  topic_id         String
+  status           ProgressStatus @default(NOT_STARTED)
+  last_accessed_at DateTime       @default(now())
+  completed_at     DateTime?
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  video_progress VideoProgress?
+  quiz_progress  QuizProgress?
+
+  @@unique([user_id, topic_id])
+}
+
+model VideoProgress {
+  id                   String @id @default(uuid())
+  topic_progress_id    String @unique
+  last_second_watched  Int    @default(0)
+  percentage_completed Float  @default(0)
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  topic_progress TopicProgress @relation(fields: [topic_progress_id], references: [id])
+}
+
+model QuizProgress {
+  id                String  @id @default(uuid())
+  topic_progress_id String  @unique
+  score             Float?
+  passed            Boolean @default(false)
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  topic_progress TopicProgress @relation(fields: [topic_progress_id], references: [id])
+}
+
+// ----------------------------------------------------------------------
+// CONTENT ENGINE & ASSETS
+// ----------------------------------------------------------------------
+
+model AssetMetadata {
+  id            String      @id @default(uuid())
+  topic_id      String?     @unique
+  type          AssetType
+  status        AssetStatus @default(UPLOADING)
+  physical_path String?
+  checksum      String?
+  file_size     Int?
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  topic          Topic?         @relation(fields: [topic_id], references: [id])
+  video_metadata VideoMetadata?
+}
+
+model VideoMetadata {
+  id               String  @id @default(uuid())
+  asset_id         String  @unique
+  thumbnail_path   String?
+  preview_path     String?
+  subtitle_path    String?
+  hls_stream_url   String?
+  duration_seconds Int?
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  asset AssetMetadata @relation(fields: [asset_id], references: [id])
+}
+
+// ----------------------------------------------------------------------
+// RULES & VERSIONING
+// ----------------------------------------------------------------------
+
+model CoursePrerequisite {
+  id                 String @id @default(uuid())
+  course_id          String
+  required_course_id String // The course that must be completed first
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  course Course @relation(fields: [course_id], references: [id])
+
+  @@unique([course_id, required_course_id])
+}
+
+model CourseVersionHistory {
+  id             String   @id @default(uuid())
+  course_id      String
+  version_number Int
+  snapshot_data  Json // Full serialized curriculum state at publish time
+  published_at   DateTime @default(now())
+  published_by   String?
+
+  // Standard Fields
+  tenant_id  String
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  course Course @relation(fields: [course_id], references: [id])
+
+  @@unique([course_id, version_number])
+}

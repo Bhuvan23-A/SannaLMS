@@ -1,0 +1,188 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  # ─── Part 1: Auth & User ─────────────────────────────────────────
+  - name: auth-service
+    url: http://sannalms-auth-service:3001
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/v1/auth
+        strip_path: false
+
+  - name: user-service
+    url: http://sannalms-user-service:3002
+    routes:
+      - name: user-routes
+        paths:
+          - /api/v1/users
+        strip_path: false
+
+  # ─── Part 2: Core LMS ────────────────────────────────────────────
+  - name: college-service
+    url: http://sannalms-college-service:3000
+    routes:
+      - name: college-routes
+        paths:
+          - /api/v1/colleges
+          - /api/v1/departments
+          - /api/v1/branches
+          - /api/v1/semesters
+        strip_path: false
+
+  - name: course-service
+    url: http://sannalms-course-service:3001
+    routes:
+      - name: course-routes
+        paths:
+          - /api/v1/courses
+          - /api/v1/modules
+          - /api/v1/lessons
+          - /api/v1/topics
+          - /api/v1/content
+          - /api/v1/enrollments
+          - /api/v1/progress
+          - /api/v1/prerequisites
+        strip_path: false
+
+  - name: assessment-service-p2
+    url: http://sannalms-assessment-p2:3002
+    routes:
+      - name: assessment-routes
+        paths:
+          - /api/v1/questions
+          - /api/v1/quizzes
+          - /api/v1/gradebook
+        strip_path: false
+
+  - name: attendance-service
+    url: http://sannalms-attendance-service:3003
+    routes:
+      - name: attendance-routes
+        paths:
+          - /api/v1/attendance
+        strip_path: false
+
+  - name: calendar-service
+    url: http://sannalms-calendar-service:3004
+    routes:
+      - name: calendar-routes
+        paths:
+          - /api/v1/events
+          - /api/v1/calendar
+        strip_path: false
+
+  - name: certificate-service
+    url: http://sannalms-certificate-service:3005
+    routes:
+      - name: certificate-routes
+        paths:
+          - /api/v1/certificates
+        strip_path: false
+
+  - name: discussion-service
+    url: http://sannalms-discussion-service:3006
+    routes:
+      - name: discussion-routes
+        paths:
+          - /api/v1/forums
+          - /api/v1/threads
+        strip_path: false
+
+  - name: liveclass-service
+    url: http://sannalms-liveclass-service:3008
+    routes:
+      - name: liveclass-routes
+        paths:
+          - /api/v1/liveclasses
+        strip_path: false
+
+  - name: notification-service
+    url: http://sannalms-notification-service:3009
+    routes:
+      - name: notification-routes
+        paths:
+          - /api/v1/notifications
+        strip_path: false
+
+  - name: search-service
+    url: http://sannalms-search-service:3010
+    routes:
+      - name: search-routes
+        paths:
+          - /api/v1/search
+        strip_path: false
+
+  # ─── Part 3: Assessment Sandbox ──────────────────────────────────
+  - name: coding-sandbox
+    url: http://sannalms-coding-service:4003
+    routes:
+      - name: sandbox-routes
+        paths:
+          - /api/v1/sandbox
+        strip_path: false
+
+  - name: assessment-sandbox
+    url: http://sannalms-assessment-service:4004
+    routes:
+      - name: cat-assessment-routes
+        paths:
+          - /api/v1/assessment
+        strip_path: false
+
+  - name: assignment-service
+    url: http://sannalms-assignment-service:4005
+    routes:
+      - name: assignment-routes
+        paths:
+          - /api/v1/assignment
+        strip_path: false
+
+  # ─── Part 4: AI & Analytics ──────────────────────────────────────
+  - name: ai-service
+    url: http://sannalms-ai-service:8000
+    routes:
+      - name: ai-routes
+        paths:
+          - /api/v1/analytics
+          - /api/v1/placements
+          - /api/v1/tutor
+          - /api/v1/proctoring
+          - /api/v1/gamification
+          - /api/v1/leaderboard
+          - /api/v1/resume
+        strip_path: false
+
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 200
+      policy: local
+
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - Authorization
+        - X-Tenant-ID
+        - X-Request-ID
+      exposed_headers:
+        - Authorization
+        - X-Request-ID
+      credentials: true
+      max_age: 3600

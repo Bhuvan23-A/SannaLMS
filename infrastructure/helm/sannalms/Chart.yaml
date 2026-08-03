@@ -1,0 +1,16 @@
+apiVersion: v2
+name: sannalms
+description: A Helm chart for SannaLMS Part 1 Microservices
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: redis
+    version: "17.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: keycloak
+    version: "15.x.x"
+    repository: "https://charts.bitnami.com/bitnami"

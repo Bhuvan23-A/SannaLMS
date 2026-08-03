@@ -1,92 +1,59 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import ControlCenter from './ControlCenter';
+import { Dashboard } from './pages/Dashboard';
+import Part3Console from './pages/Part3Console';
 
-export default function App() {
-  const parts = [
-    {
-      part: 'Part 1',
-      title: 'Infrastructure, Security & User Identity',
-      lead: 'DevOps & Auth Lead',
-      branch: 'part1/infra-auth-identity',
-      desc: 'Provisioning servers, Keycloak SSO/OAuth2/TOTP, PostgreSQL schema-per-tenant isolation, MinIO, Kong Gateway & GitHub Actions.',
-      stack: ['Go', 'Node.js', 'Keycloak', 'PostgreSQL', 'Kong', 'Docker']
-    },
-    {
-      part: 'Part 2',
-      title: 'LMS Core & Real-Time Communication',
-      lead: 'Full-Stack LMS Lead',
-      branch: 'part2/core-lms-content-chat',
-      desc: 'Colleges/Branches management, HLS video course engine, SCORM packages, Socket.IO chat, Jitsi WebRTC live classes & QR/GPS attendance.',
-      stack: ['Node.js', 'TypeScript', 'Socket.IO', 'FFmpeg', 'Jitsi']
-    },
-    {
-      part: 'Part 3',
-      title: 'Assessment, Proctoring & Coding Sandbox',
-      lead: 'Backend & Sandbox Lead',
-      branch: 'part3/assessment-coding-sandbox',
-      desc: 'Question bank & adaptive testing, Docker-isolated code runner engine (Python, Java, C++), assignment workflow & MOSS plagiarism.',
-      stack: ['Go Engine', 'Node.js', 'Docker Sandbox', 'MOSS']
-    },
-    {
-      part: 'Part 4',
-      title: 'AI Integration, Analytics & Placements',
-      lead: 'AI/ML & Data Lead',
-      branch: 'part4/ai-analytics-placements',
-      desc: 'FastAPI RAG AI Tutor, OpenCV proctoring (gaze/face estimation), cohort analytics, XP gamification, placement portal & certificate signer.',
-      stack: ['Python FastAPI', 'OpenCV', 'LangChain', 'PDF Signer']
-    }
-  ];
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, login } = useAuth();
+  
+  if (!isAuthenticated) {
+    login();
+    return null;
+  }
+  return children;
+};
+
+const App: React.FC = () => {
+  const { isInitialized, initError } = useAuth();
+
+  if (!isInitialized) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: '#94a3b8', background: '#0f172a' }}>
+        <div>Initializing Secure SSO Session...</div>
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', color: '#f87171', background: '#0f172a', fontFamily: 'system-ui, sans-serif', padding: '20px', textAlign: 'center' }}>
+        <div style={{ background: 'rgba(220, 38, 38, 0.1)', border: '1px solid rgba(220, 38, 38, 0.2)', padding: '24px', borderRadius: '12px', maxWidth: '500px', backdropFilter: 'blur(8px)' }}>
+          <h2 style={{ margin: '0 0 12px 0', fontSize: '20px', color: '#f87171' }}>SSO Connection Error</h2>
+          <p style={{ color: '#cbd5e1', margin: '0 0 16px 0', fontSize: '14px', lineHeight: '1.5' }}>{initError}</p>
+          <button onClick={() => window.location.reload()} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="app-container">
-      <header className="header-banner">
-        <span className="badge">Multi-Tenant SaaS Platform</span>
-        <h1 className="title">SannaLMS Architecture Control Center</h1>
-        <p className="subtitle">
-          Distributed 4-Part Microservices Platform designed for multi-tenant educational institutions.
-        </p>
-      </header>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/control-center" element={<ControlCenter />} />
+        <Route path="/part3" element={<Part3Console />} />
+      </Routes>
 
-      <div className="parts-grid">
-        {parts.map((p, idx) => (
-          <div key={idx} className="part-card">
-            <div>
-              <span className="part-number">{p.part} • {p.lead}</span>
-              <h2 className="part-title">{p.title}</h2>
-              <p className="part-desc">{p.desc}</p>
-            </div>
-            <div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                Git Branch: <strong style={{ color: '#06b6d4' }}>{p.branch}</strong>
-              </div>
-              <div className="tag-list">
-                {p.stack.map((s, i) => (
-                  <span key={i} className="tag">{s}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <section className="workflow-box">
-        <h2 className="workflow-title">
-          🚀 Team Git Branch Workflow Quick Reference
-        </h2>
-        <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>
-          Each teammate works in their assigned branch. Pull base changes from <code style={{ color: '#06b6d4' }}>develop</code> before committing.
-        </p>
-        <div className="code-block">
-          # 1. Fetch & checkout your branch<br />
-          git fetch --all<br />
-          git checkout partX/your-branch-name<br /><br />
-          # 2. Sync latest develop changes<br />
-          git pull origin develop<br /><br />
-          # 3. Commit and push strictly to your branch<br />
-          git add .<br />
-          git commit -m "feat(service): my new update"<br />
-          git push origin partX/your-branch-name
-        </div>
-      </section>
-    </div>
+    </BrowserRouter>
   );
-}
+};
+
+export default App;

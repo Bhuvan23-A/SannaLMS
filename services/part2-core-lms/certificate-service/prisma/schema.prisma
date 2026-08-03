@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Certificate {
+  id               String   @id @default(uuid())
+  tenant_id        String
+  course_id        String
+  user_id          String
+  course_title     String
+  student_name     String
+  issued_at        DateTime @default(now())
+  certificate_no   String   @unique  // Human-readable unique number, e.g. LMS-2026-00001
+  grade            String?
+  cgpa             Float?
+  is_revoked       Boolean  @default(false)
+  revoke_reason    String?
+
+  @@unique([course_id, user_id])
+}

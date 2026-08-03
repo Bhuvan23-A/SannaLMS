@@ -13,6 +13,8 @@ env/
 dist/
 build/
 out/
+.next/
+uploads/
 *.exe
 *.o
 *.so

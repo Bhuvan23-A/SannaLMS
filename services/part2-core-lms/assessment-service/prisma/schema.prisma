@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  course_id     String
+  type          String   // MCQ, CODING, ESSAY
+  title         String
+  content       String
+  marks         Int      @default(1)
+  options       Json?    // For MCQs: [{id: 1, text: "A", isCorrect: true}]
+  answer_key    String?  // Expected string/code
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  quizQuestions QuizQuestion[]
+}
+
+model Quiz {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  course_id     String
+  title         String
+  description   String?
+  duration_mins Int?
+  is_published  Boolean  @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  
+  questions     QuizQuestion[]
+  submissions   QuizSubmission[]
+}
+
+model QuizQuestion {
+  quiz_id       String
+  question_id   String
+  order         Int      @default(0)
+
+  quiz          Quiz     @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  question      Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@id([quiz_id, question_id])
+}
+
+model Assignment {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  course_id     String
+  title         String
+  description   String
+  due_date      DateTime?
+  max_marks     Int      @default(100)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  submissions   AssignmentSubmission[]
+}
+
+model QuizSubmission {
+  id            String   @id @default(uuid())
+  quiz_id       String
+  user_id       String
+  tenant_id     String
+  answers       Json     // { questionId: answer }
+  score         Float?
+  is_graded     Boolean  @default(false)
+  submitted_at  DateTime @default(now())
+
+  quiz          Quiz     @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+}
+
+model AssignmentSubmission {
+  id            String   @id @default(uuid())
+  assignment_id String
+  user_id       String
+  tenant_id     String
+  file_url      String?
+  text_content  String?
+  score         Float?
+  feedback      String?
+  is_graded     Boolean  @default(false)
+  submitted_at  DateTime @default(now())
+
+  assignment    Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+}
+
+model Gradebook {
+  id            String   @id @default(uuid())
+  tenant_id     String
+  course_id     String
+  user_id       String
+  total_score   Float
+  max_score     Float
+  grade         String?  // A, B, C, F
+  cgpa          Float?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@unique([course_id, user_id])
+}
