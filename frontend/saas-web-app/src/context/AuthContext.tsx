@@ -20,8 +20,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     keycloak.init({
-      
-      
+      onLoad: 'check-sso',
+      checkLoginIframe: false,
       pkceMethod: 'S256',
     }).then((authenticated) => {
       setIsAuthenticated(authenticated);
