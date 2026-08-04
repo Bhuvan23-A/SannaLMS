@@ -10,8 +10,9 @@ export class ChatController {
   @Post('dm')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async sendDM(@Body() body: any, @Req() req: any) {
-    const fromUser = req.headers['x-mock-user-id'] || 'u-1';
-    const tenantId = req.headers['x-mock-tenant-id'] || 't-1';
+    const fromUser = req.user?.id || 'u-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.prisma.directMessage.create({
       data: {
         from_user: String(fromUser),
@@ -26,7 +27,7 @@ export class ChatController {
   @Get('dm/:userId')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async getConversation(@Param('userId') otherUser: string, @Req() req: any) {
-    const me = req.headers['x-mock-user-id'] || 'u-1';
+    const me = req.user?.id || 'u-1';
     return this.prisma.directMessage.findMany({
       where: {
         OR: [
@@ -51,8 +52,9 @@ export class ChatController {
   @Post('rooms')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
   async createRoom(@Body() body: any, @Req() req: any) {
-    const userId = req.headers['x-mock-user-id'] || 'u-1';
-    const tenantId = req.headers['x-mock-tenant-id'] || 't-1';
+    const userId = req.user?.id || 'u-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.prisma.chatRoom.create({
       data: {
         name: body.name,
@@ -72,8 +74,9 @@ export class ChatController {
   @Get('rooms')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async getRooms(@Req() req: any) {
-    const userId = req.headers['x-mock-user-id'] || 'u-1';
-    const tenantId = req.headers['x-mock-tenant-id'] || 't-1';
+    const userId = req.user?.id || 'u-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.prisma.chatRoom.findMany({
       where: {
         tenant_id: String(tenantId),
@@ -86,7 +89,7 @@ export class ChatController {
   @Post('rooms/:id/join')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async joinRoom(@Param('id') roomId: string, @Req() req: any) {
-    const userId = req.headers['x-mock-user-id'] || 'u-1';
+    const userId = req.user?.id || 'u-1';
     return this.prisma.chatMember.upsert({
       where: { room_id_user_id: { room_id: roomId, user_id: String(userId) } },
       create: { room_id: roomId, user_id: String(userId), role: 'MEMBER' },
@@ -97,8 +100,9 @@ export class ChatController {
   @Post('rooms/:id/messages')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async sendMessage(@Param('id') roomId: string, @Body() body: any, @Req() req: any) {
-    const userId = req.headers['x-mock-user-id'] || 'u-1';
-    const tenantId = req.headers['x-mock-tenant-id'] || 't-1';
+    const userId = req.user?.id || 'u-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.prisma.chatMessage.create({
       data: {
         room_id: roomId,

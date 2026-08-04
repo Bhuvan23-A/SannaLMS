@@ -104,7 +104,8 @@ export class RolesGuard implements CanActivate {
           id: payload.sub,
           email: payload.email,
           username: payload.preferred_username,
-          roles: userRoles
+          roles: userRoles,
+          tenantId: payload.tenant_id || payload.tenantId || 'test-tenant'
         };
       }
     } else {

@@ -60,7 +60,7 @@ export class CoursesService {
   }
 
   async findAll(tenantId?: string) {
-    if (tenantId && tenantId !== 'test-tenant') {
+    if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
       return this.prisma.extendedClient.course.findMany({
         where: { tenant_id: tenantId }
       });
