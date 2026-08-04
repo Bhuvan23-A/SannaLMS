@@ -29,7 +29,8 @@ export class EventsController {
     'STUDENT',
   )
   findAll(@Req() req: Record<string, any>) {
-    const tenantId = req['headers']['x-mock-tenant-id'] || 't-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.eventsService.findAll(String(tenantId));
   }
 

@@ -25,7 +25,8 @@ export class ContentEngineController {
       storage: diskStorage({
         destination: (req: any, _file, cb) => {
           // Build hierarchical path from query params or body
-          const tenantId  = req.headers['x-mock-tenant-id'] || 't-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
           const courseId  = req.query.course_id  || 'unknown-course';
           const moduleId  = req.query.module_id  || 'unknown-module';
           const lessonId  = req.query.lesson_id  || 'unknown-lesson';
@@ -57,7 +58,8 @@ export class ContentEngineController {
   ) {
     if (!file) throw new BadRequestException('No file uploaded');
 
-    const tenantId = req.headers['x-mock-tenant-id'] || 't-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     const assetType = this.detectAssetType(extname(file.originalname).toLowerCase());
 
     const asset = await this.contentService.createAssetRecord({

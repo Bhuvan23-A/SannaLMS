@@ -24,8 +24,12 @@ export class LiveclassService {
   }
 
   async getClasses(tenantId: string, courseId: string) {
+    const filter: Record<string, any> = { course_id: courseId };
+    if (tenantId !== 'master') {
+      filter.tenant_id = tenantId;
+    }
     return this.prisma.liveClass.findMany({
-      where: { tenant_id: tenantId, course_id: courseId },
+      where: filter,
       orderBy: { scheduled_at: 'asc' }
     });
   }

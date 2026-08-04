@@ -9,14 +9,17 @@ export class CoursesController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
   create(@Body() createCourseDto: any, @Req() req: any) {
-    const tenantId = req.headers['x-mock-tenant-id'] || createCourseDto.tenant_id || 't-1';
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (createCourseDto.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     return this.coursesService.create(createCourseDto, String(tenantId));
   }
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT', 'GUEST_FACULTY')
   findAll(@Req() req: any) {
-    return this.coursesService.findAll(req.query.tenant_id || 'test-tenant');
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    return this.coursesService.findAll(tenantId);
   }
 
   @Get(':id')

@@ -65,7 +65,11 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
               placeholder="e.g. stanford" 
             />
           </div>
-
+ 
+          <div style={{ marginTop: '5px', padding: '12px', background: 'rgba(59,130,246,0.15)', borderRadius: '8px', border: '1px dashed rgba(59,130,246,0.3)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            💡 <strong>Tenant Isolation:</strong> Register this college's admin in Keycloak under Users and attach the custom attribute <code>tenant_id</code> matching this value.
+          </div>
+ 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
