@@ -125,7 +125,7 @@ export class RolesGuard implements CanActivate {
     // Map Keycloak roles to SannaLMS roles
     const hasRole = requiredRoles.some((role) => {
       if (role === 'SUPER_ADMIN') return userRoles.includes('superadmin') || userRoles.includes('SUPER_ADMIN');
-      if (role === 'COLLEGE_ADMIN') return userRoles.includes('tenantadmin') || userRoles.includes('COLLEGE_ADMIN');
+      if (role === 'COLLEGE_ADMIN') return userRoles.includes('tenantadmin') || userRoles.includes('COLLEGE_ADMIN') || userRoles.includes('instructor') || userRoles.includes('PRIMARY_TRAINER');
       if (role === 'PRIMARY_TRAINER') return userRoles.includes('instructor') || userRoles.includes('PRIMARY_TRAINER');
       if (role === 'STUDENT') return userRoles.includes('student') || userRoles.includes('STUDENT');
       return userRoles.includes(role);

@@ -1,22 +1,46 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+function decodeJwt(token: string): any {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 export function useRole() {
   const [role, setRole] = useState<string>('SUPER_ADMIN'); // Default to prevent flashing
 
   useEffect(() => {
-    // Read from localStorage on mount and when it changes
-    const currentRole = localStorage.getItem('mockRole') || 'SUPER_ADMIN';
-    setRole(currentRole);
-
-    // To handle role changes from Topbar simulate role dropdown
-    const handleStorageChange = () => {
+    const updateRole = () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        const payload = decodeJwt(token);
+        if (payload) {
+          const roles = payload.realm_access?.roles || [];
+          if (roles.includes('superadmin')) {
+            setRole('SUPER_ADMIN');
+            return;
+          } else if (roles.includes('tenantadmin') || roles.includes('instructor')) {
+            setRole('COLLEGE_ADMIN');
+            return;
+          }
+        }
+      }
       setRole(localStorage.getItem('mockRole') || 'SUPER_ADMIN');
     };
+
+    updateRole();
     
-    // Custom event since we change it in Topbar
-    window.addEventListener('roleChanged', handleStorageChange);
-    return () => window.removeEventListener('roleChanged', handleStorageChange);
+    // To handle role changes
+    window.addEventListener('roleChanged', updateRole);
+    return () => window.removeEventListener('roleChanged', updateRole);
   }, []);
 
   const isAdmin = role === 'SUPER_ADMIN' || role === 'COLLEGE_ADMIN';
