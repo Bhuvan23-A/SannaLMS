@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import Link from 'next/link';
@@ -18,8 +18,31 @@ export default function QuestionsPage() {
     { id: 4, text: '', isCorrect: false },
   ]);
   const [showForm, setShowForm] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (isAdmin || isTrainer) loadQuestions(); else setLoading(false); }, [isAdmin, isTrainer]);
+
+  const importFromPdf = async (e: any) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-uploading the same file
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('course_id', courseId);
+    setImporting(true);
+    setImportMessage(null);
+    try {
+      const res = await fetchApi('/api/v1/questions/import-pdf', { method: 'POST', body: formData });
+      setImportMessage({ ok: true, text: res.message || `Imported ${res.imported} question(s).` });
+      loadQuestions();
+    } catch (err: any) {
+      setImportMessage({ ok: false, text: err.message || 'PDF import failed.' });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const loadQuestions = async () => {
     try {
@@ -61,8 +84,25 @@ export default function QuestionsPage() {
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Question Bank</h1>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Add Question</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={importFromPdf} />
+          <button className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+            {importing ? '⏳ Importing...' : '📄 Import from PDF'}
+          </button>
+          <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Add Question</button>
+        </div>
       </div>
+
+      {importMessage && (
+        <div className="glass-panel" style={{
+          padding: '14px 18px',
+          marginBottom: '20px',
+          color: importMessage.ok ? 'var(--success-color)' : 'var(--danger-color)',
+          border: `1px solid ${importMessage.ok ? 'var(--success-color)' : 'var(--danger-color)'}`
+        }}>
+          {importMessage.text}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="panel" style={{ marginBottom: '30px' }}>

@@ -18,9 +18,13 @@ export class AssignmentsService {
     });
   }
 
-  async getAssignments(tenantId: string, courseId: string) {
+  async getAssignments(tenantId: string, courseId?: string) {
+    const whereClause: any = { tenant_id: tenantId };
+    if (courseId) {
+      whereClause.course_id = courseId;
+    }
     return this.prisma.assignment.findMany({
-      where: { tenant_id: tenantId, course_id: courseId }
+      where: whereClause
     });
   }
 

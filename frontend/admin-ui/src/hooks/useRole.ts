@@ -27,8 +27,17 @@ export function useRole() {
           if (roles.includes('superadmin')) {
             setRole('SUPER_ADMIN');
             return;
-          } else if (roles.includes('tenantadmin') || roles.includes('instructor')) {
+          } else if (roles.includes('tenantadmin')) {
             setRole('COLLEGE_ADMIN');
+            return;
+          } else if (roles.includes('instructor')) {
+            setRole('PRIMARY_TRAINER');
+            return;
+          } else if (roles.includes('TEACHING_ASSISTANT')) {
+            setRole('TEACHING_ASSISTANT');
+            return;
+          } else if (roles.includes('student')) {
+            setRole('STUDENT');
             return;
           }
         }

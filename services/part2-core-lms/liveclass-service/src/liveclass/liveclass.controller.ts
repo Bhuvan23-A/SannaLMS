@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, Req, Param, Put, Query } from '@nestjs/com
 import { LiveclassService } from './liveclass.service';
 import { Roles } from '../roles.guard';
 
-@Controller('api/v1/liveclasses')
+@Controller(['api/v1/liveclasses', 'api/v1/live-classes'])
 export class LiveclassController {
   constructor(private readonly liveclassService: LiveclassService) {}
 

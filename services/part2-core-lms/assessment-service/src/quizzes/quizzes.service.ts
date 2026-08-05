@@ -17,7 +17,8 @@ export class QuizzesService {
       }
     });
 
-    if (data.question_ids && Array.isArray(data.question_ids)) {
+    // Guard against empty selection — Prisma throws on createMany with an empty array
+    if (data.question_ids && Array.isArray(data.question_ids) && data.question_ids.length > 0) {
       await this.prisma.quizQuestion.createMany({
         data: data.question_ids.map((id, index) => ({
           quiz_id: quiz.id,

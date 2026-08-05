@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient, keycloak } from '../api/client';
 import { 
@@ -10,6 +10,10 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { userProfile, logout } = useAuth();
+
+  // Admin dashboard base URL — override for local dev via .env (VITE_ADMIN_URL=http://localhost:3000)
+  const ADMIN_URL: string = (import.meta.env.VITE_ADMIN_URL as string) || 'https://admin.sannalms.sannainnovations.com';
+  const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance'>('overview');
@@ -19,11 +23,18 @@ export const Dashboard: React.FC = () => {
   const hasAdminRole = keycloak.token ? (keycloak.hasRealmRole('superadmin') || keycloak.hasRealmRole('tenantadmin')) : true;
   const hasTrainerRole = keycloak.token ? (hasAdminRole || keycloak.hasRealmRole('instructor')) : true;
 
-  // Set default role based on Keycloak roles on mount
+  // Set default role based on Keycloak roles on mount.
+  // Super Admin / College Admin are routed straight to the role-scoped Admin Dashboard
+  // (the admin UI resolves the same JWT and renders the correct access level).
   useEffect(() => {
     if (keycloak.token) {
       if (keycloak.hasRealmRole('superadmin') || keycloak.hasRealmRole('tenantadmin')) {
         setSelectedRole('ADMIN');
+        if (!adminRedirectedRef.current) {
+          adminRedirectedRef.current = true;
+          const adminUrl = `${ADMIN_URL}/?token=${encodeURIComponent(keycloak.token)}`;
+          window.location.replace(adminUrl);
+        }
       } else if (keycloak.hasRealmRole('instructor')) {
         setSelectedRole('INSTRUCTOR');
       } else {

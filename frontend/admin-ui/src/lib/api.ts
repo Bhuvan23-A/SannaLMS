@@ -16,6 +16,12 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     'X-Tenant-ID': tenantId,
   };
 
+  // For multipart uploads (e.g. PDF import) let the browser set the Content-Type boundary
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (isFormData) {
+    delete defaultHeaders['Content-Type'];
+  }
+
   // Attach Bearer token if available (from Keycloak)
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;

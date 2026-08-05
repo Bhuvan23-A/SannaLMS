@@ -47,3 +47,6 @@ logs/
 # Coverage & Tests
 coverage/
 .pytest_cache/
+
+# Freebuff workspace (contains local server credentials & temp files)
+.freebuff/

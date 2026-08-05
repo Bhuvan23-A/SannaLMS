@@ -53,6 +53,7 @@ services:
         paths:
           - /api/v1/questions
           - /api/v1/quizzes
+          - /api/v1/assignments
           - /api/v1/gradebook
         strip_path: false
 

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Topbar from "@/components/Topbar";
 import CreateCollegeModal from "@/components/CreateCollegeModal";
+import RoleGuard from "@/components/RoleGuard";
 import { fetchApi } from "@/lib/api";
 
 export default function CollegesPage() {
@@ -28,6 +29,7 @@ export default function CollegesPage() {
   }, []);
 
   return (
+    <RoleGuard allowedRoles={['SUPER_ADMIN']}>
     <div className="animate-fade-in">
       <Topbar title="Colleges Management" />
       
@@ -81,5 +83,6 @@ export default function CollegesPage() {
         />
       )}
     </div>
+    </RoleGuard>
   );
 }

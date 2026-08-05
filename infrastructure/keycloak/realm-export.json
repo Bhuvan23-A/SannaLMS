@@ -28,7 +28,23 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
-      "fullScopeAllowed": true
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String"
+          }
+        }
+      ]
     },
     {
       "clientId": "sannalms-api",
@@ -60,6 +76,10 @@
       {
         "name": "student",
         "description": "Student"
+      },
+      {
+        "name": "TEACHING_ASSISTANT",
+        "description": "Teaching Assistant"
       }
     ]
   },

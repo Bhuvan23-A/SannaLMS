@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Req, Query } from '@nestjs/common';
+import { Controller, Post, Get, Param, Req, Query, Body } from '@nestjs/common';
 import { GradebookService } from './gradebook.service';
 import { Roles } from '../roles.guard';
 
@@ -8,9 +8,9 @@ export class GradebookController {
 
   @Post(':courseId/calculate/:userId')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
-  calculate(@Param('courseId') courseId: string, @Param('userId') userId: string, @Req() req: Record<string, any>) {
+  calculate(@Param('courseId') courseId: string, @Param('userId') userId: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
-    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    const tenantId = isSuperAdmin ? (body?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     return this.gradebookService.calculateGrade(String(tenantId), courseId, userId);
   }
 

@@ -1,4 +1,5 @@
-﻿FROM node:22-slim AS builder
+﻿# PDF parsing uses pdf-parse-new (maintained pdf.js) — works on Node 20/22 on Linux.
+FROM node:22-slim AS builder
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
