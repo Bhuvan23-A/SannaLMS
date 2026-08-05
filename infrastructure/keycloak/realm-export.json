@@ -2,6 +2,8 @@
   "id": "sannalms",
   "realm": "sannalms",
   "displayName": "SannaLMS",
+  "loginTheme": "sannalms",
+  "accountTheme": "sannalms",
   "displayNameHtml": "<div class=\"kc-logo-text\"><span>SannaLMS</span></div>",
   "enabled": true,
   "sslRequired": "none",
