@@ -5,6 +5,8 @@
 > The SannaLMS platform runs **alongside other projects on this server**. Following these rules protects the LMS (and everyone else's work) from accidental breakage.
 >
 > **Owner:** Platform Team · **Last updated:** 2026-08-06
+>
+> 📌 **Update (2026-08-06):** While another project was being deployed, the LMS containers were removed by a `docker-compose down` in the LMS folder. Everything was rebuilt from the compose file within minutes because the data volumes were untouched — **this is exactly why rule #2 below exists.** If you are the one deploying, read rule #2.
 
 ---
 
@@ -60,6 +62,7 @@
 | **8008** | AI service | |
 | **4003** | Coding sandbox | |
 | **5433** | LMS postgres (**localhost-only**) | Internal name: `sannalms-postgres:5432` — do not connect your apps to it |
+| **6380** | LMS redis (**localhost-only**) | Internal name: `sannalms-redis:6379` — moved to 6380 because another project's redis owns 6379 |
 | **5432** | ⚠️ Another project's postgres (public!) | Not the LMS, but whoever owns that project should lock it down too |
 
 ---
