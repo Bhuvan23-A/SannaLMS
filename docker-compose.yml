@@ -4,12 +4,13 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: sannalms-postgres
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-sannalms}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -22,8 +23,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: sannalms-redis
+    restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -35,6 +37,7 @@ services:
   minio:
     image: minio/minio:RELEASE.2023-09-07T02-05-02Z
     container_name: sannalms-minio
+    restart: always
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -55,6 +58,7 @@ services:
       context: ./infrastructure/keycloak
       dockerfile: Dockerfile
     container_name: sannalms-keycloak
+    restart: always
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
@@ -78,6 +82,7 @@ services:
   kong-db:
     image: postgres:15-alpine
     container_name: kong-db
+    restart: always
     environment:
       POSTGRES_USER: ${KONG_PG_USER:-kong}
       POSTGRES_PASSWORD: ${KONG_PG_PASSWORD:-kongpass}
@@ -104,6 +109,7 @@ services:
   kong:
     image: kong:3.4.0-ubuntu
     container_name: sannalms-kong
+    restart: always
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
@@ -125,6 +131,7 @@ services:
   nginx:
     image: nginx:1.25-alpine
     container_name: sannalms-nginx
+    restart: always
     ports:
       - "8085:80"
     volumes:
