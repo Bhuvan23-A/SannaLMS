@@ -267,7 +267,7 @@ services:
     restart: always
     environment:
       - PORT=3002
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_user?schema=public
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
@@ -283,7 +283,7 @@ services:
     restart: always
     environment:
       - PORT=3000
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_college?schema=public
     depends_on:
       - postgres
 
@@ -295,7 +295,7 @@ services:
     restart: always
     environment:
       - PORT=3001
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_course?schema=public
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=admin
@@ -311,7 +311,7 @@ services:
     restart: always
     environment:
       - PORT=3002
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_assessment?schema=public
     depends_on:
       - postgres
 
@@ -323,7 +323,7 @@ services:
     restart: always
     environment:
       - PORT=3003
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_attendance?schema=public
     depends_on:
       - postgres
 
@@ -335,7 +335,7 @@ services:
     restart: always
     environment:
       - PORT=3004
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_calendar?schema=public
     depends_on:
       - postgres
 
@@ -347,7 +347,7 @@ services:
     restart: always
     environment:
       - PORT=3005
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_certificate?schema=public
     depends_on:
       - postgres
 
@@ -359,7 +359,7 @@ services:
     restart: always
     environment:
       - PORT=3006
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_discussion?schema=public
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
@@ -383,7 +383,7 @@ services:
     restart: always
     environment:
       - PORT=3008
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_liveclass?schema=public
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
@@ -397,7 +397,7 @@ services:
     restart: always
     environment:
       - PORT=3009
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_notification?schema=public
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
