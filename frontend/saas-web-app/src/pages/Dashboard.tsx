@@ -168,6 +168,51 @@ export const Dashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // --- REAL QUIZZES (student takes quizzes created by trainers/admins) ---
+  const [quizList, setQuizList] = useState<any[]>([]);
+  const [quizzesLoading, setQuizzesLoading] = useState(false);
+  const [quizzesError, setQuizzesError] = useState('');
+  const [pickedQuiz, setPickedQuiz] = useState<any>(null);
+  const [quizQuestionIndex, setQuizQuestionIndex] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const [quizSubmitResult, setQuizSubmitResult] = useState<{ score: number; maxScore: number; graded: boolean } | null>(null);
+
+  const fetchQuizzes = async () => {
+    setQuizzesLoading(true);
+    setQuizzesError('');
+    try {
+      const response = await apiClient.get('/quizzes');
+      const data = response.data || [];
+      setQuizList(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setQuizzesError(err?.response?.data?.message || err?.message || 'Failed to load quizzes');
+    } finally {
+      setQuizzesLoading(false);
+    }
+  };
+
+  // --- REAL ASSIGNMENTS (student sees & submits assignments created by trainers/admins) ---
+  const [assignmentList, setAssignmentList] = useState<any[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [assignmentsError, setAssignmentsError] = useState('');
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
+
+  const fetchAssignments = async () => {
+    setAssignmentsLoading(true);
+    setAssignmentsError('');
+    try {
+      const response = await apiClient.get('/assignments');
+      const data = response.data || [];
+      const list = Array.isArray(data) ? data : [];
+      setAssignmentList(list);
+      if (list.length > 0 && !selectedAssignmentId) setSelectedAssignmentId(list[0].id);
+    } catch (err: any) {
+      setAssignmentsError(err?.response?.data?.message || err?.message || 'Failed to load assignments');
+    } finally {
+      setAssignmentsLoading(false);
+    }
+  };
+
   // --- LEADERBOARD STATE ---
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -241,22 +286,13 @@ export const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [examStarted, timeLeft]);
 
-  // Auto-submit when the timer expires (closes the exam instead of hanging)
-  useEffect(() => {
-    if (examStarted && timeLeft <= 0) {
-      setExamStarted(false);
-      setTestResult({
-        score: currentScore,
-        submittedAt: new Date().toLocaleTimeString(),
-      });
-    }
-  }, [examStarted, timeLeft, currentScore]);
-
   // Load live data when tabs open
   useEffect(() => {
     if (activeTab === 'leaderboard') fetchLeaderboard();
     if (activeTab === 'certificates') fetchMyCertificates();
     if (activeTab === 'attendance') fetchAttendanceSessions();
+    if (activeTab === 'assessment') fetchQuizzes();
+    if (activeTab === 'assignments') fetchAssignments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -415,6 +451,50 @@ export const Dashboard: React.FC = () => {
     });
   };
 
+  // --- REAL QUIZ TAKING (created by trainers/admins) ---
+  const startQuiz = (quiz: any) => {
+    setPickedQuiz(quiz);
+    setQuizQuestionIndex(0);
+    setQuizAnswers({});
+    setExamStarted(true);
+    setTimeLeft((quiz.duration_mins || 10) * 60);
+    setQuizSubmitResult(null);
+    setTestResult(null);
+    setSelectedOption('');
+  };
+
+  const currentQuizQuestions = pickedQuiz?.questions || [];
+  const currentQuizQuestion = currentQuizQuestions[quizQuestionIndex]?.question;
+
+  const pickQuizAnswer = (questionId: string, optionId: string) => {
+    setQuizAnswers(prev => ({ ...prev, [questionId]: optionId }));
+  };
+
+  const submitRealQuiz = async () => {
+    if (!pickedQuiz) return;
+    try {
+      const response = await apiClient.post(`/quizzes/${pickedQuiz.id}/submit`, { answers: quizAnswers });
+      const res = response.data || {};
+      const maxScore = currentQuizQuestions.reduce((acc: number, qq: any) => acc + (qq.question?.marks || 0), 0);
+      setQuizSubmitResult({
+        score: res.score ?? 0,
+        maxScore,
+        graded: res.is_graded !== false,
+      });
+      setExamStarted(false);
+    } catch (err: any) {
+      alert('Failed to submit quiz: ' + (err?.response?.data?.message || err?.message));
+    }
+  };
+
+  // Auto-submit when the timer expires (submits the real quiz instead of hanging)
+  useEffect(() => {
+    if (examStarted && timeLeft <= 0 && pickedQuiz && Object.keys(quizAnswers).length > 0) {
+      submitRealQuiz();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examStarted, timeLeft]);
+
   // --- AI TUTOR (RAG QUERY) ---
   const queryAiTutor = async () => {
     if (!tutorQuery.trim()) return;
@@ -513,7 +593,19 @@ export const Dashboard: React.FC = () => {
     });
     const status: 'CLEAN' | 'FLAGGED' = maxScore >= 60 ? 'FLAGGED' : 'CLEAN';
 
-    // Upload to the real assignment service (Part 3) with the auth token
+    // Submit against the real assignment (created by the trainer) so it lands in the gradebook
+    const assignmentId = selectedAssignmentId || assignmentList[0]?.id || 'ass-1';
+    let realSubmitError = '';
+    try {
+      await apiClient.post(`/assignments/${assignmentId}/submit`, {
+        text_content: uploadedCodeContent,
+        file_url: uploadedFileName,
+      });
+    } catch (err: any) {
+      realSubmitError = err?.response?.data?.message || err?.message || 'submission failed';
+    }
+
+    // Also upload to the plagiarism engine (Part 3) with the auth token
     const tokenParsed: any = keycloak.tokenParsed;
     const tenantId = tokenParsed?.tenant_id || tokenParsed?.attributes?.tenant_id?.[0] || tokenParsed?.tenantId || 'test-college';
     const studentId = keycloak.subject || userProfile?.id || 'u-1';
@@ -521,13 +613,13 @@ export const Dashboard: React.FC = () => {
       const formData = new FormData();
       formData.append('file', new Blob([uploadedCodeContent], { type: 'text/plain' }), uploadedFileName || 'submission.txt');
       formData.append('studentId', studentId);
-      formData.append('assignmentId', 'ass-1');
+      formData.append('assignmentId', assignmentId);
       await apiClient.post('/assignment/submit', formData, {
         // Let axios set Content-Type + boundary from the FormData body automatically
         headers: { 'x-tenant-id': tenantId },
       });
     } catch (err: any) {
-      console.warn('Assignment service upload failed — keeping local record only.', err?.message || err);
+      console.warn('Plagiarism engine upload failed — keeping local record only.', err?.message || err);
     }
 
     const newSub = {
@@ -541,7 +633,9 @@ export const Dashboard: React.FC = () => {
     };
 
     setSubmissionsList(prev => [newSub, ...prev]);
-    alert(`Assignment Uploaded to MinIO S3!\nPlagiarism score evaluated: ${maxScore}% (${status})`);
+    alert(realSubmitError
+      ? `⚠️ Saved locally, but the server submission failed: ${realSubmitError}\nPlagiarism score evaluated: ${maxScore}% (${status})`
+      : `Assignment submitted successfully (${assignmentId}).\nPlagiarism score evaluated: ${maxScore}% (${status})`);
   };
 
   const handleDistributeReviews = () => {
@@ -1111,94 +1205,146 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* 4. ADAPTIVE ASSESSMENT TAB */}
+        {/* 4. QUIZZES TAB (real quizzes created by trainers/admins) */}
         {activeTab === 'assessment' && (
           <div style={{ maxWidth: '750px', margin: '0 auto' }}>
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2.5rem', position: 'relative' }}>
-              
-              {!examStarted && !testResult && (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ background: 'rgba(16,185,129,0.1)', padding: '1rem', borderRadius: '50%', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                    <CheckSquare size={36} color="var(--accent-emerald)" />
+
+              {/* Quiz picker */}
+              {!examStarted && !quizSubmitResult && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.5rem' }}>Available Quizzes</h2>
+                    <button onClick={fetchQuizzes} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                      {quizzesLoading ? 'Loading...' : 'Refresh'}
+                    </button>
                   </div>
-                  <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Item Response Theory (IRT) Exam Engine</h2>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                    This adaptive testing module dynamically adjusts question difficulty based on consecutive correct or incorrect answers.
-                  </p>
-                  <button onClick={handleStartExam} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.75rem 2rem', borderRadius: '8px', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
-                    Start Assessment
-                  </button>
+
+                  {quizzesError && (
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                      {quizzesError}
+                    </div>
+                  )}
+
+                  {!quizzesLoading && !quizzesError && quizList.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                      <CheckSquare size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No quizzes assigned yet. Your trainer will publish quizzes here for you to attempt.</p>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {quizList.map((quiz: any) => (
+                      <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}</h4>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {(quiz.questions || []).length} questions · {quiz.duration_mins || 10} min · {quiz.description || 'No description'}
+                          </span>
+                        </div>
+                        <button onClick={() => startQuiz(quiz)} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
+                          Start Quiz
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {examStarted && (
+              {/* Quiz in progress */}
+              {examStarted && pickedQuiz && currentQuizQuestion && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                    <span style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
-                      Difficulty: {currentDifficulty}
-                    </span>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem' }}>{pickedQuiz.title}</h3>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        Question {quizQuestionIndex + 1} of {currentQuizQuestions.length}
+                      </span>
+                    </div>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: timeLeft < 60 ? '#f43f5e' : '#fff', fontWeight: 600 }}>
                       <Clock size={16} /> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>{currentQuestion.text}</h3>
+                  <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>{currentQuizQuestion.text}</h3>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-                    {currentQuestion.options.map((opt, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => setSelectedOption(opt)}
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '1rem',
-                          background: selectedOption === opt ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.01)',
-                          border: '1px solid',
-                          borderColor: selectedOption === opt ? 'var(--accent-emerald)' : 'rgba(255,255,255,0.06)',
-                          borderRadius: '8px',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          fontWeight: 500,
-                          fontSize: '0.95rem',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                    {(currentQuizQuestion.options || []).map((opt: any, idx: number) => {
+                      const optionId = typeof opt === 'string' ? opt : String(opt.id);
+                      const optionText = typeof opt === 'string' ? opt : opt.text;
+                      const isSelected = quizAnswers[currentQuizQuestion.id] === optionId;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => pickQuizAnswer(currentQuizQuestion.id, optionId)}
+                          style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '1rem',
+                            background: isSelected ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.01)',
+                            border: '1px solid',
+                            borderColor: isSelected ? 'var(--accent-emerald)' : 'rgba(255,255,255,0.06)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            fontSize: '0.95rem',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {optionText}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button onClick={handleFinishExam} style={{ border: '1px solid rgba(244,63,94,0.3)', background: 'transparent', color: '#fb7185', padding: '0.65rem 1.25rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
-                      Finish & Submit
+                    <button
+                      onClick={() => setQuizQuestionIndex(prev => Math.max(0, prev - 1))}
+                      disabled={quizQuestionIndex === 0}
+                      style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', padding: '0.65rem 1.25rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, opacity: quizQuestionIndex === 0 ? 0.4 : 1 }}
+                    >
+                      Previous
                     </button>
-                    <div style={{ textAlign: 'right' }}>
-                      {!selectedOption && <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Select an answer to enable Submit</p>}
-                      <button onClick={handleSubmitQuestion} disabled={!selectedOption} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, opacity: selectedOption ? 1 : 0.4 }}>
-                        Submit Answer
+
+                    {quizQuestionIndex < currentQuizQuestions.length - 1 ? (
+                      <button
+                        onClick={() => setQuizQuestionIndex(prev => prev + 1)}
+                        style={{ border: 'none', background: 'var(--accent-indigo)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        Next Question
                       </button>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={submitRealQuiz}
+                        style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        Submit Quiz
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {testResult && (
+              {/* Quiz result */}
+              {quizSubmitResult && (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ background: 'rgba(99,102,241,0.1)', padding: '1rem', borderRadius: '50%', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                     <Award size={36} color="var(--accent-indigo)" />
                   </div>
-                  <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Assessment Completed!</h2>
+                  <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Quiz Submitted!</h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-                    Your response has been registered and verified by the adaptive scaling algorithm.
+                    {quizSubmitResult.graded
+                      ? 'Your answers were auto-graded and recorded in the gradebook.'
+                      : 'Your answers were saved — the trainer will grade them manually.'}
                   </p>
                   <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem 2rem', borderRadius: '8px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.04)', marginBottom: '2rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Calculated Score:</span>
-                    <h3 style={{ fontSize: '2rem', color: 'var(--accent-cyan)' }}>{testResult.score} Pts</h3>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Your Score:</span>
+                    <h3 style={{ fontSize: '2rem', color: 'var(--accent-cyan)' }}>{quizSubmitResult.score} / {quizSubmitResult.maxScore}</h3>
                   </div>
                   <div>
-                    <button onClick={handleStartExam} style={{ border: 'none', background: 'var(--accent-indigo)', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
-                      Retake Test
+                    <button onClick={() => { setQuizSubmitResult(null); setPickedQuiz(null); fetchQuizzes(); }} style={{ border: 'none', background: 'var(--accent-indigo)', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
+                      Back to Quizzes
                     </button>
                   </div>
                 </div>
@@ -1453,11 +1599,44 @@ export const Dashboard: React.FC = () => {
 
             {assignmentSubTab === 'upload' && (
               <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff' }}>Submit New Assignment</h3>
+                  <button onClick={fetchAssignments} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                    {assignmentsLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+
+                {assignmentsError && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                    {assignmentsError}
+                  </div>
+                )}
+
+                {!assignmentsLoading && !assignmentsError && assignmentList.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
+                    <FileText size={28} style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }} />
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No assignments published yet. Your trainer will add assignments here for you to submit.</p>
+                  </div>
+                )}
+
+                {assignmentList.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Select Assignment to Submit</label>
+                    <select
+                      value={selectedAssignmentId}
+                      onChange={e => setSelectedAssignmentId(e.target.value)}
+                      style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
+                    >
+                      {assignmentList.map((a: any) => (
+                        <option key={a.id} value={a.id}>{a.title} (due: {a.due_date ? new Date(a.due_date).toLocaleDateString() : 'no due date'})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   {/* Left Form */}
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: '#fff' }}>Submit New Assignment</h3>
-                    
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Student Name</label>
