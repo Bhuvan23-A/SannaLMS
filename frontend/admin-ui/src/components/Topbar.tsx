@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { getRoleLabel, handleLogout, storeTokenFromUrl } from '@/lib/auth';
+import { getRoleLabel, handleLogout, storeTokenFromUrl, ADMIN_DOMAIN, PORTAL_URL } from '@/lib/auth';
 
 export default function Topbar({ title }: { title: string }) {
   const [role, setRole] = useState('SUPER_ADMIN');
@@ -12,7 +12,25 @@ export default function Topbar({ title }: { title: string }) {
 
   useEffect(() => {
     // Handle ?token= redirect from the main portal (only runs once on mount)
-    const { role: parsedRole } = storeTokenFromUrl();
+    const { token: urlToken, role: parsedRole } = storeTokenFromUrl();
+    const storedToken = localStorage.getItem('access_token');
+    const token = urlToken || storedToken;
+
+    const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    // Never run the dashboard from the raw server IP - force the canonical HTTPS
+    // admin domain (carrying the token along), or back to the portal if logged out.
+    if (!isLocalDev && window.location.origin !== ADMIN_DOMAIN) {
+      window.location.replace(token ? `${ADMIN_DOMAIN}/?token=${encodeURIComponent(token)}` : PORTAL_URL);
+      return;
+    }
+
+    // On the deployed site a missing token means the user is not signed in - send
+    // them to the portal instead of showing a mock logged-in dashboard.
+    if (!isLocalDev && !token) {
+      window.location.replace(PORTAL_URL);
+      return;
+    }
 
     // Read final role from storage (possibly just written above)
     const savedRole = localStorage.getItem('mockRole') || 'SUPER_ADMIN';

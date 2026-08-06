@@ -1,7 +1,8 @@
 // Shared auth helpers for the admin UI.
 
-// The canonical public domain for the admin UI.
-const ADMIN_DOMAIN = 'https://admin.sannalms.sannainnovations.com';
+// The canonical public domains for the SannaLMS platform.
+export const ADMIN_DOMAIN = 'https://admin.sannalms.sannainnovations.com';
+export const PORTAL_URL = 'https://sannalms.sannainnovations.com';
 const KEYCLOAK_BASE = 'https://sannalms.sannainnovations.com/auth';
 const KEYCLOAK_REALM = 'sannalms';
 const KEYCLOAK_CLIENT = 'sannalms-client';
@@ -23,10 +24,9 @@ export function handleLogout(): void {
   sessionStorage.clear();
 
   // 2. Build Keycloak logout URL.
-  //    Always use the canonical ADMIN_DOMAIN as post_logout_redirect_uri —
-  //    this is safe regardless of whether the user accessed via raw IP or domain.
-  //    Keycloak will invalidate the server-side session and redirect here.
-  const redirectUri = encodeURIComponent(ADMIN_DOMAIN);
+  //    Send the user to the portal landing page after logout (it has the Sign In
+  //    button) - the admin dashboard must never render without a real token.
+  const redirectUri = encodeURIComponent(PORTAL_URL);
   const logoutUrl =
     `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout` +
     `?post_logout_redirect_uri=${redirectUri}` +
