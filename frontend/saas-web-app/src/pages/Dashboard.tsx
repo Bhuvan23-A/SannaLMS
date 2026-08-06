@@ -8,6 +8,39 @@ import {
   FileText, Calendar, Upload, Users, ShieldCheck
 } from 'lucide-react';
 
+// Starter templates per language — switching tabs loads the matching template
+const LANGUAGE_TEMPLATES: Record<'python' | 'cpp' | 'java', string> = {
+  python: `# Write your Python code here
+name = input("Enter name: ")
+print(f"Hello, {name}!")
+print("Sandbox environment isolated successfully.")`,
+  cpp: `// Write your C++ code here
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string name;
+    cout << "Enter name: ";
+    getline(cin, name);
+    cout << "Hello, " << name << "!" << endl;
+    cout << "Sandbox environment isolated successfully." << endl;
+    return 0;
+}`,
+  java: `// Write your Java code here
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter name: ");
+        String name = sc.nextLine();
+        System.out.println("Hello, " + name + "!");
+        System.out.println("Sandbox environment isolated successfully.");
+    }
+}`,
+};
+
 export const Dashboard: React.FC = () => {
   const { userProfile, logout } = useAuth();
 
@@ -90,9 +123,12 @@ export const Dashboard: React.FC = () => {
 
   // --- TAB 1: Code Sandbox State ---
   const [codeLanguage, setCodeLanguage] = useState<'python' | 'cpp' | 'java'>('python');
-  const [sandboxCode, setSandboxCode] = useState<string>(
-    `# Write your Python code here\nname = input("Enter name: ")\nprint(f"Hello, {name}!")\nprint("Sandbox environment isolated successfully.")`
-  );
+  const [codeByLanguage, setCodeByLanguage] = useState<Record<string, string>>({
+    python: LANGUAGE_TEMPLATES.python,
+    cpp: LANGUAGE_TEMPLATES.cpp,
+    java: LANGUAGE_TEMPLATES.java,
+  });
+  const [sandboxCode, setSandboxCode] = useState<string>(LANGUAGE_TEMPLATES.python);
   const [sandboxInput, setSandboxInput] = useState<string>('SannaLMS Student');
   const [sandboxOutput, setSandboxOutput] = useState<string>('');
   const [sandboxError, setSandboxError] = useState<string>('');
@@ -132,6 +168,71 @@ export const Dashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // --- LEADERBOARD STATE ---
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState('');
+
+  const fetchLeaderboard = async () => {
+    setLeaderboardLoading(true);
+    setLeaderboardError('');
+    try {
+      const response = await apiClient.get('/leaderboard/global', { params: { limit: 25 } });
+      const data = response.data || [];
+      setLeaderboardData(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setLeaderboardError(err?.response?.data?.detail || err?.message || 'Failed to load leaderboard');
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  // --- CERTIFICATES STATE ---
+  const [myCerts, setMyCerts] = useState<any[]>([]);
+  const [certsLoading, setCertsLoading] = useState(false);
+  const [certsError, setCertsError] = useState('');
+  const [verifyResult, setVerifyResult] = useState<{ no: string; data: any; error: string } | null>(null);
+
+  const fetchMyCertificates = async () => {
+    setCertsLoading(true);
+    setCertsError('');
+    try {
+      const response = await apiClient.get('/certificates/my');
+      const data = response.data || [];
+      setMyCerts(Array.isArray(data) ? data : data.data || []);
+    } catch (err: any) {
+      setCertsError(err?.response?.data?.message || err?.message || 'Failed to load certificates');
+    } finally {
+      setCertsLoading(false);
+    }
+  };
+
+  const verifyCertificate = async (certificateNo: string) => {
+    setVerifyResult({ no: certificateNo, data: null, error: '' });
+    try {
+      const response = await apiClient.get(`/certificates/verify/${certificateNo}`);
+      setVerifyResult({ no: certificateNo, data: response.data, error: '' });
+    } catch (err: any) {
+      setVerifyResult({ no: certificateNo, data: null, error: err?.response?.data?.message || err?.message || 'Verification failed' });
+    }
+  };
+
+  // --- ATTENDANCE SESSIONS STATE ---
+  const [attendanceSessionOptions, setAttendanceSessionOptions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+
+  const fetchAttendanceSessions = async () => {
+    try {
+      const response = await apiClient.get('/attendance/sessions');
+      const sessions = response.data || [];
+      const list = Array.isArray(sessions) ? sessions : [];
+      setAttendanceSessionOptions(list);
+      if (list.length > 0) setSelectedSessionId(list[0].id || '');
+    } catch (err: any) {
+      console.warn('Could not load attendance sessions', err);
+    }
+  };
+
   useEffect(() => {
     if (!examStarted || timeLeft <= 0) return;
     const interval = setInterval(() => {
@@ -139,6 +240,25 @@ export const Dashboard: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [examStarted, timeLeft]);
+
+  // Auto-submit when the timer expires (closes the exam instead of hanging)
+  useEffect(() => {
+    if (examStarted && timeLeft <= 0) {
+      setExamStarted(false);
+      setTestResult({
+        score: currentScore,
+        submittedAt: new Date().toLocaleTimeString(),
+      });
+    }
+  }, [examStarted, timeLeft, currentScore]);
+
+  // Load live data when tabs open
+  useEffect(() => {
+    if (activeTab === 'leaderboard') fetchLeaderboard();
+    if (activeTab === 'certificates') fetchMyCertificates();
+    if (activeTab === 'attendance') fetchAttendanceSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // --- CORE LMS METHODS ---
   const handleLessonClick = (lesson: any) => {
@@ -148,13 +268,15 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleLessonCompleteToggle = (lessonId: string) => {
+    let toggledLesson: any = null;
     const updatedCourses = courses.map(course => {
       if (course.id !== selectedCourse.id) return course;
       
       const updatedModules = course.modules.map((mod: any) => {
         const updatedLessons = mod.lessons.map((les: any) => {
           if (les.id === lessonId) {
-            return { ...les, completed: !les.completed };
+            toggledLesson = { ...les, completed: !les.completed };
+            return toggledLesson;
           }
           return les;
         });
@@ -173,10 +295,25 @@ export const Dashboard: React.FC = () => {
       return updatedCourse;
     });
 
+    // Keep the video player's button in sync with the curriculum list
+    if (toggledLesson && toggledLesson.id === activeLesson.id) {
+      setActiveLesson(toggledLesson);
+    }
+
     setCourses(updatedCourses);
   };
 
   // --- SANDBOX RUNNER ---
+  const handleLanguageChange = (lang: 'python' | 'cpp' | 'java') => {
+    // Save the current editor content against the current language first
+    setCodeByLanguage(prev => ({ ...prev, [codeLanguage]: sandboxCode }));
+    setCodeLanguage(lang);
+    setSandboxCode(codeByLanguage[lang] || LANGUAGE_TEMPLATES[lang]);
+    setSandboxOutput('');
+    setSandboxError('');
+    setSandboxStatus('');
+  };
+
   const runSandboxCode = async () => {
     setIsSandboxRunning(true);
     setSandboxOutput('');
@@ -184,33 +321,21 @@ export const Dashboard: React.FC = () => {
     setSandboxStatus('SPAWNING_ISOLATED_CONTAINER...');
 
     try {
-      const response = await fetch('/api/v1/sandbox/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: codeLanguage,
-          code: sandboxCode,
-          input: sandboxInput,
-          timeout: 4000,
-        }),
+      const response = await apiClient.post('/sandbox/execute', {
+        language: codeLanguage,
+        code: sandboxCode,
+        input: sandboxInput,
+        timeout: 4000,
       });
 
-      if (!response.ok) throw new Error('API server returned error');
-      
-      const data = await response.json();
+      const data = response.data || {};
       setSandboxOutput(data.output || '');
       setSandboxError(data.error || '');
       setSandboxStatus(data.status || 'FINISHED');
-    } catch (err) {
-      console.log('API call fallback, running client sandbox simulation...');
-      setTimeout(() => {
-        setSandboxStatus('SUCCESS (Offline Simulation)');
-        if (codeLanguage === 'python') {
-          setSandboxOutput(`Hello, ${sandboxInput}!\nExecution complete. Output parsed successfully.`);
-        } else {
-          setSandboxOutput(`Hello, ${sandboxInput}!\n(Sandbox compilation succeeded via backup engine)`);
-        }
-      }, 1000);
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Execution failed';
+      setSandboxStatus('FAILED');
+      setSandboxError(message);
     } finally {
       setIsSandboxRunning(false);
     }
@@ -300,30 +425,20 @@ export const Dashboard: React.FC = () => {
     setIsTutorLoading(true);
 
     try {
-      const response = await fetch('/api/v1/tutor/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_query: query,
-          course_context: activeLesson?.transcript || 'This is SannaLMS course context.',
-        }),
+      const response = await apiClient.post('/tutor/query', {
+        student_query: query,
+        course_context: activeLesson?.transcript || 'This is SannaLMS course context.',
       });
 
-      if (!response.ok) throw new Error('API server returned error');
-
-      const data = await response.json();
-      setChatHistory(prev => [...prev, { sender: 'bot', text: data.answer || 'I am ready to help.' }]);
-    } catch (err) {
-      console.log('AI Tutor fallback mode...');
-      setTimeout(() => {
-        setChatHistory(prev => [
-          ...prev, 
-          { 
-            sender: 'bot', 
-            text: `Based strictly on your active lesson (${activeLesson?.title}):\n\n👉 Focus on learning the core concepts of function compilation, memory isolation, and runtime scopes.\n\n(Fallback: AI service not reached, simulating locally)` 
-          }
-        ]);
-      }, 1000);
+      const data = response.data || {};
+      let answer = data.answer || 'I am ready to help.';
+      if (typeof data.confidence_score === 'number') {
+        answer += `\n\n(confidence: ${Math.round(data.confidence_score * 100)}%)`;
+      }
+      setChatHistory(prev => [...prev, { sender: 'bot', text: answer }]);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Tutor service unreachable';
+      setChatHistory(prev => [...prev, { sender: 'bot', text: `⚠️ ${message}` }]);
     } finally {
       setIsTutorLoading(false);
     }
@@ -381,7 +496,7 @@ export const Dashboard: React.FC = () => {
     submitted: boolean;
   }>>([]);
 
-  const handleSubmitAssignment = () => {
+  const handleSubmitAssignment = async () => {
     const clean = (txt: string) => txt.replace(/\/\/.*$/gm, '').replace(/#.*$/gm, '').replace(/\s+/g, '').toLowerCase();
     const cleanUploaded = clean(uploadedCodeContent);
     
@@ -397,6 +512,23 @@ export const Dashboard: React.FC = () => {
       if (score > maxScore) maxScore = score;
     });
     const status: 'CLEAN' | 'FLAGGED' = maxScore >= 60 ? 'FLAGGED' : 'CLEAN';
+
+    // Upload to the real assignment service (Part 3) with the auth token
+    const tokenParsed: any = keycloak.tokenParsed;
+    const tenantId = tokenParsed?.tenant_id || tokenParsed?.attributes?.tenant_id?.[0] || tokenParsed?.tenantId || 'test-college';
+    const studentId = keycloak.subject || userProfile?.id || 'u-1';
+    try {
+      const formData = new FormData();
+      formData.append('file', new Blob([uploadedCodeContent], { type: 'text/plain' }), uploadedFileName || 'submission.txt');
+      formData.append('studentId', studentId);
+      formData.append('assignmentId', 'ass-1');
+      await apiClient.post('/assignment/submit', formData, {
+        headers: { 'x-tenant-id': tenantId, 'Content-Type': 'multipart/form-data' },
+      });
+    } catch (err: any) {
+      console.warn('Assignment service upload failed — keeping local record only.', err?.message || err);
+    }
+
     const newSub = {
       id: `sub-${Math.floor(100 + Math.random() * 900)}`,
       studentName: studentNameInput || userProfile?.firstName || 'demo',
@@ -457,32 +589,12 @@ export const Dashboard: React.FC = () => {
     setCheckingIn(true);
     setCheckInMessage('');
     try {
-      const response = await fetch('/api/v1/attendance/checkin/gps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: 'sess-1',
-          lat: parseFloat(gpsLatitude),
-          lng: parseFloat(gpsLongitude)
-        })
+      const response = await apiClient.post('/attendance/checkin/gps', {
+        session_id: selectedSessionId || 'sess-1',
+        lat: parseFloat(gpsLatitude),
+        lng: parseFloat(gpsLongitude)
       });
-      const data = await response.json();
-      if (response.ok) {
-        setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
-        setAttendanceSessions(prev => [
-          { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'GPS' },
-          ...prev
-        ]);
-        setAttendanceStats(prev => {
-          const p = prev.present + 1;
-          const t = prev.total + 1;
-          return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
-        });
-      } else {
-        setCheckInMessage(`❌ Check-in Failed: ${data.message || 'Outside location boundaries'}`);
-      }
-    } catch (err) {
-      setCheckInMessage('✅ GPS Check-in Successful! (Offline Fallback Simulator)');
+      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
       setAttendanceSessions(prev => [
         { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'GPS' },
         ...prev
@@ -492,6 +604,9 @@ export const Dashboard: React.FC = () => {
         const t = prev.total + 1;
         return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
       });
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
+      setCheckInMessage(`❌ Check-in Failed: ${message}`);
     } finally {
       setCheckingIn(false);
     }
@@ -501,30 +616,10 @@ export const Dashboard: React.FC = () => {
     setCheckingIn(true);
     setCheckInMessage('');
     try {
-      const response = await fetch('/api/v1/attendance/checkin/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          qr_token: qrCodeInput
-        })
+      await apiClient.post('/attendance/checkin/qr', {
+        qr_token: qrCodeInput
       });
-      const data = await response.json();
-      if (response.ok) {
-        setCheckInMessage('✅ QR Code Check-in Successful!');
-        setAttendanceSessions(prev => [
-          { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'QR' },
-          ...prev
-        ]);
-        setAttendanceStats(prev => {
-          const p = prev.present + 1;
-          const t = prev.total + 1;
-          return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
-        });
-      } else {
-        setCheckInMessage(`❌ QR Check-in Failed: ${data.message || 'Invalid or Expired Token'}`);
-      }
-    } catch (err) {
-      setCheckInMessage('✅ QR Code Check-in Successful! (Offline Fallback Simulator)');
+      setCheckInMessage('✅ QR Code Check-in Successful!');
       setAttendanceSessions(prev => [
         { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'QR' },
         ...prev
@@ -534,6 +629,9 @@ export const Dashboard: React.FC = () => {
         const t = prev.total + 1;
         return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
       });
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
+      setCheckInMessage(`❌ QR Check-in Failed: ${message}`);
     } finally {
       setCheckingIn(false);
     }
@@ -962,9 +1060,9 @@ export const Dashboard: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => setCodeLanguage('python')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'python' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'python' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Python</button>
-                  <button onClick={() => setCodeLanguage('cpp')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'cpp' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'cpp' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>C++</button>
-                  <button onClick={() => setCodeLanguage('java')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'java' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'java' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Java</button>
+                  <button onClick={() => handleLanguageChange('python')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'python' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'python' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Python</button>
+                  <button onClick={() => handleLanguageChange('cpp')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'cpp' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'cpp' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>C++</button>
+                  <button onClick={() => handleLanguageChange('java')} style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', background: codeLanguage === 'java' ? 'rgba(6,182,212,0.1)' : 'transparent', color: codeLanguage === 'java' ? 'var(--accent-cyan)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Java</button>
                 </div>
 
                 <button onClick={runSandboxCode} disabled={isSandboxRunning} style={{ border: 'none', background: 'var(--accent-cyan)', color: '#fff', padding: '0.5rem 1.25rem', borderRadius: '6px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -975,7 +1073,7 @@ export const Dashboard: React.FC = () => {
 
               <textarea 
                 value={sandboxCode} 
-                onChange={(e) => setSandboxCode(e.target.value)} 
+                onChange={(e) => { setSandboxCode(e.target.value); setCodeByLanguage(prev => ({ ...prev, [codeLanguage]: e.target.value })); }}
                 style={{ width: '100%', height: '400px', background: '#070b13', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '1rem', padding: '1.25rem', fontFamily: 'monospace', fontSize: '0.9rem', color: '#38bdf8', outline: 'none', resize: 'none' }}
               />
 
@@ -1070,13 +1168,16 @@ export const Dashboard: React.FC = () => {
                     ))}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <button onClick={handleFinishExam} style={{ border: '1px solid rgba(244,63,94,0.3)', background: 'transparent', color: '#fb7185', padding: '0.65rem 1.25rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
                       Finish & Submit
                     </button>
-                    <button onClick={handleSubmitQuestion} disabled={!selectedOption} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 700 }}>
-                      Submit Answer
-                    </button>
+                    <div style={{ textAlign: 'right' }}>
+                      {!selectedOption && <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Select an answer to enable Submit</p>}
+                      <button onClick={handleSubmitQuestion} disabled={!selectedOption} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 700, opacity: selectedOption ? 1 : 0.4 }}>
+                        Submit Answer
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1172,39 +1273,54 @@ export const Dashboard: React.FC = () => {
         {activeTab === 'leaderboard' && (
           <div style={{ maxWidth: '650px', margin: '0 auto' }}>
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2rem' }}>
-              <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Global XP Rankings</h3>
-              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem' }}>Global XP Rankings</h3>
+                <button onClick={fetchLeaderboard} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                  {leaderboardLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+
+              {leaderboardError && (
+                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                  {leaderboardError}
+                </div>
+              )}
+
+              {!leaderboardLoading && !leaderboardError && leaderboardData.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                  <Trophy size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No XP rankings yet — complete lessons and assessments to earn points.</p>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { rank: 1, name: 'Adithya Vardhan', xp: '3,840 XP', badges: 8, me: false },
-                  { rank: 2, name: 'Rohan Sharma', xp: '3,450 XP', badges: 6, me: false },
-                  { rank: 14, name: `${userProfile?.firstName || 'SSO'} ${userProfile?.lastName || 'User'}`, xp: '2,450 XP', badges: 4, me: true },
-                  { rank: 15, name: 'Divya Rao', xp: '2,420 XP', badges: 3, me: false },
-                  { rank: 16, name: 'Sanjay Kumar', xp: '2,310 XP', badges: 3, me: false }
-                ].map((user, idx) => (
-                  <div 
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '1rem 1.25rem',
-                      background: user.me ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.01)',
-                      border: '1px solid',
-                      borderColor: user.me ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
-                      borderRadius: '12px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 800, color: user.rank <= 3 ? '#fbbf24' : 'var(--text-secondary)', width: '30px' }}>#{user.rank}</span>
-                      <div>
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{user.name}</h4>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Badges Unlocked: {user.badges}</span>
+                {leaderboardData.map((user, idx) => {
+                  const isMe = user.student_id === keycloak.subject;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1rem 1.25rem',
+                        background: isMe ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.01)',
+                        border: '1px solid',
+                        borderColor: isMe ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 800, color: user.rank <= 3 ? '#fbbf24' : 'var(--text-secondary)', width: '30px' }}>#{user.rank}</span>
+                        <div>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>{user.student_name}{isMe ? ' (You)' : ''}</h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Level {user.level} · {user.xp_points} XP</span>
+                        </div>
                       </div>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-cyan)', fontSize: '1rem' }}>{user.xp_points.toLocaleString()} XP</span>
                     </div>
-                    <span style={{ fontWeight: 700, color: 'var(--accent-cyan)', fontSize: '1rem' }}>{user.xp}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1212,24 +1328,66 @@ export const Dashboard: React.FC = () => {
 
         {/* 7. CERTIFICATES TAB */}
         {activeTab === 'certificates' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {[
-              { id: 'cert-1', course: 'Introduction to Python & Isolated RAG Architectures', date: 'July 2026', verificationUrl: '/api/v1/certificates/verify/cert-1' },
-            ].map(cert => (
-              <div key={cert.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '220px' }}>
-                <div>
-                  <Award size={36} color="var(--accent-cyan)" style={{ marginBottom: '1rem' }} />
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.35rem', lineHeight: '1.4' }}>{cert.course}</h4>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Issued: {cert.date}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>ID: {cert.id}</span>
-                  <a href={cert.verificationUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-cyan)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    Verify Credentials <ArrowRight size={14} />
-                  </a>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.25rem' }}>My Certificates</h3>
+              <button onClick={fetchMyCertificates} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                {certsLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+
+            {certsError && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                {certsError}
               </div>
-            ))}
+            )}
+
+            {!certsLoading && !certsError && myCerts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <Award size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No certificates issued yet. Complete your courses to earn verified credentials.</p>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+              {myCerts.map(cert => (
+                <div key={cert.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '240px' }}>
+                  <div>
+                    <Award size={36} color="var(--accent-cyan)" style={{ marginBottom: '1rem' }} />
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.35rem', lineHeight: '1.4' }}>{cert.course_title || cert.course}</h4>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Issued: {cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : 'N/A'}</span>
+                    {cert.grade && <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--accent-emerald)', marginTop: '0.25rem' }}>Grade: {cert.grade}</span>}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>ID: {cert.certificate_no || cert.id}</span>
+                    <button onClick={() => verifyCertificate(cert.certificate_no || cert.id)} style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-cyan)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Verify Credentials <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {verifyResult && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ fontSize: '1rem' }}>Verification Result — {verifyResult.no}</h4>
+                  <button onClick={() => setVerifyResult(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                </div>
+                {verifyResult.error ? (
+                  <p style={{ color: '#f87171', fontSize: '0.9rem' }}>❌ {verifyResult.error}</p>
+                ) : verifyResult.data ? (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--accent-emerald)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <span>✅ Certificate is valid.</span>
+                    <span>Holder: {verifyResult.data.student_name}</span>
+                    <span>Course: {verifyResult.data.course_title}</span>
+                    {verifyResult.data.issued_at && <span>Issued: {new Date(verifyResult.data.issued_at).toLocaleDateString()}</span>}
+                  </div>
+                ) : (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Verifying...</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1576,6 +1734,17 @@ export const Dashboard: React.FC = () => {
                   <div>
                     <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Method B: GPS Geofence Check-in</h4>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Sends browser location coordinates to evaluate if you are inside the college perimeter.</p>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Attendance Session</label>
+                    <select
+                      value={selectedSessionId}
+                      onChange={e => setSelectedSessionId(e.target.value)}
+                      style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.4rem 0.6rem', outline: 'none', fontSize: '0.8rem', marginBottom: '0.75rem' }}
+                    >
+                      {attendanceSessionOptions.length === 0 && <option value="">No sessions loaded</option>}
+                      {attendanceSessionOptions.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id} ({s.id})</option>
+                      ))}
+                    </select>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <div>
                         <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Latitude</label>
@@ -1631,29 +1800,6 @@ export const Dashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* 7. CERTIFICATES TAB */}
-        {activeTab === 'certificates' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-            {[
-              { id: 'cert-1', course: 'Introduction to Python & Isolated RAG Architectures', date: 'July 2026', verificationUrl: '/api/v1/certificates/verify/cert-1' },
-            ].map(cert => (
-              <div key={cert.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '220px' }}>
-                <div>
-                  <Award size={36} color="var(--accent-cyan)" style={{ marginBottom: '1rem' }} />
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.35rem', lineHeight: '1.4' }}>{cert.course}</h4>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Issued: {cert.date}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>ID: {cert.id}</span>
-                  <a href={cert.verificationUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-cyan)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    Verify Credentials <ArrowRight size={14} />
-                  </a>
-                </div>
-              </div>
-            ))}
           </div>
         )}
 
