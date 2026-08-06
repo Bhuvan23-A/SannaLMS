@@ -13,6 +13,9 @@ export default function GradebookPage() {
   const [courseId] = useState('c-1');
   const [calculating, setCalculating] = useState(false);
 
+  // Real logged-in user id (Keycloak sub) — NOT the hardcoded mock 'u-1'
+  const myUserId = (typeof window !== 'undefined' && localStorage.getItem('userId')) || '';
+
   useEffect(() => { loadGrades(); }, [role]);
 
   const loadGrades = async () => {
@@ -21,8 +24,8 @@ export default function GradebookPage() {
       if (isAdmin || isTrainer) {
         const d = await fetchApi(`/api/v1/gradebook/${courseId}`);
         setGrades(d || []);
-      } else {
-        const d = await fetchApi(`/api/v1/gradebook/${courseId}/student/u-1`);
+      } else if (myUserId) {
+        const d = await fetchApi(`/api/v1/gradebook/${courseId}/student/${myUserId}`);
         setMyGrade(d);
       }
     } catch { } finally { setLoading(false); }
@@ -36,7 +39,21 @@ export default function GradebookPage() {
     } catch { alert('Failed to calculate grade'); } finally { setCalculating(false); }
   };
 
-  const gradeColor = (grade: string) => {
+  // Recalculate for every student currently listed (no more hardcoded u-1)
+  const recalculateAll = async () => {
+    try {
+      setCalculating(true);
+      const rows = grades.length > 0 ? grades : await fetchApi(`/api/v1/gradebook/${courseId}`).catch(() => []);
+      const ids = (rows || []).map((g: any) => g.user_id);
+      if (ids.length === 0) { alert('No students with grades yet. Create quiz/assignment submissions first.'); return; }
+      for (const id of ids) {
+        await fetchApi(`/api/v1/gradebook/${courseId}/calculate/${id}`, { method: 'POST' }).catch(() => {});
+      }
+      loadGrades();
+    } catch { alert('Failed to calculate grades'); } finally { setCalculating(false); }
+  };
+
+  const gradeColor = (grade: string | null) => {
     if (grade === 'A') return '#00c864';
     if (grade === 'B') return '#00a8ff';
     if (grade === 'C') return '#ffa502';
@@ -54,7 +71,7 @@ export default function GradebookPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Gradebook</h1>
         </div>
         {(isAdmin || isTrainer) && (
-          <button className="btn-primary" disabled={calculating} onClick={() => recalculate('u-1')}>
+          <button className="btn-primary" disabled={calculating} onClick={recalculateAll}>
             {calculating ? 'Calculating...' : '🔄 Recalculate Grades'}
           </button>
         )}
@@ -115,16 +132,20 @@ export default function GradebookPage() {
               <tbody>
                 {grades.map(g => (
                   <tr key={g.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '12px' }}>{g.user_id}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.total_score} / {g.max_score}</td>
+                    <td style={{ padding: '12px' }}>{g.user_id} {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no grade yet</span>}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : `${g.total_score} / ${g.max_score}`}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '18px', color: gradeColor(g.grade) }}>{g.grade}</span>
+                      {g.pending ? <span style={{ color: 'var(--text-secondary)' }}>—</span> : (
+                        <span style={{ fontWeight: 'bold', fontSize: '18px', color: gradeColor(g.grade) }}>{g.grade}</span>
+                      )}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.cgpa?.toFixed(1)}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : g.cgpa?.toFixed(1)}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <span className={`badge ${g.grade !== 'F' ? 'badge-success' : 'badge-danger'}`}>
-                        {g.grade !== 'F' ? 'PASS' : 'FAIL'}
-                      </span>
+                      {g.pending ? <span className="badge badge-warning">PENDING</span> : (
+                        <span className={`badge ${g.grade !== 'F' ? 'badge-success' : 'badge-danger'}`}>
+                          {g.grade !== 'F' ? 'PASS' : 'FAIL'}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <button className="btn-secondary" style={{ fontSize: '12px', padding: '5px 10px' }} onClick={() => recalculate(g.user_id)}>

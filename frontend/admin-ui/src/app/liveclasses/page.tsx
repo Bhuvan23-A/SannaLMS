@@ -27,9 +27,12 @@ export default function LiveClassesPage() {
   const createClass = async (e: any) => {
     e.preventDefault();
     try {
+      // datetime-local gives "2026-08-10T12:00" (no timezone) — convert to ISO
+      // with timezone so the backend's new Date() parses it correctly.
+      const scheduled_at = form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null;
       await fetchApi('/api/v1/liveclasses', {
         method: 'POST',
-        body: JSON.stringify({ ...form, course_id: courseId })
+        body: JSON.stringify({ ...form, scheduled_at, course_id: courseId })
       });
       setShowForm(false);
       setForm({ title: '', description: '', scheduled_at: '', duration_mins: 60 });

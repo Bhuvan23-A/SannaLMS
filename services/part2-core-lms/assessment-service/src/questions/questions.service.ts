@@ -30,9 +30,15 @@ export class QuestionsService {
     if (courseId) {
       whereClause.course_id = courseId;
     }
-    return this.prisma.question.findMany({
+    const questions = await this.prisma.question.findMany({
       where: whereClause
     });
+    // options is stored as a JSON string in the DB — normalize to an array so
+    // the UI can render q.options.map(...) without crashing.
+    return questions.map((q: any) => ({
+      ...q,
+      options: typeof q.options === 'string' ? safeParse(q.options) : q.options
+    }));
   }
 
   /**
@@ -159,3 +165,13 @@ export class QuestionsService {
     return questions;
   }
 }
+
+function safeParse(value: string): any {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+

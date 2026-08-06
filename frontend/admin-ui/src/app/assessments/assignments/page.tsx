@@ -25,7 +25,10 @@ export default function AssignmentsPage() {
   const createAssignment = async (e: any) => {
     e.preventDefault();
     try {
-      await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify({ ...form, course_id: courseId }) });
+      // datetime-local gives "2026-08-10T12:00" (no timezone) — convert to ISO
+      // with timezone so the backend's new Date() parses it correctly.
+      const due_date = form.due_date ? new Date(form.due_date).toISOString() : null;
+      await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify({ ...form, due_date, course_id: courseId }) });
       setShowForm(false); setForm({ title: '', description: '', due_date: '', max_marks: 100 }); loadAssignments();
     } catch { alert('Failed to create assignment'); }
   };

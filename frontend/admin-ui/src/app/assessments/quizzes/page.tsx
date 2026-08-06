@@ -13,6 +13,11 @@ export default function QuizzesPage() {
   const [courseId] = useState('c-1');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, question_ids: [] as string[] });
+  // Inline quick-add question (so questions don't have to pre-exist in the bank)
+  const [quickAdd, setQuickAdd] = useState(false);
+  const [newQ, setNewQ] = useState({ title: '', content: '', marks: 1, answer_key: '' });
+  const [newQOptions, setNewQOptions] = useState(['', '', '', '']);
+  const [newQCorrect, setNewQCorrect] = useState(0);
   const [activeQuiz, setActiveQuiz] = useState<any>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<any>(null);
@@ -46,6 +51,35 @@ export default function QuizzesPage() {
       ...f,
       question_ids: f.question_ids.includes(id) ? f.question_ids.filter(q => q !== id) : [...f.question_ids, id]
     }));
+  };
+
+  // Create a question inline and add it to the quiz's question list
+  const addQuestionInline = async (e: any) => {
+    e.preventDefault();
+    try {
+      const options = newQOptions.map((text, i) => ({ id: i + 1, text, isCorrect: i === newQCorrect }));
+      const res = await fetchApi('/api/v1/questions', {
+        method: 'POST',
+        body: JSON.stringify({
+          course_id: courseId,
+          type: 'MCQ',
+          title: newQ.title,
+          content: newQ.content || newQ.title,
+          marks: newQ.marks,
+          options,
+          answer_key: String(newQCorrect + 1)
+        })
+      });
+      const qid = res?.id;
+      if (qid) {
+        setForm(f => ({ ...f, question_ids: f.question_ids.includes(qid) ? f.question_ids : [...f.question_ids, qid] }));
+        setQuestions(prev => [...prev, res]);
+      }
+      setQuickAdd(false);
+      setNewQ({ title: '', content: '', marks: 1, answer_key: '' });
+      setNewQOptions(['', '', '', '']);
+      setNewQCorrect(0);
+    } catch { alert('Failed to create question'); }
   };
 
   const submitQuiz = async () => {
@@ -153,8 +187,35 @@ export default function QuizzesPage() {
             <textarea className="input-field" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '10px' }}>Select Questions</label>
-            {questions.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No questions found. Add some in the Question Bank first.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <label style={{ display: 'block' }}>Select Questions</label>
+              <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setQuickAdd(!quickAdd)}>
+                {quickAdd ? '✕ Cancel' : '➕ New Question'}
+              </button>
+            </div>
+
+            {quickAdd && (
+              <form onSubmit={addQuestionInline} className="panel" style={{ padding: '15px', marginBottom: '15px' }}>
+                <h4 style={{ marginBottom: '12px', fontSize: '14px' }}>Quick Add MCQ</h4>
+                <input required className="input-field" placeholder="Question title" style={{ marginBottom: '8px' }}
+                  value={newQ.title} onChange={e => setNewQ({ ...newQ, title: e.target.value })} />
+                <input className="input-field" placeholder="Content / instructions (optional)" style={{ marginBottom: '8px' }}
+                  value={newQ.content} onChange={e => setNewQ({ ...newQ, content: e.target.value })} />
+                {newQOptions.map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'center' }}>
+                    <input type="radio" name="newq-correct" checked={newQCorrect === i}
+                      onChange={() => setNewQCorrect(i)} title="Correct answer" />
+                    <input className="input-field" placeholder={`Option ${i + 1}`} value={opt}
+                      onChange={e => setNewQOptions(newQOptions.map((o, j) => j === i ? e.target.value : o))} />
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button type="submit" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }}>Add to Quiz</button>
+                </div>
+              </form>
+            )}
+
+            {questions.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No questions found. Click "New Question" to add one inline.</p>
               : questions.map(q => (
                 <label key={q.id} style={{ display: 'flex', gap: '10px', padding: '10px', marginBottom: '8px', background: form.question_ids.includes(q.id) ? 'rgba(0,168,255,0.1)' : 'rgba(0,0,0,0.2)', borderRadius: '8px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={form.question_ids.includes(q.id)} onChange={() => toggleQuestion(q.id)} />

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
 
 export default function CoursesPage() {
-  const { isAdmin } = useRole();
+  const { isAdmin, isTrainer } = useRole();
   const [courses, setCourses] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function CoursesPage() {
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h3 style={{ margin: 0 }}>All Courses</h3>
-        {isAdmin && <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>}
+        {(isAdmin || isTrainer) && <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>}
       </div>
 
       {error && (
@@ -82,7 +82,7 @@ export default function CoursesPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{course.tenant_id}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
                     <Link href={`/courses/${course.id}`} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', marginRight: '10px' }}>
-                      {isAdmin ? 'Manage' : 'View'}
+                      {(isAdmin || isTrainer) ? 'Manage' : 'View'}
                     </Link>
                     {isAdmin && <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>}
                   </td>

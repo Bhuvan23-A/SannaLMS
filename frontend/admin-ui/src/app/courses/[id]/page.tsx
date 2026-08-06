@@ -47,16 +47,16 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
     try {
       const [c, mods] = await Promise.all([
         fetchApi(`/api/v1/courses/${courseId}`),
-        fetchApi(`/api/v1/modules?course_id=${courseId}`)
+        fetchApi(`/api/v1/modules/course/${courseId}`)
       ]);
       setCourse(c);
       // Load lessons for each module
       const modulesWithLessons = await Promise.all(
         (mods || []).map(async (mod: Module) => {
-          const lessons = await fetchApi(`/api/v1/lessons?module_id=${mod.id}`).catch(() => []);
+          const lessons = await fetchApi(`/api/v1/lessons/module/${mod.id}`).catch(() => []);
           const lessonsWithTopics = await Promise.all(
             (lessons || []).map(async (lesson: Lesson) => {
-              const topics = await fetchApi(`/api/v1/topics?lesson_id=${lesson.id}`).catch(() => []);
+              const topics = await fetchApi(`/api/v1/topics/lesson/${lesson.id}`).catch(() => []);
               return { ...lesson, topics: topics || [], expanded: true };
             })
           );

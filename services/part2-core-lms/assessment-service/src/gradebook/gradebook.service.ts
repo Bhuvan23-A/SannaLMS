@@ -63,8 +63,40 @@ export class GradebookService {
   }
 
   async getCourseGrades(tenantId: string, courseId: string) {
-    return this.prisma.gradebook.findMany({
+    const grades = await this.prisma.gradebook.findMany({
       where: { tenant_id: tenantId, course_id: courseId }
     });
+    const byUser = new Map<string, any>(grades.map(g => [g.user_id, g]));
+
+    // Also surface any student who has quiz/assignment submissions for this
+    // course but no gradebook row yet (so the trainer can calculate their grade).
+    const [quizSubs, assignmentSubs] = await Promise.all([
+      this.prisma.quizSubmission.findMany({
+        where: { tenant_id: tenantId, quiz: { course_id: courseId } },
+        select: { user_id: true }
+      }),
+      this.prisma.assignmentSubmission.findMany({
+        where: { tenant_id: tenantId, assignment: { course_id: courseId } },
+        select: { user_id: true }
+      })
+    ]);
+    const submissionUserIds = new Set([...quizSubs.map(s => s.user_id), ...assignmentSubs.map(s => s.user_id)]);
+    for (const uid of submissionUserIds) {
+      if (!byUser.has(uid)) {
+        byUser.set(uid, {
+          id: `pending-${uid}`,
+          tenant_id: tenantId,
+          course_id: courseId,
+          user_id: uid,
+          total_score: 0,
+          max_score: 0,
+          grade: null,
+          cgpa: null,
+          pending: true
+        });
+      }
+    }
+
+    return Array.from(byUser.values());
   }
 }

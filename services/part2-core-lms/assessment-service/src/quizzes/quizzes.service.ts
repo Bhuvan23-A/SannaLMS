@@ -32,10 +32,24 @@ export class QuizzesService {
   }
 
   async getQuizzes(tenantId: string, courseId: string) {
-    return this.prisma.quiz.findMany({
+    const quizzes = await this.prisma.quiz.findMany({
       where: { tenant_id: tenantId, course_id: courseId },
-      include: { questions: true }
+      include: { questions: { include: { question: true } } }
     });
+    // Normalize the nested question.options (stored as a JSON string) to arrays
+    // so the quiz-taking UI can render them without crashing.
+    return quizzes.map((quiz: any) => ({
+      ...quiz,
+      questions: (quiz.questions || []).map((qq: any) => ({
+        ...qq,
+        question: qq.question ? {
+          ...qq.question,
+          options: typeof qq.question.options === 'string'
+            ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+            : (qq.question.options || [])
+        } : qq.question
+      }))
+    }));
   }
 
   async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
@@ -54,7 +68,10 @@ export class QuizzesService {
       maxScore += qq.question.marks;
       const userAnswer = answers[qq.question_id];
       if (qq.question.type === 'MCQ') {
-        const options: any = qq.question.options;
+        // options is stored as a JSON string in the DB — normalize before grading
+        const options: any = typeof qq.question.options === 'string'
+          ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+          : (qq.question.options || []);
         const correctOption = options?.find((o: any) => o.isCorrect);
         if (correctOption && String(correctOption.id) === String(userAnswer)) {
           score += qq.question.marks;

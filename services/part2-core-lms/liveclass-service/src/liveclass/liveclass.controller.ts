@@ -38,7 +38,7 @@ export class LiveclassController {
   @Get(':id/join')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   join(@Param('id') id: string, @Req() req: Record<string, any>) {
-    const userId = req.headers['x-mock-user-id'] || 'u-1';
+    const userId = req.user?.id || req.headers['x-mock-user-id'] || 'u-1';
     return this.liveclassService.getJitsiToken(id, String(userId));
   }
 }
