@@ -19,9 +19,12 @@ export class GradebookController {
   getStudentGrade(@Param('courseId') courseId: string, @Param('userId') userId: string, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    // Add RBAC check: Student can only view their own grade
-    if (req.headers['x-mock-roles'] === 'STUDENT' && req.headers['x-mock-user-id'] !== userId) {
-      return { error: 'Unauthorized' };
+    // RBAC: a student may only view their own grade (mock fallback kept for dev/testing)
+    const rawRoles: string[] = req.user?.roles || (req.headers['x-mock-roles'] ? (req.headers['x-mock-roles'] as string).split(',') : []);
+    const callerId: string = req.user?.id || (req.headers['x-mock-user-id'] as string) || '';
+    const isStudentCaller = rawRoles.some(r => ['student', 'STUDENT'].includes(r));
+    if (isStudentCaller && callerId && callerId !== userId) {
+      return { error: 'Unauthorized', message: 'Students can only view their own grades.' };
     }
     return this.gradebookService.getGradebook(String(tenantId), courseId, userId);
   }

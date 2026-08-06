@@ -54,8 +54,7 @@ export default function QuizzesPage() {
   };
 
   // Create a question inline and add it to the quiz's question list
-  const addQuestionInline = async (e: any) => {
-    e.preventDefault();
+  const addQuestionInline = async () => {
     try {
       const options = newQOptions.map((text, i) => ({ id: i + 1, text, isCorrect: i === newQCorrect }));
       const res = await fetchApi('/api/v1/questions', {
@@ -195,7 +194,7 @@ export default function QuizzesPage() {
             </div>
 
             {quickAdd && (
-              <form onSubmit={addQuestionInline} className="panel" style={{ padding: '15px', marginBottom: '15px' }}>
+              <div className="panel" style={{ padding: '15px', marginBottom: '15px' }}>
                 <h4 style={{ marginBottom: '12px', fontSize: '14px' }}>Quick Add MCQ</h4>
                 <input required className="input-field" placeholder="Question title" style={{ marginBottom: '8px' }}
                   value={newQ.title} onChange={e => setNewQ({ ...newQ, title: e.target.value })} />
@@ -210,9 +209,9 @@ export default function QuizzesPage() {
                   </div>
                 ))}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                  <button type="submit" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }}>Add to Quiz</button>
+                  <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={addQuestionInline}>Add to Quiz</button>
                 </div>
-              </form>
+              </div>
             )}
 
             {questions.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No questions found. Click "New Question" to add one inline.</p>
