@@ -153,6 +153,7 @@ services:
           - /api/v1/gamification
           - /api/v1/leaderboard
           - /api/v1/resume
+          - /api/gamification
         strip_path: false
 
 plugins:

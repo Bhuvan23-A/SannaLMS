@@ -47,8 +47,8 @@ func initDockerClient() {
 func prePullImages() {
 	images := []string{
 		"python:3.10-alpine",
-		"gcc:12.2-alpine",
-		"openjdk:17-alpine",
+		"gcc:13",
+		"eclipse-temurin:17-alpine",
 	}
 	ctx := context.Background()
 	for _, img := range images {
@@ -113,10 +113,10 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 		image = "python:3.10-alpine"
 		cmd = "echo $SANNA_CODE | base64 -d > run.py && echo $SANNA_INPUT | base64 -d | python3 run.py"
 	case "cpp", "c++":
-		image = "gcc:12.2-alpine"
+		image = "gcc:13"
 		cmd = "echo $SANNA_CODE | base64 -d > run.cpp && g++ -O3 run.cpp -o run && echo $SANNA_INPUT | base64 -d | ./run"
 	case "java":
-		image = "openjdk:17-alpine"
+		image = "eclipse-temurin:17-alpine"
 		cmd = "echo $SANNA_CODE | base64 -d > Main.java && javac Main.java && echo $SANNA_INPUT | base64 -d | java Main"
 	default:
 		return ExecutionResponse{

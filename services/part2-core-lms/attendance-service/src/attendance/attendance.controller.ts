@@ -1,6 +1,15 @@
-import { Controller, Post, Get, Body, Req, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, Param, Query, BadRequestException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { Roles } from '../roles.guard';
+
+// Plain Error from services (e.g. "Session not found", "You are 500m away...") should
+// surface as clean 4xx responses instead of generic 500s.
+function asHttpError(err: unknown, fallback = 'Check-in failed'): never {
+  if (err instanceof Error && err.message && !err.message.includes('Internal server error')) {
+    throw new BadRequestException(err.message);
+  }
+  throw new BadRequestException(fallback);
+}
 
 @Controller('api/v1/attendance')
 export class AttendanceController {
@@ -39,21 +48,29 @@ export class AttendanceController {
   // QR check-in (Student self-check-in)
   @Post('checkin/qr')
   @Roles('STUDENT')
-  checkInQR(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+  async checkInQR(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     const userId = req.user?.id || 'u-1';
-    return this.attendanceService.checkInByQR(body.qr_token, String(userId), String(tenantId));
+    try {
+      return await this.attendanceService.checkInByQR(body.qr_token, String(userId), String(tenantId));
+    } catch (err) {
+      return asHttpError(err, 'Invalid QR code or session not found');
+    }
   }
 
   // GPS check-in (Student self-check-in)
   @Post('checkin/gps')
   @Roles('STUDENT')
-  checkInGPS(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+  async checkInGPS(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     const userId = req.user?.id || 'u-1';
-    return this.attendanceService.checkInByGPS(body.session_id, String(userId), body.lat, body.lng, String(tenantId));
+    try {
+      return await this.attendanceService.checkInByGPS(body.session_id, String(userId), body.lat, body.lng, String(tenantId));
+    } catch (err) {
+      return asHttpError(err, 'Outside location boundaries');
+    }
   }
 
   // Records

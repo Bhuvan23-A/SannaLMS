@@ -193,8 +193,8 @@ services:
       - POSTGRES_PASSWORD=SannaLMS_Pass_2026!
       - POSTGRES_DB=sannalms_master
       - MINIO_ENDPOINT=minio
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin_secure
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=minioadmin
     depends_on:
       - postgres
       - minio

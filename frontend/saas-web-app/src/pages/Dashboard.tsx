@@ -177,7 +177,7 @@ export const Dashboard: React.FC = () => {
     setLeaderboardLoading(true);
     setLeaderboardError('');
     try {
-      const response = await apiClient.get('/leaderboard/global', { params: { limit: 25 } });
+      const response = await apiClient.get(`${window.location.origin}/api/gamification/leaderboard/global`, { params: { limit: 25 } });
       const data = response.data || [];
       setLeaderboardData(Array.isArray(data) ? data : []);
     } catch (err: any) {
