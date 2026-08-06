@@ -36,15 +36,17 @@ export default function CalendarPage() {
   const createEvent = async (e: any) => {
     e.preventDefault();
     try {
+      // Convert datetime-local values to ISO with timezone so the backend parses them correctly
+      const toIso = (v: string) => (v ? new Date(v).toISOString() : null);
       await fetchApi('/api/v1/events', {
         method: 'POST',
         body: JSON.stringify({
           title,
           description,
-          start_time: startTime,
-          end_time: endTime,
-          event_type: eventType,
-          tenant_id: 'stanford'
+          start_time: toIso(startTime),
+          end_time: toIso(endTime),
+          event_type: eventType
+          // tenant_id is derived server-side from the verified token (master for super admin)
         })
       });
       

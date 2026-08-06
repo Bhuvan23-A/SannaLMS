@@ -99,6 +99,14 @@ services:
           - /api/v1/liveclasses
         strip_path: false
 
+  - name: chat-service
+    url: http://sannalms-chat-service:3007
+    routes:
+      - name: chat-routes
+        paths:
+          - /api/v1/chat
+        strip_path: false
+
   - name: notification-service
     url: http://sannalms-notification-service:3009
     routes:

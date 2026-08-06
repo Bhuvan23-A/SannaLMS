@@ -1,28 +1,13 @@
-FROM node:22-slim AS builder
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY tsconfig.build.json ./
-COPY tsconfig.json ./
-
-RUN npm ci
-
-COPY . .
-
-RUN npm run build
-
-FROM node:22-slim AS production
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+FROM node:22-slim
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
-COPY --from=builder /app/dist ./dist
+COPY src ./src
 
 EXPOSE 3007
-CMD ["node", "dist/main"]
+
+CMD ["node", "src/index.js"]

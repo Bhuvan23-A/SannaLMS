@@ -17,7 +17,10 @@ export class EventsController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
   create(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
-    return this.eventsService.create(body, body['tenant_id']);
+    // Super admin schedules global events under 'master'; others under their own tenant
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body['tenant_id'] || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.eventsService.create(body, String(tenantId));
   }
 
   @Get()

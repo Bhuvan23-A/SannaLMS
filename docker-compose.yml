@@ -10,7 +10,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-sannalms}
     ports:
-      - "127.0.0.1:5432:5432"
+      # Host 5433 (5432 is taken by another project on the shared server); services talk internally on 5432
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -25,7 +26,8 @@ services:
     container_name: sannalms-redis
     restart: always
     ports:
-      - "127.0.0.1:6379:6379"
+      # Host 6380 (6379 is taken by another project on the shared server); services talk internally on 6379
+      - "127.0.0.1:6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -362,6 +364,16 @@ services:
     depends_on:
       - postgres
       - redis
+
+  chat-service:
+    build:
+      context: ./services/part2-core-lms/chat-service
+      dockerfile: Dockerfile
+    container_name: sannalms-chat-service
+    restart: always
+    environment:
+      - PORT=3007
+    depends_on: []
 
   liveclass-service:
     build:
