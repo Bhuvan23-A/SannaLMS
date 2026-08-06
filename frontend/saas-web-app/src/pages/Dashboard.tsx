@@ -523,7 +523,8 @@ export const Dashboard: React.FC = () => {
       formData.append('studentId', studentId);
       formData.append('assignmentId', 'ass-1');
       await apiClient.post('/assignment/submit', formData, {
-        headers: { 'x-tenant-id': tenantId, 'Content-Type': 'multipart/form-data' },
+        // Let axios set Content-Type + boundary from the FormData body automatically
+        headers: { 'x-tenant-id': tenantId },
       });
     } catch (err: any) {
       console.warn('Assignment service upload failed — keeping local record only.', err?.message || err);
