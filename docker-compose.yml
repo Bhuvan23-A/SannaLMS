@@ -205,8 +205,7 @@ services:
       - "8086:3000"
     environment:
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://103.160.144.225:8010/api/v1
-      - NEXT_PUBLIC_KEYCLOAK_URL=http://103.160.144.225:8085/auth
+      - NEXT_PUBLIC_KEYCLOAK_URL=https://sannalms.sannainnovations.com/auth
       - NEXT_PUBLIC_KEYCLOAK_REALM=sannalms
       - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=sannalms-client
     depends_on:
