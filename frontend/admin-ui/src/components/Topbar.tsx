@@ -1,19 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { getRoleLabel, handleLogout } from '@/lib/auth';
-
-function decodeJwt(token: string): any {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
+import { getRoleLabel, handleLogout, storeTokenFromUrl } from '@/lib/auth';
 
 export default function Topbar({ title }: { title: string }) {
   const [role, setRole] = useState('SUPER_ADMIN');
@@ -24,52 +11,23 @@ export default function Topbar({ title }: { title: string }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    
-    if (token) {
-      localStorage.setItem('access_token', token);
-      const payload = decodeJwt(token);
-      if (payload) {
-        const roles = payload.realm_access?.roles || [];
-        let resolvedRole = 'STUDENT';
-        if (roles.includes('superadmin')) {
-          resolvedRole = 'SUPER_ADMIN';
-        } else if (roles.includes('tenantadmin')) {
-          resolvedRole = 'COLLEGE_ADMIN';
-        } else if (roles.includes('instructor')) {
-          resolvedRole = 'PRIMARY_TRAINER';
-        } else if (roles.includes('TEACHING_ASSISTANT')) {
-          resolvedRole = 'TEACHING_ASSISTANT';
-        } else if (roles.includes('student')) {
-          resolvedRole = 'STUDENT';
-        }
-        localStorage.setItem('mockRole', resolvedRole);
-        
-        const usrName = payload.preferred_username || payload.name || 'User';
-        const usrEmail = payload.email || `${usrName.toLowerCase()}@sannainnovations.com`;
-        localStorage.setItem('username', usrName);
-        localStorage.setItem('userEmail', usrEmail);
-        if (payload.sub) {
-          localStorage.setItem('userId', payload.sub);
-        }
-      }
-      
-      // Clean token from URL
-      params.delete('token');
-      const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-      window.history.replaceState({}, '', newRelativePathQuery);
-      window.dispatchEvent(new Event('roleChanged'));
-    }
+    // Handle ?token= redirect from the main portal (only runs once on mount)
+    const { role: parsedRole } = storeTokenFromUrl();
 
+    // Read final role from storage (possibly just written above)
     const savedRole = localStorage.getItem('mockRole') || 'SUPER_ADMIN';
-    setRole(savedRole);
-
     const savedUsername = localStorage.getItem('username') || 'User';
     const savedEmail = localStorage.getItem('userEmail') || '';
+
+    setRole(parsedRole || savedRole);
     setUsername(savedUsername);
     setEmail(savedEmail);
     setInitials(savedUsername.substring(0, 2).toUpperCase());
+
+    if (parsedRole) {
+      // Fire event so Sidebar updates immediately
+      window.dispatchEvent(new Event('roleChanged'));
+    }
 
     const handleStorageChange = () => {
       setRole(localStorage.getItem('mockRole') || 'SUPER_ADMIN');
@@ -78,7 +36,7 @@ export default function Topbar({ title }: { title: string }) {
       setEmail(localStorage.getItem('userEmail') || '');
       setInitials(usr.substring(0, 2).toUpperCase());
     };
-    
+
     window.addEventListener('roleChanged', handleStorageChange);
     return () => window.removeEventListener('roleChanged', handleStorageChange);
   }, []);

@@ -1,9 +1,10 @@
 // Shared auth helpers for the admin UI.
 
-export const KEYCLOAK_LOGOUT_URL =
-  'https://sannalms.sannainnovations.com/auth/realms/sannalms/protocol/openid-connect/logout?post_logout_redirect_uri=' +
-  encodeURIComponent('__ORIGIN__') +
-  '&client_id=sannalms-client';
+// The canonical public domain for the admin UI.
+const ADMIN_DOMAIN = 'https://admin.sannalms.sannainnovations.com';
+const KEYCLOAK_BASE = 'https://sannalms.sannainnovations.com/auth';
+const KEYCLOAK_REALM = 'sannalms';
+const KEYCLOAK_CLIENT = 'sannalms-client';
 
 export function getRoleLabel(role: string): string {
   switch (role) {
@@ -17,7 +18,60 @@ export function getRoleLabel(role: string): string {
 }
 
 export function handleLogout(): void {
+  // 1. Clear all local session data immediately
   localStorage.clear();
-  const logoutUrl = KEYCLOAK_LOGOUT_URL.replace('__ORIGIN__', window.location.origin);
+  sessionStorage.clear();
+
+  // 2. Build Keycloak logout URL.
+  //    Always use the canonical ADMIN_DOMAIN as post_logout_redirect_uri —
+  //    this is safe regardless of whether the user accessed via raw IP or domain.
+  //    Keycloak will invalidate the server-side session and redirect here.
+  const redirectUri = encodeURIComponent(ADMIN_DOMAIN);
+  const logoutUrl =
+    `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout` +
+    `?post_logout_redirect_uri=${redirectUri}` +
+    `&client_id=${KEYCLOAK_CLIENT}`;
+
   window.location.href = logoutUrl;
+}
+
+/**
+ * Call this when admin-ui receives a ?token=... redirect from the main portal.
+ * Stores the access token and decodes the user profile into localStorage.
+ */
+export function storeTokenFromUrl(): { token: string | null; role: string | null } {
+  if (typeof window === 'undefined') return { token: null, role: null };
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (!token) return { token: null, role: null };
+
+  localStorage.setItem('access_token', token);
+
+  // Decode JWT payload (no verification needed — Keycloak signed it)
+  let role: string | null = null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const roles: string[] = payload?.realm_access?.roles || [];
+    if (roles.includes('superadmin')) role = 'SUPER_ADMIN';
+    else if (roles.includes('tenantadmin')) role = 'COLLEGE_ADMIN';
+    else if (roles.includes('instructor')) role = 'PRIMARY_TRAINER';
+    else if (roles.includes('TEACHING_ASSISTANT')) role = 'TEACHING_ASSISTANT';
+    else if (roles.includes('student')) role = 'STUDENT';
+
+    if (role) localStorage.setItem('mockRole', role);
+    const username = payload?.preferred_username || payload?.name || 'User';
+    const email = payload?.email || '';
+    localStorage.setItem('username', username);
+    localStorage.setItem('userEmail', email);
+    if (payload?.sub) localStorage.setItem('userId', payload.sub);
+  } catch {
+    // ignore decode error
+  }
+
+  // Remove token from URL bar so the raw JWT isn't visible
+  params.delete('token');
+  const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+  window.history.replaceState({}, '', clean);
+
+  return { token, role };
 }
