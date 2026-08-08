@@ -232,6 +232,33 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  // Award XP for real student actions (quiz completed, attendance check-in).
+  // Routes to the Part-4 gamification service through the gateway.
+  const awardXp = async (actionType: string) => {
+    try {
+      const fullName = keycloak.tokenParsed?.preferred_username
+        || [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ')
+        || 'Student';
+      await apiClient.post(`${window.location.origin}/api/gamification/award-xp`, {
+        student_id: keycloak.subject || 'u-1',
+        student_name: fullName,
+        action_type: actionType,
+      });
+    } catch (err) {
+      console.warn('XP award failed (non-critical)', err);
+    }
+  };
+
+  // Local record of quizzes this student already completed (survives refresh)
+  const getQuizDone = (quizId: string) => {
+    try {
+      const raw = localStorage.getItem(`quizDone:${quizId}:${keycloak.subject || ''}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
   // --- CERTIFICATES STATE ---
   const [myCerts, setMyCerts] = useState<any[]>([]);
   const [certsLoading, setCertsLoading] = useState(false);
@@ -361,7 +388,8 @@ export const Dashboard: React.FC = () => {
         language: codeLanguage,
         code: sandboxCode,
         input: sandboxInput,
-        timeout: 4000,
+        // C++/Java need time to compile + start the JVM — only Python is fast enough for 4s
+        timeout: codeLanguage === 'python' ? 4000 : 15000,
       });
 
       const data = response.data || {};
@@ -482,6 +510,11 @@ export const Dashboard: React.FC = () => {
         graded: res.is_graded !== false,
       });
       setExamStarted(false);
+      // Record completion so the quiz list shows a "Completed" state, and award XP
+      try {
+        localStorage.setItem(`quizDone:${pickedQuiz.id}:${keycloak.subject || ''}`, JSON.stringify({ score: res.score ?? 0, maxScore, at: Date.now() }));
+      } catch { /* ignore */ }
+      if (res.is_graded !== false) awardXp('quiz_ace');
     } catch (err: any) {
       alert('Failed to submit quiz: ' + (err?.response?.data?.message || err?.message));
     }
@@ -507,7 +540,14 @@ export const Dashboard: React.FC = () => {
     try {
       const response = await apiClient.post('/tutor/query', {
         student_query: query,
-        course_context: activeLesson?.transcript || 'This is SannaLMS course context.',
+        // Send ALL lesson transcripts from the enrolled course so the tutor can
+        // find relevant material instead of always re-answering from one lesson.
+        course_context: courses
+          .filter(c => c.enrolled)
+          .flatMap((c: any) => (c.modules || []).flatMap((m: any) => (m.lessons || []).map((l: any) => l.transcript).filter(Boolean)))
+          .join('\n')
+          || activeLesson?.transcript
+          || 'This is SannaLMS course context.',
       });
 
       const data = response.data || {};
@@ -688,8 +728,8 @@ export const Dashboard: React.FC = () => {
         session_id: selectedSessionId || 'sess-1',
         lat: parseFloat(gpsLatitude),
         lng: parseFloat(gpsLongitude)
-      });
-      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
+      });                      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
+                      awardXp('perfect_attendance');
       setAttendanceSessions(prev => [
         { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'GPS' },
         ...prev
@@ -713,8 +753,8 @@ export const Dashboard: React.FC = () => {
     try {
       await apiClient.post('/attendance/checkin/qr', {
         qr_token: qrCodeInput
-      });
-      setCheckInMessage('✅ QR Code Check-in Successful!');
+      });                      setCheckInMessage('✅ QR Code Check-in Successful!');
+                      awardXp('perfect_attendance');
       setAttendanceSessions(prev => [
         { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'QR' },
         ...prev
@@ -1234,19 +1274,22 @@ export const Dashboard: React.FC = () => {
                   )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {quizList.map((quiz: any) => (
+                    {quizList.map((quiz: any) => {
+                      const done = getQuizDone(quiz.id);
+                      return (
                       <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
                         <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}</h4>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>✓ Completed {done.score}/{done.maxScore}</span>}</h4>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {(quiz.questions || []).length} questions · {quiz.duration_mins || 10} min · {quiz.description || 'No description'}
                           </span>
                         </div>
                         <button onClick={() => startQuiz(quiz)} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
-                          Start Quiz
+                          {done ? 'Retake' : 'Start Quiz'}
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

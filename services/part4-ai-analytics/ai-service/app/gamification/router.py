@@ -47,14 +47,14 @@ async def award_student_xp(request: AwardXPRequest):
 
     # Fetch current student gamification state
     current_xp = 0
-    student_name = "Student"
+    student_name = request.student_name or "Student"
     batch_id = "BATCH_2026_A"
 
     if not db_manager.use_in_memory and db_manager.db is not None:
         student_doc = await db_manager.db.students.find_one({"student_id": request.student_id})
         if student_doc:
             current_xp = student_doc.get("xp_points", 0)
-            student_name = student_doc.get("name", "Student")
+            student_name = request.student_name or student_doc.get("name", "Student")
             batch_id = student_doc.get("batch_id", "BATCH_2026_A")
             
         new_xp = current_xp + xp_to_add
@@ -75,7 +75,7 @@ async def award_student_xp(request: AwardXPRequest):
         for s in db_manager.in_memory_store["students"]:
             if s["student_id"] == request.student_id:
                 current_xp = s.get("xp_points", 0)
-                student_name = s.get("name", "Student")
+                student_name = request.student_name or s.get("name", "Student")
                 batch_id = s.get("batch_id", "BATCH_2026_A")
                 new_xp = current_xp + xp_to_add
                 new_level = calculate_level_from_xp(new_xp)
@@ -91,7 +91,7 @@ async def award_student_xp(request: AwardXPRequest):
             unlocked_badges = evaluate_unlocked_badges(new_xp)
             db_manager.in_memory_store["students"].append({
                 "student_id": request.student_id,
-                "name": student_name,
+                "name": request.student_name or student_name,
                 "batch_id": batch_id,
                 "xp_points": new_xp,
                 "level": new_level,
@@ -100,7 +100,18 @@ async def award_student_xp(request: AwardXPRequest):
 
     # Update Redis Leaderboard Cache asynchronously
     try:
-        from app.gamification.leaderboard import update_redis_leaderboard
+        from app.gamification.leaderboard import get_redis_client, update_redis_leaderboard
+        r = await get_redis_client()
+        if r:
+            # Redis is the source of truth for totals — it survives restarts.
+            # Read the existing total from Redis BEFORE computing the new one so
+            # accumulated XP is never lost/overwritten on a fresh container.
+            redis_xp = await r.zscore("leaderboard:global", request.student_id)
+            if redis_xp is not None:
+                current_xp = max(current_xp, int(redis_xp))
+                new_xp = current_xp + xp_to_add
+                new_level = calculate_level_from_xp(new_xp)
+                unlocked_badges = evaluate_unlocked_badges(new_xp)
         await update_redis_leaderboard(request.student_id, student_name, batch_id, new_xp, new_level)
     except Exception:
         pass

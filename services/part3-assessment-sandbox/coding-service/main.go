@@ -114,10 +114,12 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 		cmd = "echo $SANNA_CODE | base64 -d > run.py && echo $SANNA_INPUT | base64 -d | python3 run.py"
 	case "cpp", "c++":
 		image = "gcc:13"
-		cmd = "echo $SANNA_CODE | base64 -d > run.cpp && g++ -O3 run.cpp -o run && echo $SANNA_INPUT | base64 -d | ./run"
+		// -O2 instead of -O3: noticeably faster compile inside the 0.5-CPU container
+		cmd = "echo $SANNA_CODE | base64 -d > run.cpp && g++ -O2 run.cpp -o run && echo $SANNA_INPUT | base64 -d | ./run"
 	case "java":
 		image = "eclipse-temurin:17-alpine"
-		cmd = "echo $SANNA_CODE | base64 -d > Main.java && javac Main.java && echo $SANNA_INPUT | base64 -d | java Main"
+		// -Xmx64m keeps JVM startup fast and safe within the 128MB memory cap
+		cmd = "echo $SANNA_CODE | base64 -d > Main.java && javac Main.java && echo $SANNA_INPUT | base64 -d | java -Xmx64m Main"
 	default:
 		return ExecutionResponse{
 			Status: "RUNTIME_ERROR",
@@ -125,7 +127,21 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(req.Timeout+2000)*time.Millisecond)
+	// Compile+JVM startup takes longer than plain script interpreters, so enforce a
+	// per-language minimum timeout regardless of what the client requested.
+	effectiveTimeout := req.Timeout
+	switch req.Language {
+	case "cpp", "c++", "java":
+		if effectiveTimeout < 15000 {
+			effectiveTimeout = 15000
+		}
+	default:
+		if effectiveTimeout < 6000 {
+			effectiveTimeout = 6000
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(effectiveTimeout+3000)*time.Millisecond)
 	defer cancel()
 
 	// Strict security limit properties
@@ -191,7 +207,7 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 		if ctx.Err() != nil {
 			timedOut = true
 		}
-	case <-time.After(time.Duration(req.Timeout) * time.Millisecond):
+	case <-time.After(time.Duration(effectiveTimeout) * time.Millisecond):
 		timedOut = true
 	}
 

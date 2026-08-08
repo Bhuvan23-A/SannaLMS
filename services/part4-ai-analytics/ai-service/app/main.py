@@ -32,6 +32,8 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Enterprise LMS Unit Microservices...")
     await connect_to_mongo()
     await seed_sample_data()
+    from app.gamification.leaderboard import seed_redis_leaderboard
+    await seed_redis_leaderboard()
     yield
     await close_mongo_connection()
     logger.info("LMS Microservices shutdown complete.")

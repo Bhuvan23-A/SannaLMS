@@ -88,21 +88,31 @@ async def call_gemini_api_rag(system_prompt: str, user_prompt: str) -> str:
     # Rank sentences in context_text by word overlap with student_query
     query_words = set(re.findall(r'\w+', student_query.lower()))
     sentences = re.split(r'(?<=[.!?]) +', context_text)
-    
+    sentences = [s.strip() for s in sentences if s.strip()]
+
     scored_sentences = []
     for s in sentences:
         s_words = set(re.findall(r'\w+', s.lower()))
         score = len(query_words.intersection(s_words))
-        scored_sentences.append((score, s.strip()))
-        
+        scored_sentences.append((score, s))
+
     scored_sentences.sort(key=lambda x: x[0], reverse=True)
     top_answers = [s[1] for s in scored_sentences if s[0] > 0]
-    
+
     if not top_answers:
-        top_answers = [sentences[0].strip()] if sentences else [context_text]
-        
+        # Nothing in the lesson matches the question — be honest instead of
+        # blindly repeating the first sentence (which made every answer identical).
+        topics = " • ".join(sentences[:3]) if sentences else "your course transcript"
+        return (
+            f"I couldn't find anything in the current lesson's material that directly answers "
+            f"\"{student_query}\".\n\n"
+            f"📚 The active lesson covers:\n{topics}\n\n"
+            f"💡 Try asking about one of the topics above, or open the lesson that covers "
+            f"\"{student_query}\" and ask again — I answer strictly from your course material."
+        )
+
     direct_answer = " ".join(top_answers[:2])
-    
+
     return (
         f"Based strictly on your course material:\n\n"
         f"👉 {direct_answer}\n\n"

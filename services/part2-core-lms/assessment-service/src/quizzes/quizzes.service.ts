@@ -44,6 +44,9 @@ export class QuizzesService {
         ...qq,
         question: qq.question ? {
           ...qq.question,
+          // The quiz-taking UI renders question.text — the model stores it as
+          // content/title, so expose it here (and always as a string).
+          text: String(qq.question.content || qq.question.title || ''),
           options: typeof qq.question.options === 'string'
             ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
             : (qq.question.options || [])
@@ -72,8 +75,28 @@ export class QuizzesService {
         const options: any = typeof qq.question.options === 'string'
           ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
           : (qq.question.options || []);
-        const correctOption = options?.find((o: any) => o.isCorrect);
-        if (correctOption && String(correctOption.id) === String(userAnswer)) {
+        const norm = (v: any) => String(v ?? '').trim().toLowerCase();
+        let correct = false;
+        const correctOption = options?.find((o: any) => o && o.isCorrect);
+        if (correctOption) {
+          // Object form [{ id, text, isCorrect }] — match by option id or by text
+          correct = norm(correctOption.id) === norm(userAnswer)
+            || (norm(correctOption.text) !== '' && norm(correctOption.text) === norm(userAnswer));
+        } else if (qq.question.answer_key) {
+          // Fallback: answer_key is either a 1-based option index ("3") or literal option text
+          const key = String(qq.question.answer_key).trim();
+          const idx = parseInt(key, 10);
+          if (!Number.isNaN(idx) && idx >= 1 && idx <= options.length) {
+            const target = options[idx - 1];
+            const targetId = target && typeof target === 'object' ? String(target.id) : String(idx);
+            const targetText = typeof target === 'string' ? target : (target?.text ?? '');
+            correct = norm(userAnswer) === norm(targetId)
+              || (norm(targetText) !== '' && norm(userAnswer) === norm(targetText));
+          } else {
+            correct = norm(userAnswer) === norm(key);
+          }
+        }
+        if (correct) {
           score += qq.question.marks;
         }
       } else {

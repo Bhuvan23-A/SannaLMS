@@ -149,6 +149,7 @@ class QuizGenResponse(BaseModel):
 class AwardXPRequest(BaseModel):
     student_id: str
     action_type: str
+    student_name: Optional[str] = None
 
 class StudentGamificationState(BaseModel):
     student_id: str

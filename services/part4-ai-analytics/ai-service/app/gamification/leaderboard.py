@@ -33,6 +33,38 @@ async def get_redis_client():
             redis_client = False
     return redis_client if redis_client is not False else None
 
+async def seed_redis_leaderboard():
+    """
+    Populates the Redis leaderboard from the sample student store on startup
+    (only if the global set is empty, so real earned XP is never overwritten).
+    """
+    r = await get_redis_client()
+    if not r:
+        return
+    try:
+        # Per-student check (not a zcard guard): always add demo students that are
+        # missing, but never touch or overwrite real earned XP entries.
+        existing = set(await r.zrange("leaderboard:global", 0, -1))
+        students = db_manager.in_memory_store.get("students", [])
+        added = 0
+        for s in students:
+            sid = s.get("student_id")
+            if not sid or sid in existing:
+                continue
+            xp = int(s.get("xp_points", 0))
+            await r.zadd("leaderboard:global", {sid: xp})
+            await r.set(f"student_meta:{sid}", json.dumps({
+                "student_id": sid,
+                "student_name": s.get("name", "Student"),
+                "batch_id": s.get("batch_id", "BATCH_2026_A"),
+                "xp_points": xp,
+                "level": s.get("level", (xp // 250) + 1)
+            }))
+            added += 1
+        logger.info(f"Seeded {added} sample students into Redis leaderboard.")
+    except Exception as e:
+        logger.warning(f"Redis leaderboard seed failed: {e}")
+
 async def update_redis_leaderboard(student_id: str, student_name: str, batch_id: str, xp: int, level: int):
     """
     Day 12 Leaderboard Engine:
