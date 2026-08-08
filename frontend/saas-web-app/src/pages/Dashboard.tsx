@@ -52,23 +52,30 @@ export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
-  // Determine roles from Keycloak
-  const hasAdminRole = keycloak.token ? (keycloak.hasRealmRole('superadmin') || keycloak.hasRealmRole('tenantadmin')) : true;
-  const hasTrainerRole = keycloak.token ? (hasAdminRole || keycloak.hasRealmRole('instructor')) : true;
+  // Determine roles from Keycloak. Realm role names vary by case/legacy export
+  // (lowercase `instructor`, uppercase `TEACHING_ASSISTANT`, etc.), so compare
+  // case-insensitively against the decoded token instead of hasRealmRole.
+  const realmRoles: string[] = keycloak.tokenParsed?.realm_access?.roles || [];
+  const hasAnyRole = (...names: string[]) =>
+    names.some(name => realmRoles.some(r => r.toLowerCase() === name.toLowerCase()));
+  const hasAdminRole = keycloak.token ? hasAnyRole('superadmin', 'tenantadmin') : true;
+  const hasTrainerRole = keycloak.token
+    ? (hasAdminRole || hasAnyRole('instructor', 'primary_trainer', 'trainer', 'teaching_assistant', 'assistant'))
+    : true;
 
   // Set default role based on Keycloak roles on mount.
   // Super Admin / College Admin are routed straight to the role-scoped Admin Dashboard
   // (the admin UI resolves the same JWT and renders the correct access level).
   useEffect(() => {
     if (keycloak.token) {
-      if (keycloak.hasRealmRole('superadmin') || keycloak.hasRealmRole('tenantadmin')) {
+      if (hasAnyRole('superadmin', 'tenantadmin')) {
         setSelectedRole('ADMIN');
         if (!adminRedirectedRef.current) {
           adminRedirectedRef.current = true;
           const adminUrl = `${ADMIN_URL}/?token=${encodeURIComponent(keycloak.token)}`;
           window.location.replace(adminUrl);
         }
-      } else if (keycloak.hasRealmRole('instructor')) {
+      } else if (hasAnyRole('instructor', 'primary_trainer', 'trainer', 'teaching_assistant', 'assistant')) {
         setSelectedRole('INSTRUCTOR');
       } else {
         setSelectedRole('STUDENT');
