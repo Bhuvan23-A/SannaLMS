@@ -593,7 +593,7 @@ export const Dashboard: React.FC = () => {
       submittedAt: '11:15 AM',
     }
   ]);
-  const [studentNameInput, setStudentNameInput] = useState<string>('demo');
+  const [studentNameInput, setStudentNameInput] = useState<string>(() => (keycloak.tokenParsed?.preferred_username as string) || 'demo');
   const [uploadedFileName, setUploadedFileName] = useState<string>('sort_algorithm.py');
   const [uploadedCodeContent, setUploadedCodeContent] = useState<string>(
     `def perform_sort(numbers):\n    length = len(numbers)\n    for x in range(length):\n        for y in range(0, length-x-1):\n            if numbers[y] > numbers[y+1]:\n                numbers[y], numbers[y+1] = numbers[y+1], numbers[y]\n    return numbers`
@@ -617,6 +617,10 @@ export const Dashboard: React.FC = () => {
   }>>([]);
 
   const handleSubmitAssignment = async () => {
+    if (!uploadedFileName.trim()) {
+      alert('Please enter a file name (e.g. my_solution.py) before submitting your assignment.');
+      return;
+    }
     const clean = (txt: string) => txt.replace(/\/\/.*$/gm, '').replace(/#.*$/gm, '').replace(/\s+/g, '').toLowerCase();
     const cleanUploaded = clean(uploadedCodeContent);
     
@@ -747,12 +751,17 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleQRCheckIn = async () => {
+  const handleQRCheckIn = async (tokenOverride?: string) => {
+    const token = (tokenOverride || qrCodeInput || '').trim();
+    if (!token) {
+      setCheckInMessage('❌ Please select a session or paste a QR token first.');
+      return;
+    }
     setCheckingIn(true);
     setCheckInMessage('');
     try {
       await apiClient.post('/attendance/checkin/qr', {
-        qr_token: qrCodeInput
+        qr_token: token
       });                      setCheckInMessage('✅ QR Code Check-in Successful!');
                       awardXp('perfect_attendance');
       setAttendanceSessions(prev => [
@@ -1933,17 +1942,61 @@ export const Dashboard: React.FC = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Method A: Scan QR Code</h4>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Method A: QR Code Check-in</h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>Pick your session and tap check-in — the trainer's QR token is applied automatically.</p>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Attendance Session</label>
+                    <select
+                      value={selectedSessionId}
+                      onChange={e => setSelectedSessionId(e.target.value)}
+                      style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.4rem 0.6rem', outline: 'none', fontSize: '0.8rem', marginBottom: '0.75rem' }}
+                    >
+                      {attendanceSessionOptions.length === 0 && <option value="">No sessions loaded</option>}
+                      {attendanceSessionOptions.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        const s = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
+                        if (s?.qr_token) handleQRCheckIn(s.qr_token);
+                        else setCheckInMessage('❌ Selected session has no QR token yet.');
+                      }}
+                      disabled={checkingIn}
+                      style={{ border: 'none', background: 'var(--accent-cyan)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
+                    >
+                      Check In via QR
+                    </button>
+                    {(() => {
+                      const s = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
+                      return s?.qr_token ? (
+                        <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(s.qr_token)}`}
+                            alt="Session QR code"
+                            style={{ background: '#fff', padding: '6px', borderRadius: '8px', maxWidth: '110px' }}
+                          />
+                          <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.4rem', wordBreak: 'break-all' }}>
+                            {s.qr_token}
+                          </p>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Manual QR Token (scanned code)</h4>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <input
                         type="text"
-                        placeholder="Enter QR Session Token (e.g. qr-sess-101)"
+                        placeholder="Paste the 32-character QR token from your trainer"
                         value={qrCodeInput}
                         onChange={e => setQrCodeInput(e.target.value)}
                         style={{ flex: 1, background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none', fontSize: '0.85rem' }}
                       />
                       <button
-                        onClick={handleQRCheckIn}
+                        onClick={() => handleQRCheckIn()}
                         disabled={checkingIn}
                         style={{ border: 'none', background: 'var(--accent-cyan)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
                       >

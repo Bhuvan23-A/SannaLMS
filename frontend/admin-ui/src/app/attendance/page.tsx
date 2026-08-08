@@ -194,7 +194,29 @@ export default function AttendancePage() {
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   <span className="badge badge-info">📅 {new Date(s.date).toLocaleString()}</span>
                   {s._count && <span className="badge badge-success">{s._count.records} checked in</span>}
-                  {s.qr_token && <span className="badge badge-warning" style={{ fontFamily: 'monospace', fontSize: '11px' }}>QR: {s.qr_token.substring(0, 12)}...</span>}
+                  {s.qr_token && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '8px', background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '8px' }}>
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(s.qr_token)}`}
+                        alt="Session QR code"
+                        style={{ background: '#fff', padding: '4px', borderRadius: '6px', width: '56px', height: '56px' }}
+                      />
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span className="badge badge-warning" style={{ fontFamily: 'monospace', fontSize: '11px' }}>QR Token</span>
+                          <code style={{ fontSize: '12px', color: '#fbbf24', wordBreak: 'break-all' }}>{s.qr_token}</code>
+                          <button
+                            className="btn-secondary"
+                            style={{ fontSize: '11px', padding: '2px 10px' }}
+                            onClick={() => { if (navigator.clipboard) { navigator.clipboard.writeText(s.qr_token).then(() => alert('QR token copied!')).catch(() => {}); } else { alert(s.qr_token); } }}
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Share this code / QR with students so they can check in.</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               {(isAdmin || isTrainer) && (
