@@ -595,9 +595,35 @@ export const Dashboard: React.FC = () => {
   ]);
   const [studentNameInput, setStudentNameInput] = useState<string>(() => (keycloak.tokenParsed?.preferred_username as string) || 'demo');
   const [uploadedFileName, setUploadedFileName] = useState<string>('sort_algorithm.py');
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
+  const [pickedFileInfo, setPickedFileInfo] = useState('');
   const [uploadedCodeContent, setUploadedCodeContent] = useState<string>(
     `def perform_sort(numbers):\n    length = len(numbers)\n    for x in range(length):\n        for y in range(0, length-x-1):\n            if numbers[y] > numbers[y+1]:\n                numbers[y], numbers[y+1] = numbers[y+1], numbers[y]\n    return numbers`
   );
+
+  // Real file upload from PC / mobile (text files are loaded into the editor for editing)
+  const TEXT_EXTENSIONS = ['py','js','ts','jsx','tsx','java','cpp','c','cc','h','hpp','cs','go','rb','php','txt','md','json','html','css','sql','sh','yml','yaml','xml','ini','cfg','log','csv'];
+  const handleFilePick = (e: any) => {
+    const f = e.target?.files?.[0] as File | undefined;
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) {
+      alert('File is larger than the 10 MB limit. Please choose a smaller file.');
+      e.target.value = '';
+      return;
+    }
+    setPickedFile(f);
+    setUploadedFileName(f.name);
+    const ext = f.name.split('.').pop()?.toLowerCase() || '';
+    const kb = (f.size / 1024).toFixed(1);
+    if (TEXT_EXTENSIONS.includes(ext)) {
+      const reader = new FileReader();
+      reader.onload = () => setUploadedCodeContent(String(reader.result || '').slice(0, 50000));
+      reader.readAsText(f);
+      setPickedFileInfo(`📄 ${f.name} (${kb} KB) — loaded into the editor below.`);
+    } else {
+      setPickedFileInfo(`📎 ${f.name} (${kb} KB) — uploaded as-is (${ext.toUpperCase()} preview not available here).`);
+    }
+  };
   const [assignmentSubTab, setAssignmentSubTab] = useState<'upload' | 'peer-review' | 'plagiarism'>('upload');
   const [plagiarismCompareA, setPlagiarismCompareA] = useState<string>(
     `def solve(a, b):\n    total = a + b\n    return total`
@@ -618,7 +644,7 @@ export const Dashboard: React.FC = () => {
 
   const handleSubmitAssignment = async () => {
     if (!uploadedFileName.trim()) {
-      alert('Please enter a file name (e.g. my_solution.py) before submitting your assignment.');
+      alert('Please choose a file from your device (or enter a file name) before submitting your assignment.');
       return;
     }
     const clean = (txt: string) => txt.replace(/\/\/.*$/gm, '').replace(/#.*$/gm, '').replace(/\s+/g, '').toLowerCase();
@@ -655,7 +681,8 @@ export const Dashboard: React.FC = () => {
     const studentId = keycloak.subject || userProfile?.id || 'u-1';
     try {
       const formData = new FormData();
-      formData.append('file', new Blob([uploadedCodeContent], { type: 'text/plain' }), uploadedFileName || 'submission.txt');
+      // Send the real file when one was chosen from the device, otherwise the editor text
+      formData.append('file', pickedFile || new Blob([uploadedCodeContent], { type: 'text/plain' }), uploadedFileName || 'submission.txt');
       formData.append('studentId', studentId);
       formData.append('assignmentId', assignmentId);
       await apiClient.post('/assignment/submit', formData, {
@@ -1685,6 +1712,25 @@ export const Dashboard: React.FC = () => {
                     </select>
                   </div>
                 )}
+
+                <div style={{ marginBottom: '1.2rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Upload File (from PC or Mobile)</label>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      type="file"
+                      id="assignment-file-input"
+                      style={{ display: 'none' }}
+                      onChange={handleFilePick}
+                    />
+                    <button
+                      onClick={() => document.getElementById('assignment-file-input')?.click()}
+                      style={{ border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.12)', color: '#34d399', padding: '0.55rem 1.1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Upload size={15} /> Choose File
+                    </button>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{pickedFileInfo || 'No file chosen yet — or paste code below and type a file name.'}</span>
+                  </div>
+                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   {/* Left Form */}
