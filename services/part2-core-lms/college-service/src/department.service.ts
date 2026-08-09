@@ -10,8 +10,11 @@ export class DepartmentService {
     return this.prisma.extendedClient.department.create({ data });
   }
 
-  async getDepartments() {
-    return this.prisma.extendedClient.department.findMany({ include: { branches: true } });
+  async getDepartments(tenantId?: string) {
+    return this.prisma.extendedClient.department.findMany({
+      where: tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : undefined,
+      include: { branches: true },
+    });
   }
 
   async deleteDepartment(id: string) {

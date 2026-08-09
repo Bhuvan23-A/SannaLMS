@@ -18,6 +18,9 @@ model LiveClass {
   scheduled_at DateTime
   duration_mins Int     @default(60)
   is_live      Boolean  @default(false)
+  // Set once when the class is ended; a class that has ended cannot be
+  // restarted (the UI shows "Ended" instead of "Go Live" again).
+  ended_at     DateTime?
   recording_url String?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

@@ -79,4 +79,32 @@ export class CoursesService {
   async remove(id: string) {
     return this.prisma.extendedClient.course.delete({ where: { id } });
   }
+
+  /**
+   * Assign a trainer / teaching assistant to a course (college-admin action).
+   * user_id is the Keycloak/LMS user id of the trainer.
+   */
+  async assignTrainer(courseId: string, userId: string, role: string, createdBy: string) {
+    const course = await this.prisma.extendedClient.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (!userId) throw new NotFoundException('user_id is required');
+
+    return this.prisma.extendedClient.courseTrainer.upsert({
+      where: { course_id_user_id: { course_id: courseId, user_id: userId } },
+      update: { role, updated_by: createdBy },
+      create: {
+        course_id: courseId,
+        user_id: userId,
+        role,
+        tenant_id: course.tenant_id,
+        created_by: createdBy,
+      },
+    });
+  }
+
+  async getTrainers(courseId: string) {
+    return this.prisma.extendedClient.courseTrainer.findMany({
+      where: { course_id: courseId },
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { SemesterService } from './semester.service';
 import { Prisma } from '@prisma/client';
 import { RolesGuard, Roles } from './roles.guard';
@@ -16,7 +16,9 @@ export class SemesterController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'STUDENT')
-  async getSemesters() {
-    return this.semesterService.getSemesters();
+  async getSemesters(@Req() req: any) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? undefined : (req.user?.tenantId || undefined);
+    return this.semesterService.getSemesters(tenantId);
   }
 }

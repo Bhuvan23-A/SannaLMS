@@ -17,7 +17,7 @@ export class AttendanceController {
 
   // Sessions
   @Post('sessions')
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   createSession(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
@@ -34,7 +34,7 @@ export class AttendanceController {
 
   // Manual marking
   @Post('sessions/:id/mark')
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   markManual(
     @Param('id') sessionId: string,
     @Body() body: Record<string, any>,
@@ -75,7 +75,7 @@ export class AttendanceController {
 
   // Records
   @Get('sessions/:id/records')
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   getRecords(@Param('id') sessionId: string) {
     return this.attendanceService.getSessionRecords(sessionId);
   }

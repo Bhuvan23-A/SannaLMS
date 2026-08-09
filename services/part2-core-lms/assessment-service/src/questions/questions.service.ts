@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import pdfParse from 'pdf-parse-new';
 
@@ -12,6 +12,10 @@ export class QuestionsService {
     const createData: any = {
       tenant_id: tenantId,
       course_id: data.course_id || data.courseId || 'c-1',
+      // Org-hierarchy scoping: department/branch/semester the question belongs to
+      department_id: data.department_id || data.departmentId || null,
+      branch_id: data.branch_id || data.branchId || null,
+      semester_id: data.semester_id || data.semesterId || null,
       type: data.type || 'MCQ',
       title: titleStr,
       content: contentStr,
@@ -25,13 +29,53 @@ export class QuestionsService {
     return this.prisma.question.create({ data: createData });
   }
 
-  async getQuestions(tenantId: string, courseId?: string) {
+  async updateQuestion(id: string, data: Record<string, any>) {
+    const existing = await this.prisma.question.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Question not found');
+    }
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.content !== undefined) updateData.content = data.content;
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.marks !== undefined) updateData.marks = Number(data.marks) || 1;
+    if (data.answer_key !== undefined) updateData.answer_key = data.answer_key;
+    if (data.course_id !== undefined) updateData.course_id = data.course_id;
+    if (data.department_id !== undefined) updateData.department_id = data.department_id;
+    if (data.branch_id !== undefined) updateData.branch_id = data.branch_id;
+    if (data.semester_id !== undefined) updateData.semester_id = data.semester_id;
+    if (data.options !== undefined) {
+      updateData.options = typeof data.options === 'string' ? data.options : JSON.stringify(data.options);
+    }
+    return this.prisma.question.update({ where: { id }, data: updateData });
+  }
+
+  async deleteQuestion(id: string) {
+    const existing = await this.prisma.question.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Question not found');
+    }
+    await this.prisma.question.delete({ where: { id } });
+    return { deleted: true, id };
+  }
+
+  async getQuestions(tenantId: string, filters?: { course_id?: string; department_id?: string; branch_id?: string; semester_id?: string }) {
     const whereClause: any = { tenant_id: tenantId };
-    if (courseId) {
-      whereClause.course_id = courseId;
+    if (filters?.course_id) {
+      whereClause.course_id = filters.course_id;
+    }
+    if (filters?.department_id) {
+      whereClause.department_id = filters.department_id;
+    }
+    if (filters?.branch_id) {
+      whereClause.branch_id = filters.branch_id;
+    }
+    if (filters?.semester_id) {
+      whereClause.semester_id = filters.semester_id;
     }
     const questions = await this.prisma.question.findMany({
-      where: whereClause
+      where: whereClause,
+      orderBy: { created_at: 'desc' }
     });
     // options is stored as a JSON string in the DB — normalize to an array so
     // the UI can render q.options.map(...) without crashing.

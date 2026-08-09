@@ -8,13 +8,27 @@ export default function LiveClassesPage() {
   const { isAdmin, isTrainer, role } = useRole();
   const [classes, setClasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [courseId] = useState('c-1');
+  // Course-aware live classes: pick the course from the real list, not 'c-1'.
+  const [courses, setCourses] = useState<any[]>([]);
+  const [courseId, setCourseId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', scheduled_at: '', duration_mins: 60 });
   const [joiningClass, setJoiningClass] = useState<any>(null);
   const [flash, setFlash] = useState('');
 
-  useEffect(() => { loadClasses(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/courses');
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setCourseId(data[0].id);
+        }
+      } catch { /* course list unavailable */ }
+    })();
+  }, []);
+
+  useEffect(() => { if (courseId) loadClasses(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [courseId]);
 
   const loadClasses = async () => {
     try {
@@ -70,7 +84,17 @@ export default function LiveClassesPage() {
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎥 Live Classes</h1>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎥 Live Classes</h1>
+          {courses.length > 0 && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
+              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
         {(isAdmin || isTrainer) && <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Schedule Class</button>}
       </div>
 
@@ -147,16 +171,19 @@ export default function LiveClassesPage() {
                 {c.is_live && <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#ff4757', animation: 'pulse 1.5s infinite' }} />}
                 <h3 style={{ fontSize: '18px' }}>{c.title}</h3>
                 {c.is_live && <span className="badge" style={{ background: '#ff4757', color: 'white' }}>🔴 LIVE</span>}
+                {c.ended_at && <span className="badge badge-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}>⏹ Ended</span>}
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '10px' }}>{c.description}</p>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <span className="badge badge-info">📅 {new Date(c.scheduled_at).toLocaleString()}</span>
                 <span className="badge badge-warning">⏱ {c.duration_mins} mins</span>
+                {c.ended_at && <span className="badge badge-secondary">Ended: {new Date(c.ended_at).toLocaleString()}</span>}
                 {c.recording_url && <a href={c.recording_url} target="_blank" rel="noreferrer" className="badge badge-success" style={{ textDecoration: 'none' }}>🎬 Recording</a>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-              {(isAdmin || isTrainer) && !c.is_live && (
+              {/* A class that has ended can never go live again (#bugfix) */}
+              {(isAdmin || isTrainer) && !c.is_live && !c.ended_at && (
                 <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #ff4757, #c0392b)' }} onClick={() => startClass(c.id)}>
                   ▶ Go Live
                 </button>

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Req, Query, Param, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { QuestionsService } from './questions.service';
 import { Roles } from '../roles.guard';
@@ -8,7 +8,7 @@ export class QuestionsController {
   constructor(private readonly questionsService: QuestionsService) {}
 
   @Post('import-pdf')
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   importPdf(
     @UploadedFile() file: Express.Multer.File | undefined,
@@ -29,7 +29,7 @@ export class QuestionsController {
   }
 
   @Post()
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   create(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
@@ -37,10 +37,36 @@ export class QuestionsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
-  findAll(@Query('course_id') courseId: string, @Req() req: Record<string, any>) {
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  findAll(
+    @Query('course_id') courseId: string,
+    @Query('department_id') departmentId: string,
+    @Query('branch_id') branchId: string,
+    @Query('semester_id') semesterId: string,
+    @Query('tenant_id') tenantIdParam: string,
+    @Req() req: Record<string, any>
+  ) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
-    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.questionsService.getQuestions(String(tenantId), courseId);
+    // Super admin can pick a specific college's question bank via tenant_id;
+    // everyone else is locked to their own tenant.
+    const tenantId = isSuperAdmin ? (tenantIdParam || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.questionsService.getQuestions(String(tenantId), {
+      course_id: courseId,
+      department_id: departmentId,
+      branch_id: branchId,
+      semester_id: semesterId,
+    });
+  }
+
+  @Put(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  update(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.questionsService.updateQuestion(id, body);
+  }
+
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  remove(@Param('id') id: string) {
+    return this.questionsService.deleteQuestion(id);
   }
 }

@@ -59,10 +59,43 @@ export class CertificatesService {
     });
   }
 
+  // All certificates, scoped by tenant. 'master'/'test-tenant' means "no filter".
+  async getAllCertificates(tenantId?: string) {
+    const where = tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : {};
+    return this.prisma.certificate.findMany({ where });
+  }
+
   async revokeCertificate(id: string, reason: string) {
     return this.prisma.certificate.update({
       where: { id },
       data: { is_revoked: true, revoke_reason: reason }
+    });
+  }
+
+  // ─── Certificate templates (#17) ─────────────────────────────
+  async uploadTemplate(courseId: string, tenantId: string, file: Express.Multer.File) {
+    if (!file) throw new Error('No file uploaded');
+    return this.prisma.certificateTemplate.upsert({
+      where: { course_id: courseId },
+      create: {
+        tenant_id: tenantId,
+        course_id: courseId,
+        file_name: file.originalname,
+        file_path: file.path,
+        file_size: file.size,
+      },
+      update: {
+        file_name: file.originalname,
+        file_path: file.path,
+        file_size: file.size,
+        uploaded_at: new Date(),
+      }
+    });
+  }
+
+  async getTemplate(courseId: string) {
+    return this.prisma.certificateTemplate.findUnique({
+      where: { course_id: courseId }
     });
   }
 }

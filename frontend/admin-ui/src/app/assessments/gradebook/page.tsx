@@ -10,15 +10,55 @@ export default function GradebookPage() {
   const [grades, setGrades] = useState<any[]>([]);
   const [myGrade, setMyGrade] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [courseId] = useState('c-1');
+  const [courses, setCourses] = useState<any[]>([]);
+  const [courseId, setCourseId] = useState('');
   const [calculating, setCalculating] = useState(false);
 
   // Real logged-in user id (Keycloak sub) — NOT the hardcoded mock 'u-1'
   const myUserId = (typeof window !== 'undefined' && localStorage.getItem('userId')) || '';
 
-  useEffect(() => { loadGrades(); }, [role]);
+  // Super admin sees which college each student belongs to — resolved from the
+  // college-service user links (user_id -> college name).
+  const [collegeByUser, setCollegeByUser] = useState<Record<string, string>>({});
+  const isSuperAdmin = role === 'SUPER_ADMIN';
+
+  // Load available courses once so the gradebook can be filtered course-wise (#14)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/courses');
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setCourseId(data[0].id);
+        }
+      } catch { /* course list unavailable */ }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (courseId) loadGrades();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, courseId]);
+
+  // Build the user_id -> college map once (super admin only)
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/colleges');
+        const map: Record<string, string> = {};
+        (Array.isArray(data) ? data : []).forEach((col: any) => {
+          (col.users || []).forEach((ur: any) => {
+            if (ur.user_id && !map[ur.user_id]) map[ur.user_id] = col.name;
+          });
+        });
+        setCollegeByUser(map);
+      } catch { /* college mapping unavailable */ }
+    })();
+  }, [isSuperAdmin]);
 
   const loadGrades = async () => {
+    if (!courseId) return;
     try {
       setLoading(true);
       if (isAdmin || isTrainer) {
@@ -69,6 +109,14 @@ export default function GradebookPage() {
         <div>
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Gradebook</h1>
+          {courses.length > 0 && (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
+              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         {(isAdmin || isTrainer) && (
           <button className="btn-primary" disabled={calculating} onClick={recalculateAll}>
@@ -122,6 +170,7 @@ export default function GradebookPage() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>Student ID</th>
+                  {isSuperAdmin && <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>College</th>}
                   <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Score</th>
                   <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Grade</th>
                   <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>CGPA</th>
@@ -133,6 +182,15 @@ export default function GradebookPage() {
                 {grades.map(g => (
                   <tr key={g.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '12px' }}>{g.user_id} {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no grade yet</span>}</td>
+                    {isSuperAdmin && (
+                      <td style={{ padding: '12px' }}>
+                        {collegeByUser[g.user_id] ? (
+                          <span className="badge badge-info">{collegeByUser[g.user_id]}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>—</span>
+                        )}
+                      </td>
+                    )}
                     <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : `${g.total_score} / ${g.max_score}`}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       {g.pending ? <span style={{ color: 'var(--text-secondary)' }}>—</span> : (

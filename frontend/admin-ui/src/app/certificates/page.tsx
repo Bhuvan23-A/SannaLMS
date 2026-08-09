@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 
@@ -14,8 +14,27 @@ export default function CertificatesPage() {
   const [issueForm, setIssueForm] = useState({ course_id: 'c-1', user_id: '', course_title: '', student_name: '', grade: 'A', cgpa: 4.0 });
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [flash, setFlash] = useState('');
+  // Certificate template upload per course (#17)
+  const [courses, setCourses] = useState<any[]>([]);
+  const [templateCourseId, setTemplateCourseId] = useState('');
+  const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [templateUploading, setTemplateUploading] = useState(false);
+  const [templateStatus, setTemplateStatus] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { loadCertificates(); }, []);
+  useEffect(() => {
+    loadCertificates();
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/courses');
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setTemplateCourseId(data[0].id);
+        }
+      } catch { /* course list unavailable */ }
+    })();
+  }, []);
 
   const loadCertificates = async () => {
     try {
@@ -45,6 +64,25 @@ export default function CertificatesPage() {
     } catch { setVerifyResult(null); } finally { setVerifying(false); }
   };
 
+  const uploadTemplate = async (e: any) => {
+    e.preventDefault();
+    if (!templateFile) { alert('Choose a file first'); return; }
+    try {
+      setTemplateUploading(true);
+      const formData = new FormData();
+      formData.append('file', templateFile);
+      formData.append('course_id', templateCourseId);
+      await fetchApi('/api/v1/certificates/template', { method: 'POST', body: formData });
+      setShowTemplateForm(false);
+      setTemplateFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setTemplateStatus(`✅ Template saved for course ${templateCourseId}`);
+      setTimeout(() => setTemplateStatus(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload template');
+    } finally { setTemplateUploading(false); }
+  };
+
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
   if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading certificates...</div>;
@@ -54,9 +92,38 @@ export default function CertificatesPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎓 Certificates</h1>
         {(isAdmin || isTrainer) && (
-          <button className="btn-primary" onClick={() => setShowIssueForm(!showIssueForm)}>+ Issue Certificate</button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-secondary" onClick={() => setShowTemplateForm(!showTemplateForm)}>🖼 Upload Course Template</button>
+            <button className="btn-primary" onClick={() => setShowIssueForm(!showIssueForm)}>+ Issue Certificate</button>
+          </div>
         )}
       </div>
+
+      {templateStatus && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{templateStatus}</div>}
+
+      {/* Template upload form (#17) */}
+      {showTemplateForm && (
+        <form onSubmit={uploadTemplate} className="panel" style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Upload Certificate Template / Sample</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '15px' }}>Upload the sample certificate design for a course. Each course can have one template.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Course</label>
+              <select className="input-field" value={templateCourseId} onChange={e => setTemplateCourseId(e.target.value)}>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Template file (PDF / image)</label>
+              <input ref={fileInputRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.svg" className="input-field" onChange={e => setTemplateFile(e.target.files?.[0] || null)} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" className="btn-primary" disabled={templateUploading}>{templateUploading ? 'Uploading...' : 'Upload Template'}</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowTemplateForm(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
 
       {flash && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{flash}</div>}
 

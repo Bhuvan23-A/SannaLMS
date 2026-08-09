@@ -7,7 +7,7 @@ export class LiveclassController {
   constructor(private readonly liveclassService: LiveclassService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   create(@Body() body: Record<string, any>, @Req() req: any) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
@@ -24,13 +24,13 @@ export class LiveclassController {
   }
 
   @Put(':id/start')
-  @Roles('PRIMARY_TRAINER', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
+  @Roles('PRIMARY_TRAINER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'TEACHING_ASSISTANT')
   start(@Param('id') id: string) {
     return this.liveclassService.startClass(id);
   }
 
   @Put(':id/end')
-  @Roles('PRIMARY_TRAINER', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
+  @Roles('PRIMARY_TRAINER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'TEACHING_ASSISTANT')
   end(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.liveclassService.endClass(id, body.recording_url);
   }

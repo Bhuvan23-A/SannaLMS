@@ -10,7 +10,10 @@ export class BranchService {
     return this.prisma.extendedClient.branch.create({ data });
   }
 
-  async getBranches() {
-    return this.prisma.extendedClient.branch.findMany({ include: { semesters: true } });
+  async getBranches(tenantId?: string) {
+    return this.prisma.extendedClient.branch.findMany({
+      where: tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : undefined,
+      include: { semesters: true },
+    });
   }
 }

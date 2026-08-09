@@ -237,6 +237,9 @@ services:
       - REDIS_URL=redis://redis:6379
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # Real AI answers need a Google Gemini API key (set in .env). Without one
+      # the tutor falls back to the built-in RAG synthesis engine.
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     depends_on:
       - postgres
       - redis
@@ -285,6 +288,11 @@ services:
     restart: always
     environment:
       - PORT=3000
+      # No /auth suffix — Keycloak 17+ serves /realms and /admin/realms at the root.
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=sannalms
+      - KEYCLOAK_ADMIN_CLIENT=sannalms-api
+      - KEYCLOAK_ADMIN_SECRET=${KEYCLOAK_ADMIN_SECRET:-sannalms-api-svc-local}
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_college?schema=public
     depends_on:
       - postgres
@@ -401,6 +409,8 @@ services:
       - PORT=3009
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_notification?schema=public
       - REDIS_URL=redis://redis:6379
+      - COLLEGE_SERVICE_URL=http://sannalms-college-service:3000
+      - COURSE_SERVICE_URL=http://sannalms-course-service:3001
     depends_on:
       - postgres
       - redis

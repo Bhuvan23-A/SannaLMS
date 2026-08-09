@@ -11,12 +11,15 @@ services:
           - /api/v1/auth
         strip_path: false
 
+  # Legacy Part-1 user-service (POST /users, GET /users/:id). Kept out of the
+  # /api/v1/users prefix so it doesn't shadow college-service's user store
+  # (GET /api/v1/users for notification targeting + bulk import).
   - name: user-service
     url: http://sannalms-user-service:3002
     routes:
       - name: user-routes
         paths:
-          - /api/v1/users
+          - /api/v1/legacy-users
         strip_path: false
 
   # ─── Part 2: Core LMS ────────────────────────────────────────────
@@ -29,6 +32,16 @@ services:
           - /api/v1/departments
           - /api/v1/branches
           - /api/v1/semesters
+          - /api/v1/users
+        strip_path: false
+
+  # Bulk user import lives in college-service (Keycloak + LMS user store)
+  - name: user-import-service
+    url: http://sannalms-college-service:3000
+    routes:
+      - name: user-import-routes
+        paths:
+          - /api/v1/users/bulk-import
         strip_path: false
 
   - name: course-service

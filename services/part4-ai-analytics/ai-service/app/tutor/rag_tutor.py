@@ -85,10 +85,17 @@ async def call_gemini_api_rag(system_prompt: str, user_prompt: str) -> str:
     if not context_text:
         return "Based on the provided course material, I cannot find enough details to answer this question."
 
-    # Rank sentences in context_text by word overlap with student_query
+    # Normalize separators: retrieved chunks are joined with "\n---\n" and lesson
+    # transcripts often end with a period followed by a newline. Splitting only on
+    # ". " made the WHOLE context look like one sentence, so the "ranking" did
+    # nothing and every answer repeated the entire course material verbatim.
+    # Convert chunk/newline boundaries into sentence boundaries before splitting.
+    normalized = context_text.replace("---", ". ").replace("\n", ". ")
+
+    # Rank sentences in normalized context by word overlap with student_query
     query_words = set(re.findall(r'\w+', student_query.lower()))
-    sentences = re.split(r'(?<=[.!?]) +', context_text)
-    sentences = [s.strip() for s in sentences if s.strip()]
+    sentences = re.split(r'(?<=[.!?]) +', normalized)
+    sentences = [s.strip().strip('.') for s in sentences if len(s.strip()) > 5]
 
     scored_sentences = []
     for s in sentences:
@@ -111,14 +118,27 @@ async def call_gemini_api_rag(system_prompt: str, user_prompt: str) -> str:
             f"\"{student_query}\" and ask again — I answer strictly from your course material."
         )
 
-    direct_answer = " ".join(top_answers[:2])
+    direct_answer = " ".join(top_answers[:3])
+
+    # Pick the 2-3 most relevant sentences for the takeaways instead of always
+    # printing the first two sentences of the whole context (which made answers
+    # look identical no matter what was asked).
+    takeaway_sentences = [s[1] for s in scored_sentences[:3] if s[0] > 0]
+    while len(takeaway_sentences) < 2 and len(sentences) > 0:
+        for s in sentences:
+            if s not in takeaway_sentences:
+                takeaway_sentences.append(s)
+                break
+        else:
+            break
+
+    bullets = "\n".join(f"• {s}" for s in takeaway_sentences[:3])
 
     return (
         f"Based strictly on your course material:\n\n"
         f"👉 {direct_answer}\n\n"
         f"📌 Key Course Takeaways:\n"
-        f"• {sentences[0] if len(sentences) > 0 else context_text}\n"
-        f"• {sentences[1] if len(sentences) > 1 else 'Always verify function declarations and parameter scopes in your code.'}"
+        f"{bullets}"
     )
 
 

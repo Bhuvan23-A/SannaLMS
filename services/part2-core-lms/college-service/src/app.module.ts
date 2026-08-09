@@ -9,11 +9,12 @@ import { BranchController } from './branch.controller';
 import { BranchService } from './branch.service';
 import { SemesterController } from './semester.controller';
 import { SemesterService } from './semester.service';
+import { UsersModule } from './users/users.module';
 import { AuditMiddleware } from './audit.middleware';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
-  imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }])],
+  imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]), UsersModule],
   controllers: [CollegeController, DepartmentController, BranchController, SemesterController],
   providers: [PrismaService, CollegeService, DepartmentService, BranchService, SemesterService],
 })

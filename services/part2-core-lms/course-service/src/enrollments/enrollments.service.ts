@@ -34,10 +34,25 @@ export class EnrollmentsService {
     });
   }
 
+  // All enrollments, scoped by tenant. 'master'/'test-tenant' means "no filter"
+  // (mirrors how CoursesService.findAll treats those sentinel tenants).
+  findAllByTenant(tenantId?: string) {
+    const where = tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : {};
+    return this.prisma.extendedClient.enrollment.findMany({ where });
+  }
+
   findAll(userId: string) {
     return this.prisma.extendedClient.enrollment.findMany({
       where: { user_id: userId },
       include: { course: true }
+    });
+  }
+
+  findByCourse(courseId: string) {
+    return this.prisma.extendedClient.enrollment.findMany({
+      where: { course_id: courseId },
+      include: { course: { select: { id: true, title: true } } },
+      orderBy: { created_at: 'asc' }
     });
   }
 }

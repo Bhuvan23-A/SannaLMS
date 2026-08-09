@@ -35,16 +35,21 @@ export class LiveclassService {
   }
 
   async startClass(id: string) {
+    const cls = await this.prisma.liveClass.findUnique({ where: { id } });
+    if (!cls) throw new Error('Class not found');
+    // A class that was already ended cannot be re-started — it would otherwise
+    // flip back to "Go Live" in the UI after ending (#bugfix).
+    if (cls.ended_at) throw new Error('This class has already ended and cannot be restarted');
     return this.prisma.liveClass.update({
       where: { id },
-      data: { is_live: true }
+      data: { is_live: true, ended_at: null }
     });
   }
 
   async endClass(id: string, recordingUrl?: string) {
     return this.prisma.liveClass.update({
       where: { id },
-      data: { is_live: false, recording_url: recordingUrl }
+      data: { is_live: false, ended_at: new Date(), recording_url: recordingUrl }
     });
   }
 

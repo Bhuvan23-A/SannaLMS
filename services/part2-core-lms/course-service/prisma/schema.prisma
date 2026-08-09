@@ -70,6 +70,25 @@ model Course {
   enrollments   Enrollment[]
   prerequisites CoursePrerequisite[]
   history       CourseVersionHistory[]
+  resources     CourseResource[]
+}
+
+// Files (PDFs, documents, links) attached at the course level — the "Resources"
+// section trainers can upload per course (#6).
+model CourseResource {
+  id           String   @id @default(uuid())
+  tenant_id    String
+  course_id    String
+  title        String
+  file_name    String
+  file_path    String
+  file_size    Int      @default(0)
+  content_type String?
+  created_at   DateTime @default(now())
+
+  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id])
 }
 
 model CourseTrainer {

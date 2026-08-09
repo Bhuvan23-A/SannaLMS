@@ -8,7 +8,8 @@ export default function AttendancePage() {
   const { isAdmin, isTrainer, role } = useRole();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [courseId] = useState('c-1');
+  const [courses, setCourses] = useState<any[]>([]);
+  const [courseId, setCourseId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', date: '', lat: '', lng: '', radius_m: 100 });
   const [activeSession, setActiveSession] = useState<any>(null);
@@ -16,9 +17,25 @@ export default function AttendancePage() {
   const [qrInput, setQrInput] = useState('');
   const [report, setReport] = useState<any>(null);
   const [records, setRecords] = useState<any[]>([]);
+  const [roster, setRoster] = useState<any[]>([]);
   const [flash, setFlash] = useState('');
 
-  useEffect(() => { loadSessions(); }, []);
+  const myUserId = (typeof window !== 'undefined' && localStorage.getItem('userId')) || '';
+
+  // Load available courses so the attendance page is course-aware (no more hardcoded c-1)
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/courses');
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setCourseId(data[0].id);
+        }
+      } catch { /* course list unavailable */ }
+    })();
+  }, []);
+
+  useEffect(() => { if (courseId) loadSessions(); }, [courseId]);
 
   const loadSessions = async () => {
     try {
@@ -81,10 +98,22 @@ export default function AttendancePage() {
   };
 
   const loadReport = async () => {
+    if (!courseId || !myUserId) return;
     try {
-      const d = await fetchApi('/api/v1/attendance/report/c-1/student/u-1');
+      const d = await fetchApi(`/api/v1/attendance/report/${courseId}/student/${myUserId}`);
       setReport(d);
     } catch { }
+  };
+
+  // Show the full enrolled roster for a session's course + the recorded check-ins (#15)
+  const openSession = async (s: any) => {
+    setActiveSession(s);
+    setRecords([]);
+    loadRecords(s.id);
+    try {
+      const r = await fetchApi(`/api/v1/enrollments/course/${s.course_id || courseId}`);
+      setRoster(Array.isArray(r) ? r : []);
+    } catch { setRoster([]); }
   };
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
@@ -94,7 +123,17 @@ export default function AttendancePage() {
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>📍 Attendance Management</h1>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>📍 Attendance Management</h1>
+          {courses.length > 0 && (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
+              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           {role === 'STUDENT' && (
             <>
@@ -221,28 +260,58 @@ export default function AttendancePage() {
               </div>
               {(isAdmin || isTrainer) && (
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => { setActiveSession(s); loadRecords(s.id); }}>
+                  <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => openSession(s)}>
                     View Records
-                  </button>
-                  <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => markPresent(s.id, 'u-1')}>
-                    + Mark Present
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Records panel */}
+            {/* Records panel — full enrolled roster with per-student status (#15) */}
             {activeSession?.id === s.id && (
               <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-                <h4 style={{ marginBottom: '10px' }}>Attendance Records</h4>
-                {records.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No records yet.</p>
-                  : records.map(r => (
-                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', marginBottom: '6px' }}>
-                      <span>Student: {r.user_id}</span>
-                      <span><span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : 'badge-danger'}`}>{r.status}</span></span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>via {r.method}</span>
-                    </div>
-                  ))}
+                <h4 style={{ marginBottom: '10px' }}>Enrolled Students — Mark Attendance</h4>
+                {roster.length === 0 ? (
+                  <div>
+                    <p style={{ color: 'var(--text-secondary)' }}>No enrollments found for this course yet.</p>
+                    {records.length > 0 && (
+                      <>
+                        <p style={{ margin: '14px 0 6px', color: 'var(--text-secondary)', fontSize: '13px' }}>Check-ins so far:</p>
+                        {records.map(r => (
+                          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', marginBottom: '6px' }}>
+                            <span>Student: {r.user_id}</span>
+                            <span><span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : 'badge-danger'}`}>{r.status}</span></span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>via {r.method}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {roster.map((en: any) => {
+                      const rec = records.find((r: any) => r.user_id === en.user_id);
+                      const status = rec?.status || 'ABSENT';
+                      return (
+                        <div key={en.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <strong style={{ fontSize: '13px' }}>{en.user_id}</strong>
+                            <span className={`badge ${status === 'PRESENT' ? 'badge-success' : 'badge-danger'}`}>{status}</span>
+                            {rec && <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>via {rec.method}</span>}
+                          </div>
+                          <button
+                            className="btn-secondary"
+                            style={{ fontSize: '12px', padding: '4px 12px' }}
+                            disabled={status === 'PRESENT'}
+                            onClick={() => markPresent(s.id, en.user_id)}
+                          >
+                            {status === 'PRESENT' ? '✓ Present' : '+ Mark Present'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -11,6 +11,13 @@ model Question {
   id            String   @id @default(uuid())
   tenant_id     String
   course_id     String
+  // Optional org-hierarchy scoping so the question bank can be differentiated
+  // by college (tenant_id), department, branch and semester — super admin can
+  // filter by college, college admin by department/branch/semester, trainers
+  // create per-course banks. All reference IDs in the college-service DB.
+  department_id String?
+  branch_id     String?
+  semester_id   String?
   type          String   // MCQ, CODING, ESSAY
   title         String
   content       String
@@ -31,6 +38,7 @@ model Quiz {
   description   String?
   duration_mins Int?
   is_published  Boolean  @default(false)
+  assigned_to   Json?    // {"type":"ALL"} | {"type":"INDIVIDUALS","user_ids":[...]} — student visibility
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   
@@ -57,6 +65,7 @@ model Assignment {
   description   String
   due_date      DateTime?
   max_marks     Int      @default(100)
+  assigned_to   Json?    // {"type":"ALL"} | {"type":"INDIVIDUALS","user_ids":[...]} — student visibility
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 

@@ -7,7 +7,7 @@ export class QuizzesController {
   constructor(private readonly quizzesService: QuizzesService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   create(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
@@ -19,7 +19,15 @@ export class QuizzesController {
   findAll(@Query('course_id') courseId: string, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.quizzesService.getQuizzes(String(tenantId), courseId);
+    const viewer = { roles: req.user?.roles || [], userId: req.user?.id || '' };
+    return this.quizzesService.getQuizzes(String(tenantId), courseId, viewer);
+  }
+
+  // Student attempts + scores for a quiz — trainers & college admins review these (#10)
+  @Get(':id/submissions')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  getSubmissions(@Param('id') id: string) {
+    return this.quizzesService.getQuizSubmissions(id);
   }
 
   @Post(':id/submit')

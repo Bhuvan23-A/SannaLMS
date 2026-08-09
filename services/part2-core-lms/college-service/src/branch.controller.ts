@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { BranchService } from './branch.service';
 import { Prisma } from '@prisma/client';
 import { RolesGuard, Roles } from './roles.guard';
@@ -16,7 +16,9 @@ export class BranchController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'STUDENT')
-  async getBranches() {
-    return this.branchService.getBranches();
+  async getBranches(@Req() req: any) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? undefined : (req.user?.tenantId || undefined);
+    return this.branchService.getBranches(tenantId);
   }
 }

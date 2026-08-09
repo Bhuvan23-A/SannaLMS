@@ -23,3 +23,15 @@ model Certificate {
 
   @@unique([course_id, user_id])
 }
+
+// Uploaded sample/template certificate per course (#17) — the design the issued
+// certificate should follow.
+model CertificateTemplate {
+  id          String   @id @default(uuid())
+  tenant_id   String
+  course_id   String   @unique
+  file_name   String
+  file_path   String
+  file_size   Int      @default(0)
+  uploaded_at DateTime @default(now())
+}

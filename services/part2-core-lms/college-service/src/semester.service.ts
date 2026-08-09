@@ -10,7 +10,9 @@ export class SemesterService {
     return this.prisma.extendedClient.semester.create({ data });
   }
 
-  async getSemesters() {
-    return this.prisma.extendedClient.semester.findMany();
+  async getSemesters(tenantId?: string) {
+    return this.prisma.extendedClient.semester.findMany({
+      where: tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : undefined,
+    });
   }
 }

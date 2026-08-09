@@ -7,11 +7,12 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post('send')
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   send(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
-    return this.notificationsService.enqueueNotification(body, String(tenantId));
+    const callerRoles: string[] = req.user?.roles || [];
+    return this.notificationsService.enqueueNotification(body, String(tenantId), callerRoles);
   }
 
   @Get('preferences')

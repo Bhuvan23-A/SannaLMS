@@ -10,9 +10,19 @@ export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [courseId] = useState('c-1');
+  // Course-aware quizzes: choose the course from the real list, not 'c-1'.
+  const [courses, setCourses] = useState<any[]>([]);
+  const [courseId, setCourseId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, question_ids: [] as string[] });
+  // Assign-to targeting (#11): whole course or specific enrolled students
+  const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
+  // Submissions review (#10)
+  const [submissionsQuizId, setSubmissionsQuizId] = useState<string | null>(null);
+  const [submissionsData, setSubmissionsData] = useState<any[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
   // Inline quick-add question (so questions don't have to pre-exist in the bank)
   const [quickAdd, setQuickAdd] = useState(false);
   const [newQ, setNewQ] = useState({ title: '', content: '', marks: 1, answer_key: '' });
@@ -22,7 +32,19 @@ export default function QuizzesPage() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<any>(null);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/courses');
+        if (Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+          setCourseId(data[0].id);
+        }
+      } catch { /* course list unavailable */ }
+    })();
+  }, []);
+
+  useEffect(() => { if (courseId) loadData(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [courseId]);
 
   const loadData = async () => {
     try {
@@ -36,12 +58,47 @@ export default function QuizzesPage() {
     } catch { } finally { setLoading(false); }
   };
 
+  // Load the enrolled students for the course so trainers can assign to individuals (#11)
+  const loadEnrolledStudents = async () => {
+    try {
+      const r = await fetchApi(`/api/v1/enrollments/course/${courseId}`);
+      setEnrolledStudents(Array.isArray(r) ? r : []);
+    } catch { setEnrolledStudents([]); }
+  };
+
+  const openCreateForm = async () => {
+    setShowForm(!showForm);
+    if (!showForm) {
+      setAssignType('ALL');
+      setSelectedStudents([]);
+      loadEnrolledStudents();
+    }
+  };
+
+  const loadSubmissions = async (quizId: string) => {
+    if (submissionsQuizId === quizId) { setSubmissionsQuizId(null); return; }
+    setSubmissionsQuizId(quizId);
+    setSubmissionsLoading(true);
+    try {
+      const d = await fetchApi(`/api/v1/quizzes/${quizId}/submissions`);
+      setSubmissionsData(Array.isArray(d) ? d : []);
+    } catch { setSubmissionsData([]); } finally { setSubmissionsLoading(false); }
+  };
+
+  const toggleStudent = (uid: string) => {
+    setSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
+  };
+
   const createQuiz = async (e: any) => {
     e.preventDefault();
     try {
-      await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify({ ...form, course_id: courseId }) });
+      const assigned_to = assignType === 'ALL'
+        ? { type: 'ALL' }
+        : { type: 'INDIVIDUALS', user_ids: selectedStudents };
+      await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify({ ...form, course_id: courseId, assigned_to }) });
       setShowForm(false);
       setForm({ title: '', description: '', duration_mins: 30, question_ids: [] });
+      setAssignType('ALL'); setSelectedStudents([]);
       loadData();
     } catch { alert('Failed to create quiz'); }
   };
@@ -164,8 +221,16 @@ export default function QuizzesPage() {
         <div>
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Quizzes</h1>
+          {courses.length > 0 && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
+              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          )}
         </div>
-        {(isAdmin || isTrainer) && <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Create Quiz</button>}
+        {(isAdmin || isTrainer) && <button className="btn-primary" onClick={openCreateForm}>+ Create Quiz</button>}
       </div>
 
       {showForm && (
@@ -184,6 +249,31 @@ export default function QuizzesPage() {
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Description</label>
             <textarea className="input-field" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Assign To</label>
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
+                <input type="radio" name="assign-to" checked={assignType === 'ALL'} onChange={() => setAssignType('ALL')} />
+                Whole course (all enrolled students)
+              </label>
+              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
+                <input type="radio" name="assign-to" checked={assignType === 'INDIVIDUALS'} onChange={() => setAssignType('INDIVIDUALS')} />
+                Specific students
+              </label>
+            </div>
+            {assignType === 'INDIVIDUALS' && (
+              <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
+                {enrolledStudents.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No enrolled students found for this course yet.</p>
+                ) : enrolledStudents.map((en: any) => (
+                  <label key={en.user_id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={selectedStudents.includes(en.user_id)} onChange={() => toggleStudent(en.user_id)} />
+                    <span style={{ fontSize: '13px' }}>{en.user_id}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -232,17 +322,51 @@ export default function QuizzesPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {quizzes.length === 0 ? <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No quizzes available yet.</div>
           : quizzes.map(q => (
-            <div className="panel" key={q.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', marginBottom: '5px' }}>{q.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>{q.description}</p>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <span className="badge badge-info">{q.questions?.length || 0} Questions</span>
-                  {q.duration_mins && <span className="badge badge-success">⏱ {q.duration_mins} mins</span>}
+            <div className="panel" key={q.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '18px', marginBottom: '5px' }}>{q.title}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>{q.description}</p>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <span className="badge badge-info">{q.questions?.length || 0} Questions</span>
+                    {q.duration_mins && <span className="badge badge-success">⏱ {q.duration_mins} mins</span>}
+                    {q.assigned_to && <span className="badge badge-warning">Assigned to specific students</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {(isAdmin || isTrainer) && (
+                    <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(q.id)}>
+                      {submissionsQuizId === q.id ? 'Hide Submissions' : '📊 View Submissions'}
+                    </button>
+                  )}
+                  {role === 'STUDENT' && (
+                    <button className="btn-primary" onClick={() => { setActiveQuiz(q); setAnswers({}); }}>Take Quiz</button>
+                  )}
                 </div>
               </div>
-              {role === 'STUDENT' && (
-                <button className="btn-primary" onClick={() => { setActiveQuiz(q); setAnswers({}); }}>Take Quiz</button>
+              {submissionsQuizId === q.id && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '14px' }}>
+                  <h4 style={{ fontSize: '14px', marginBottom: '10px' }}>Student Submissions & Scores</h4>
+                  {submissionsLoading ? <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+                    : submissionsData.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
+                    : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {submissionsData.map((sub: any) => (
+                          <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '13px' }}>Student: {sub.user_id}</span>
+                            <span>
+                              {sub.score !== null && sub.score !== undefined
+                                ? <span className="badge badge-success">Score: {sub.score}</span>
+                                : <span className="badge badge-warning">Pending review</span>}
+                            </span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
               )}
             </div>
           ))}

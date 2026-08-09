@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Delete, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Delete, Param, Req, BadRequestException } from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { Prisma } from '@prisma/client';
 import { RolesGuard, Roles } from './roles.guard';
@@ -23,8 +23,10 @@ export class DepartmentController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'STUDENT')
-  async getDepartments() {
-    return this.departmentService.getDepartments();
+  async getDepartments(@Req() req: any) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? undefined : (req.user?.tenantId || undefined);
+    return this.departmentService.getDepartments(tenantId);
   }
 
   @Delete(':id')

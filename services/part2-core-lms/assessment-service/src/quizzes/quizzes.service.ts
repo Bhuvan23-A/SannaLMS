@@ -6,15 +6,21 @@ export class QuizzesService {
   constructor(private prisma: PrismaService) {}
 
   async createQuiz(data: Record<string, any>, tenantId: string) {
+    const quizData: any = {
+      tenant_id: tenantId,
+      course_id: data.course_id,
+      title: data.title,
+      description: data.description,
+      duration_mins: data.duration_mins,
+      is_published: data.is_published || false
+    };
+    // assigned_to: { type: 'ALL' } or { type: 'INDIVIDUALS', user_ids: [...] } — stored as a JSON string
+    // (Prisma Json fields reject null, so only set when provided — same pattern as question options)
+    if (data.assigned_to) {
+      quizData.assigned_to = JSON.stringify(data.assigned_to);
+    }
     const quiz = await this.prisma.quiz.create({
-      data: {
-        tenant_id: tenantId,
-        course_id: data.course_id,
-        title: data.title,
-        description: data.description,
-        duration_mins: data.duration_mins,
-        is_published: data.is_published || false
-      }
+      data: quizData
     });
 
     // Guard against empty selection — Prisma throws on createMany with an empty array
@@ -31,14 +37,23 @@ export class QuizzesService {
     return quiz;
   }
 
-  async getQuizzes(tenantId: string, courseId: string) {
+  async getQuizzes(tenantId: string, courseId: string, viewer?: { role?: string; roles?: string[]; userId?: string }) {
     const quizzes = await this.prisma.quiz.findMany({
       where: { tenant_id: tenantId, course_id: courseId },
       include: { questions: { include: { question: true } } }
     });
+    const isStudent = (viewer?.roles || []).some((r: string) => r.toUpperCase() === 'STUDENT');
+    // Students only see quizzes assigned to them (whole-course or individually)
+    const visible = isStudent
+      ? quizzes.filter((q: any) => {
+          const a = parseAssignedTo(q.assigned_to);
+          if (!a || a.type === 'ALL') return true;
+          return Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
+        })
+      : quizzes;
     // Normalize the nested question.options (stored as a JSON string) to arrays
     // so the quiz-taking UI can render them without crashing.
-    return quizzes.map((quiz: any) => ({
+    return visible.map((quiz: any) => ({
       ...quiz,
       questions: (quiz.questions || []).map((qq: any) => ({
         ...qq,
@@ -53,6 +68,14 @@ export class QuizzesService {
         } : qq.question
       }))
     }));
+  }
+
+  // Submissions for a quiz — used by trainers/college admins to review student scores (#10)
+  async getQuizSubmissions(quizId: string) {
+    return this.prisma.quizSubmission.findMany({
+      where: { quiz_id: quizId },
+      orderBy: { submitted_at: 'desc' }
+    });
   }
 
   async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
@@ -116,4 +139,12 @@ export class QuizzesService {
       }
     });
   }
+}
+
+function parseAssignedTo(value: any): { type?: string; user_ids?: string[] } | null {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return null; }
+  }
+  return value;
 }

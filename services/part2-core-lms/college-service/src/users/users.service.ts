@@ -1,0 +1,257 @@
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { KeycloakAdminService } from '../keycloak-admin.service';
+
+// Single source of truth for the default password of runtime-created accounts.
+// MUST match the password of the seeded demo accounts (docs/DEMO_SCRIPT.md uses
+// `Test@1234` for test_superadmin / test_collegeadmin / ...) so every test
+// credential is consistent. The UI shows this to admins when a college admin
+// is auto-created so nobody has to guess it.
+export const DEFAULT_PASSWORD = 'Test@1234';
+
+export interface ImportUser {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  role?: string;          // student | professor | instructor | teaching_assistant | college_admin ...
+  password?: string;
+  tenant_id?: string;
+  department?: string;
+  branch?: string;
+  year?: string | number;
+}
+
+// CSV / JSON role word → Keycloak realm role name
+export function realmRoleFor(role?: string): string | null {
+  const r = (role || '').trim().toLowerCase();
+  if (!r) return null;
+  if (['student'].includes(r)) return 'student';
+  if (['professor', 'instructor', 'trainer', 'primary_trainer', 'teacher', 'faculty'].includes(r)) return 'instructor';
+  if (['teaching_assistant', 'assistant', 'ta'].includes(r)) return 'TEACHING_ASSISTANT';
+  if (['college_admin', 'tenantadmin', 'admin', 'college-admin'].includes(r)) return 'tenantadmin';
+  if (['super_admin', 'superadmin', 'root'].includes(r)) return 'superadmin';
+  return null;
+}
+
+// role word → LMS UserRole.role enum value
+export function lmsRoleFor(role?: string): string {
+  const r = (role || '').trim().toLowerCase();
+  if (['professor', 'instructor', 'trainer', 'primary_trainer', 'teacher', 'faculty'].includes(r)) return 'PRIMARY_TRAINER';
+  if (['teaching_assistant', 'assistant', 'ta'].includes(r)) return 'TEACHING_ASSISTANT';
+  if (['college_admin', 'tenantadmin', 'admin', 'college-admin'].includes(r)) return 'COLLEGE_ADMIN';
+  if (['super_admin', 'superadmin', 'root'].includes(r)) return 'SUPER_ADMIN';
+  if (['guest_faculty'].includes(r)) return 'GUEST_FACULTY';
+  return 'STUDENT';
+}
+
+@Injectable()
+export class UsersService {
+  constructor(
+    private prisma: PrismaService,
+    private keycloak: KeycloakAdminService,
+  ) {}
+
+  /**
+   * Bulk-create users: Keycloak (identity + roles + attributes) and the LMS
+   * college user store (User + UserRole). Skips duplicates; reports per-user status.
+   */
+  async bulkImport(body: { users: ImportUser[]; default_password?: string; college_id?: string; require_password_change?: boolean }) {
+    const users = Array.isArray(body.users) ? body.users : [];
+    if (users.length === 0) throw new BadRequestException('users[] is required');
+    const defaultPassword = body.default_password || DEFAULT_PASSWORD;
+    const collegeId = body.college_id || '';
+
+    const results: any[] = [];
+    for (const u of users) {
+      try {
+        if (!u.email || !u.email.includes('@')) throw new Error('Missing or invalid email');
+
+        const requireChange = body.require_password_change === true;
+        const kc = await this.keycloak.createUser({
+          username: u.username || u.email,
+          email: u.email,
+          enabled: true,
+          emailVerified: true,
+          firstName: u.first_name || '',
+          lastName: u.last_name || '',
+          credentials: [{ type: 'password', value: u.password || defaultPassword, temporary: requireChange }],
+          attributes: {
+            tenant_id: [u.tenant_id || 'test-college'],
+            ...(u.department ? { department: [u.department] } : {}),
+            ...(u.branch ? { branch: [u.branch] } : {}),
+            ...(u.year !== undefined && u.year !== '' ? { year: [String(u.year)] } : {}),
+            ...(collegeId ? { college_id: [collegeId] } : {}),
+          },
+        });
+
+        const realmRole = realmRoleFor(u.role);
+        if (realmRole && kc.id) {
+          await this.keycloak.assignRealmRole(kc.id, realmRole);
+          // The realm's composite default role grants `student` to every new user.
+          // Non-students should not keep it (prevents student-portal access).
+          if (realmRole !== 'student' && kc.id) {
+            await this.keycloak.removeRealmRole(kc.id, 'student').catch(() => {});
+          }
+        }
+
+        // LMS-side user record (id mirrors the Keycloak user id)
+        const user = await this.prisma.extendedClient.user.upsert({
+          where: { email: u.email.toLowerCase() },
+          create: {
+            id: kc.id || undefined,
+            email: u.email.toLowerCase(),
+            password: '',
+            first_name: u.first_name || '',
+            last_name: u.last_name || '',
+            tenant_id: u.tenant_id || 'test-college',
+          },
+          update: {},
+        });
+
+        // Link the user to the college with their role
+        if (collegeId) {
+          await this.prisma.extendedClient.userRole
+            .create({
+              data: {
+                user_id: user.id,
+                college_id: collegeId,
+                role: lmsRoleFor(u.role) as any,
+                tenant_id: u.tenant_id || 'test-college',
+              },
+            })
+            .catch(() => { /* duplicate (user_id, college_id, role) already exists */ });
+        }
+
+        results.push({ email: u.email, status: kc.existing ? 'already_exists' : 'created', keycloak_id: kc.id || null, role: lmsRoleFor(u.role) });
+      } catch (err: any) {
+        results.push({ email: u.email || '(no email)', status: 'failed', error: err?.message || 'Unknown error' });
+      }
+    }
+
+    return {
+      total: users.length,
+      created: results.filter((r) => r.status === 'created').length,
+      already_exists: results.filter((r) => r.status === 'already_exists').length,
+      failed: results.filter((r) => r.status === 'failed').length,
+      results,
+    };
+  }
+
+  /**
+   * Create (or find) the college admin in Keycloak with the tenantadmin role and
+   * link them to the college in the LMS user store.
+   */
+  async assignCollegeAdmin(college: any, admin: { email: string; first_name?: string; last_name?: string; password?: string }) {
+    if (!admin.email || !admin.email.includes('@')) throw new BadRequestException('Admin email is required');
+
+    const kc = await this.keycloak.createUser({
+      username: admin.email,
+      email: admin.email,
+      enabled: true,
+      emailVerified: true,
+      firstName: admin.first_name || 'College',
+      lastName: admin.last_name || 'Admin',
+      credentials: [{ type: 'password', value: admin.password || DEFAULT_PASSWORD, temporary: false }],
+      attributes: {
+        tenant_id: [college.tenant_id || 'test-college'],
+        college_id: [college.id],
+      },
+    });
+    if (kc.id) {
+      await this.keycloak.assignRealmRole(kc.id, 'tenantadmin');
+      // If the Keycloak user already existed (createUser returned existing:true)
+      // their old password would silently stay in place — reset it to the
+      // documented default so the returned credentials are always valid (#fix).
+      if (kc.existing) {
+        await this.keycloak.resetUserPassword(kc.id, admin.password || DEFAULT_PASSWORD).catch(() => {});
+      }
+    }
+
+    const user = await this.prisma.extendedClient.user.upsert({
+      where: { email: admin.email.toLowerCase() },
+      create: {
+        id: kc.id || undefined,
+        email: admin.email.toLowerCase(),
+        password: '',
+        first_name: admin.first_name || 'College',
+        last_name: admin.last_name || 'Admin',
+        tenant_id: college.tenant_id || 'test-college',
+      },
+      update: {},
+    });
+
+    await this.prisma.extendedClient.userRole
+      .create({
+        data: {
+          user_id: user.id,
+          college_id: college.id,
+          role: 'COLLEGE_ADMIN',
+          tenant_id: college.tenant_id || 'test-college',
+        },
+      })
+      .catch(() => {});
+
+    return {
+      college_id: college.id,
+      admin_email: admin.email,
+      admin_username: admin.email,
+      admin_password: admin.password || DEFAULT_PASSWORD,
+      keycloak_id: kc.id || null,
+    };
+  }
+
+  async assignCollegeAdminById(collegeId: string, admin: { email: string; first_name?: string; last_name?: string; password?: string; tenant_id?: string }) {
+    const college = await this.prisma.extendedClient.college.findUnique({ where: { id: collegeId } });
+    if (!college) throw new BadRequestException('College not found');
+    return this.assignCollegeAdmin(college, admin);
+  }
+
+  /**
+   * List users for notification targeting and management screens.
+   * Filters: college_id, role (word, e.g. "student"), tenant_id, and optionally
+   * department/branch/year (Keycloak attributes set during bulk import).
+   */
+  async listUsers(filters: { college_id?: string; role?: string; tenant_id?: string; department?: string; branch?: string; year?: string } = {}) {
+    const where: any = {};
+    if (filters.college_id) where.college_id = filters.college_id;
+    if (filters.role) where.role = lmsRoleFor(filters.role) as any;
+    if (filters.tenant_id) where.tenant_id = filters.tenant_id;
+
+    let userRoles = await this.prisma.extendedClient.userRole.findMany({
+      where,
+      include: { user: true },
+    });
+
+    let users = userRoles.map((ur: any) => ({
+      id: ur.user.id,
+      email: ur.user.email,
+      first_name: ur.user.first_name,
+      last_name: ur.user.last_name,
+      role: ur.role,
+      college_id: ur.college_id,
+      tenant_id: ur.tenant_id || ur.user.tenant_id,
+    }));
+
+    // department/branch/year live on the Keycloak user attributes, so filter
+    // them via the identity provider (best effort, skips users with no record).
+    if (filters.department || filters.branch || filters.year) {
+      const filtered: any[] = [];
+      for (const u of users) {
+        const kc = await this.keycloak.getUser(u.id).catch(() => null);
+        if (!kc) continue;
+        const attrs = kc.attributes || {};
+        const dept = (attrs.department || [])[0];
+        const br = (attrs.branch || [])[0];
+        const yr = (attrs.year || [])[0];
+        if (filters.department && dept !== filters.department) continue;
+        if (filters.branch && br !== filters.branch) continue;
+        if (filters.year && yr !== filters.year) continue;
+        filtered.push(u);
+      }
+      users = filtered;
+    }
+
+    return users;
+  }
+}

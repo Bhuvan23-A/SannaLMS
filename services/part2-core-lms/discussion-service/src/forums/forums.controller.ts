@@ -7,7 +7,7 @@ export class ForumsController {
   constructor(private readonly forumsService: ForumsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   create(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
