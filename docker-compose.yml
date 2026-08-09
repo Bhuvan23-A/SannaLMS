@@ -257,7 +257,7 @@ services:
       - PORT=3001
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
       - REDIS_URL=redis://redis:6379
-      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_URL=http://keycloak:8080/auth
       - KEYCLOAK_REALM=sannalms
       - KEYCLOAK_CLIENT_ID=sannalms-api
     depends_on:
@@ -288,8 +288,9 @@ services:
     restart: always
     environment:
       - PORT=3000
-      # No /auth suffix — Keycloak 17+ serves /realms and /admin/realms at the root.
-      - KEYCLOAK_URL=http://keycloak:8080
+      # This Keycloak runs with --http-relative-path=/auth, so keep the /auth
+      # suffix or Keycloak admin calls (college-admin create, bulk import) 401.
+      - KEYCLOAK_URL=http://keycloak:8080/auth
       - KEYCLOAK_REALM=sannalms
       - KEYCLOAK_ADMIN_CLIENT=sannalms-api
       - KEYCLOAK_ADMIN_SECRET=${KEYCLOAK_ADMIN_SECRET:-sannalms-api-svc-local}
