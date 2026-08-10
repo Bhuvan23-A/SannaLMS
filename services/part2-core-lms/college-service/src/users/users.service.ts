@@ -208,6 +208,45 @@ export class UsersService {
   }
 
   /**
+   * Super-admin action: reset the college admin's Keycloak password so access
+   * can be handed over after onboarding (or recovered when it's lost). Returns
+   * the new credentials — shown to the super admin exactly once.
+   */
+  async resetCollegeAdminPassword(collegeId: string) {
+    const college = await this.prisma.extendedClient.college.findUnique({ where: { id: collegeId } });
+    if (!college) throw new BadRequestException('College not found');
+
+    // The college admin is the UserRole row with role COLLEGE_ADMIN for this college
+    const adminLink = await this.prisma.extendedClient.userRole.findFirst({
+      where: { college_id: collegeId, role: 'COLLEGE_ADMIN' as any, deleted_at: null },
+      include: { user: true },
+    });
+
+    const email = adminLink?.user?.email;
+    if (!email) {
+      throw new BadRequestException('This college has no admin yet. Add one first (Assign Admin).');
+    }
+
+    let keycloakId = adminLink?.user?.id;
+    if (!keycloakId) {
+      const kc = await this.keycloak.findUserByEmail(email);
+      keycloakId = kc?.id || '';
+    }
+    if (!keycloakId) {
+      throw new BadRequestException('Admin user not found in Keycloak.');
+    }
+
+    await this.keycloak.resetUserPassword(keycloakId, DEFAULT_PASSWORD);
+    return {
+      college_id: college.id,
+      admin_email: email,
+      admin_username: email,
+      admin_password: DEFAULT_PASSWORD,
+      note: 'Password reset — share these credentials with the college admin.',
+    };
+  }
+
+  /**
    * List users for notification targeting and management screens.
    * Filters: college_id, role (word, e.g. "student"), tenant_id, and optionally
    * department/branch/year (Keycloak attributes set during bulk import).

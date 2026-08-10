@@ -8,7 +8,6 @@ export default function CoursePrerequisitesTab({ courseId }: { courseId: string 
   const { isAdmin } = useRole();
   const [courses, setCourses] = useState<any[]>([]);
   const [requiredCourseId, setRequiredCourseId] = useState('');
-  const [tenantId, setTenantId] = useState('');
 
   useEffect(() => {
     loadAllCourses();
@@ -29,7 +28,7 @@ export default function CoursePrerequisitesTab({ courseId }: { courseId: string 
     try {
       await fetchApi('/api/v1/prerequisites', {
         method: 'POST',
-        body: JSON.stringify({ course_id: courseId, required_course_id: requiredCourseId, tenant_id: tenantId }),
+        body: JSON.stringify({ course_id: courseId, required_course_id: requiredCourseId }),
       });
       alert('Prerequisite linked successfully!');
       setRequiredCourseId('');
@@ -55,13 +54,9 @@ export default function CoursePrerequisitesTab({ courseId }: { courseId: string 
               <select required className="input-field" value={requiredCourseId} onChange={e => setRequiredCourseId(e.target.value)}>
                 <option value="">-- Select a Course --</option>
                 {courses.map(c => (
-                  <option key={c.id} value={c.id}>{c.title} ({c.id})</option>
+                  <option key={c.id} value={c.id}>{c.title}</option>
                 ))}
               </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Tenant ID</label>
-              <input required className="input-field" value={tenantId} onChange={e => setTenantId(e.target.value)} placeholder="e.g. stanford" />
             </div>
             <button type="submit" className="btn-primary" style={{ padding: '12px 20px', height: '44px' }}>Link Course</button>
           </form>

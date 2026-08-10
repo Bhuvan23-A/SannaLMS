@@ -9,7 +9,8 @@ export class CourseTrainersController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
   assignTrainer(@Body() body: any, @Req() req: any) {
-    return this.courseTrainersService.assignTrainer(body, body.tenant_id);
+    // tenant_id is derived from the caller's college when not sent by the client.
+    return this.courseTrainersService.assignTrainer(body, body.tenant_id || req.user?.tenantId || 'test-tenant');
   }
 
   @Get('course/:courseId')

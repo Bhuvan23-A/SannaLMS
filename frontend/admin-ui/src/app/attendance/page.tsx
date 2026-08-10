@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 
 export default function AttendancePage() {
   const { isAdmin, isTrainer, role } = useRole();
@@ -20,6 +21,9 @@ export default function AttendancePage() {
   const [roster, setRoster] = useState<any[]>([]);
   const [flash, setFlash] = useState('');
 
+  // People resolver (#fix): show student names instead of raw Keycloak UUIDs
+  const { nameOf, emailOf } = useUserDirectory();
+
   const myUserId = (typeof window !== 'undefined' && localStorage.getItem('userId')) || '';
 
   // Load available courses so the attendance page is course-aware (no more hardcoded c-1)
@@ -30,8 +34,12 @@ export default function AttendancePage() {
         if (Array.isArray(data) && data.length > 0) {
           setCourses(data);
           setCourseId(data[0].id);
+          return;
         }
       } catch { /* course list unavailable */ }
+      // No courses yet (new college) or API failure — resolve loading so the
+      // page shows an empty state instead of hanging on "Loading..." forever.
+      setLoading(false);
     })();
   }, []);
 
@@ -278,8 +286,11 @@ export default function AttendancePage() {
                       <>
                         <p style={{ margin: '14px 0 6px', color: 'var(--text-secondary)', fontSize: '13px' }}>Check-ins so far:</p>
                         {records.map(r => (
-                          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', marginBottom: '6px' }}>
-                            <span>Student: {r.user_id}</span>
+                          <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px', marginBottom: '6px' }}>
+                            <span>
+                              <strong style={{ fontSize: '13px' }}>{nameOf(r.user_id)}</strong>
+                              {emailOf(r.user_id) && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(r.user_id)}</span>}
+                            </span>
                             <span><span className={`badge ${r.status === 'PRESENT' ? 'badge-success' : 'badge-danger'}`}>{r.status}</span></span>
                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>via {r.method}</span>
                           </div>
@@ -295,7 +306,10 @@ export default function AttendancePage() {
                       return (
                         <div key={en.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
                           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <strong style={{ fontSize: '13px' }}>{en.user_id}</strong>
+                            <div>
+                              <strong style={{ fontSize: '13px' }}>{nameOf(en.user_id)}</strong>
+                              {emailOf(en.user_id) && <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{emailOf(en.user_id)}</div>}
+                            </div>
                             <span className={`badge ${status === 'PRESENT' ? 'badge-success' : 'badge-danger'}`}>{status}</span>
                             {rec && <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>via {rec.method}</span>}
                           </div>

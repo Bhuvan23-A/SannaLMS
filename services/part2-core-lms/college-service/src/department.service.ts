@@ -17,6 +17,16 @@ export class DepartmentService {
     });
   }
 
+  async updateDepartment(id: string, data: { name?: string; college_id?: string }) {
+    return this.prisma.extendedClient.department.update({
+      where: { id },
+      data: {
+        name: data.name,
+        college_id: data.college_id,
+      },
+    });
+  }
+
   async deleteDepartment(id: string) {
     return this.prisma.extendedClient.department.delete({ where: { id } });
   }

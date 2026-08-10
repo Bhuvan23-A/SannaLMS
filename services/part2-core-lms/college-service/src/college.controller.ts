@@ -66,4 +66,18 @@ export class CollegeController {
   async deleteCollege(@Param('id') id: string) {
     return this.collegeService.deleteCollege(id);
   }
+
+  @Post(':id/restore')
+  @Roles('SUPER_ADMIN')
+  async restoreCollege(@Param('id') id: string) {
+    return this.collegeService.restoreCollege(id);
+  }
+
+  // Hand over (or recover) college-admin access: resets the Keycloak password
+  // and returns the fresh credentials to the super admin.
+  @Post(':id/admin/reset-password')
+  @Roles('SUPER_ADMIN')
+  async resetCollegeAdminPassword(@Param('id') id: string) {
+    return this.usersService.resetCollegeAdminPassword(id);
+  }
 }

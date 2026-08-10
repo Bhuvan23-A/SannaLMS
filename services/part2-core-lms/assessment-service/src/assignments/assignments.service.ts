@@ -32,7 +32,12 @@ export class AssignmentsService {
     const assignments = await this.prisma.assignment.findMany({
       where: whereClause
     });
-    const isStudent = (viewer?.roles || []).some((r: string) => r.toUpperCase() === 'STUDENT');
+    // Every Keycloak user carries the realm-default 'student' role, so staff
+    // (admins/trainers) must be excluded from the student branch or they'd get
+    // the student-scoped (assigned-to) view instead of the full list.
+    const upRoles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
+    const isStaff = upRoles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
+    const isStudent = upRoles.includes('STUDENT') && !isStaff;
     // Students only see assignments assigned to them (whole-course or individually)
     if (isStudent) {
       return assignments.filter((a: any) => {
@@ -53,15 +58,42 @@ export class AssignmentsService {
   }
 
   async submitAssignment(assignmentId: string, data: Record<string, any>, userId: string, tenantId: string) {
-    return this.prisma.assignmentSubmission.create({
-      data: {
+    // One submission per student per assignment — resubmitting updates the
+    // existing row (with a fresh submitted_at) instead of duplicating it.
+    return this.prisma.assignmentSubmission.upsert({
+      where: { assignment_id_user_id: { assignment_id: assignmentId, user_id: userId } },
+      create: {
         assignment_id: assignmentId,
         user_id: userId,
         tenant_id: tenantId,
         file_url: data.file_url,
         text_content: data.text_content
+      },
+      update: {
+        file_url: data.file_url,
+        text_content: data.text_content,
+        submitted_at: new Date(),
+        // A resubmission resets the grade so the trainer re-evaluates it
+        score: null,
+        feedback: null,
+        is_graded: false
       }
     });
+  }
+
+  // The student's own submission for an assignment, including the trainer's
+  // score + feedback once graded — powers the "My Submission & Marks" view.
+  async getMySubmission(assignmentId: string, userId: string) {
+    const submission = await this.prisma.assignmentSubmission.findUnique({
+      where: { assignment_id_user_id: { assignment_id: assignmentId, user_id: userId } }
+    });
+    const assignment = await this.prisma.assignment.findUnique({ where: { id: assignmentId } });
+    return {
+      assignment: assignment
+        ? { id: assignment.id, title: assignment.title, max_marks: assignment.max_marks, due_date: assignment.due_date }
+        : null,
+      submission: submission || null
+    };
   }
 
   async gradeAssignment(submissionId: string, score: number, feedback: string) {

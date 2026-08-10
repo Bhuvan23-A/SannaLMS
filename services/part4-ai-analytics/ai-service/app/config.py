@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     
     # Gemini API Settings
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    # gemini-2.5-flash was retired for new users in 2026; gemini-flash-latest
+    # resolves to the current recommended flash model for the account.
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
     
     # Security / Keys
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-lms-key-2026")

@@ -9,7 +9,8 @@ export class EnrollmentsController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'STUDENT')
   enroll(@Body() body: any, @Req() req: any) {
-    return this.enrollmentsService.enroll(body, body.tenant_id);
+    // tenant_id is derived from the caller's college when not sent by the client.
+    return this.enrollmentsService.enroll(body, body.tenant_id || req.user?.tenantId || 'test-tenant');
   }
 
   // Platform/college-wide enrollment list — powers the dashboard & analytics

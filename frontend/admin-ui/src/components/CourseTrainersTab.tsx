@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 
 export default function CourseTrainersTab({ courseId }: { courseId: string }) {
   const { isAdmin } = useRole();
+  const { nameOf, emailOf } = useUserDirectory();
   const [trainers, setTrainers] = useState<any[]>([]);
   const [userId, setUserId] = useState('');
   const [role, setRole] = useState('PRIMARY_TRAINER');
-  const [tenantId, setTenantId] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
     try {
       await fetchApi('/api/v1/course-trainers', {
         method: 'POST',
-        body: JSON.stringify({ course_id: courseId, user_id: userId, role, tenant_id: tenantId }),
+        body: JSON.stringify({ course_id: courseId, user_id: userId, role }),
       });
       setUserId('');
       loadTrainers();
@@ -49,8 +50,8 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
       {isAdmin && (
         <form onSubmit={assignTrainer} style={{ display: 'flex', gap: '15px', marginBottom: '30px', alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>User ID (From College System)</label>
-            <input required className="input-field" value={userId} onChange={e => setUserId(e.target.value)} placeholder="e.g. u-12345" />
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Trainer User ID</label>
+            <input required className="input-field" value={userId} onChange={e => setUserId(e.target.value)} placeholder="Paste the trainer's user ID" />
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Role</label>
@@ -60,10 +61,6 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
               <option value="GUEST_FACULTY">Guest Faculty</option>
             </select>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Tenant ID</label>
-            <input required className="input-field" value={tenantId} onChange={e => setTenantId(e.target.value)} placeholder="e.g. stanford" />
-          </div>
           <button type="submit" className="btn-primary" style={{ padding: '12px 20px', height: '44px' }}>Assign</button>
         </form>
       )}
@@ -71,7 +68,7 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
           <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
-            <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>User ID</th>
+            <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Trainer</th>
             <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Role</th>
             <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Assigned At</th>
           </tr>
@@ -84,7 +81,10 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
           ) : (
             trainers.map((t) => (
               <tr key={t.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
-                <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{t.user_id}</td>
+                <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                  <div style={{ color: '#f8fafc' }}>{nameOf(t.user_id)}</div>
+                  {emailOf(t.user_id) && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{emailOf(t.user_id)}</div>}
+                </td>
                 <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                   <span className="badge badge-success">{t.role}</span>
                 </td>

@@ -9,6 +9,7 @@ export class PrerequisitesController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
   create(@Body() body: any, @Req() req: any) {
-    return this.prerequisitesService.create(body, body.tenant_id);
+    // tenant_id is derived from the caller's college when not sent by the client.
+    return this.prerequisitesService.create(body, body.tenant_id || req.user?.tenantId || 'test-tenant');
   }
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 
 interface DM { id: string; from_user: string; to_user: string; content: string; file_url?: string; is_read: boolean; created_at: string; }
 interface Message { id: string; user_id: string; content: string; file_url?: string; created_at: string; }
@@ -9,6 +10,8 @@ interface Room { id: string; name: string; type: string; _count: { members: numb
 
 export default function ChatPage() {
   const { role } = useRole();
+  // People resolver (#fix): show sender names instead of raw UUIDs
+  const { nameOf } = useUserDirectory();
   const [view, setView] = useState<'dm' | 'rooms'>('rooms');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -126,10 +129,10 @@ export default function ChatPage() {
                   {messages.map(msg => (
                     <div key={msg.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>
-                        {msg.user_id[0].toUpperCase()}
+                        {(nameOf(msg.user_id) || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '3px' }}>{msg.user_id} · {new Date(msg.created_at).toLocaleTimeString()}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '3px' }}>{nameOf(msg.user_id)} · {new Date(msg.created_at).toLocaleTimeString()}</div>
                         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', fontSize: '14px' }}>{msg.content}</div>
                         {msg.file_url && <a href={msg.file_url} target="_blank" style={{ fontSize: '12px', color: 'var(--primary-color)' }}>📎 Attachment</a>}
                       </div>

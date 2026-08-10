@@ -55,6 +55,13 @@ model Course {
   description String?
   status      CourseStatus @default(DRAFT)
 
+  // Org targeting (#fix): which department / branch / semester + year the
+  // course is offered to (IDs reference the college-service org hierarchy).
+  department_id String?
+  branch_id     String?
+  semester_id   String?
+  year          String?
+
   // Mandatory Standard Fields
   tenant_id  String
   version    Int       @default(1)

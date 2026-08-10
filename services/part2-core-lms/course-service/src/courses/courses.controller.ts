@@ -32,7 +32,12 @@ export class CoursesController {
   findAll(@Req() req: any) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.coursesService.findAll(tenantId);
+    // Pass the viewer (role + user id) so trainers/students get role-scoped lists
+    // (courses they teach / courses they are enrolled in) instead of the whole tenant.
+    return this.coursesService.findAll(tenantId, {
+      roles: req.user?.roles || [],
+      userId: req.user?.id || '',
+    });
   }
 
   @Get(':id')

@@ -143,6 +143,33 @@ export default function Topbar({ title }: { title: string }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <a
+                  href={`${window.location.origin}/auth/realms/sannalms/account/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    color: '#60a5fa',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    textDecoration: 'none',
+                    marginBottom: '6px',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)')}
+                  onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.12)')}
+                >
+                  ⚙️ My Account & Password
+                </a>
                 <button 
                   onClick={handleLogout}
                   style={{

@@ -240,6 +240,7 @@ services:
       # Real AI answers need a Google Gemini API key (set in .env). Without one
       # the tutor falls back to the built-in RAG synthesis engine.
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-latest}
     depends_on:
       - postgres
       - redis
@@ -335,6 +336,7 @@ services:
     environment:
       - PORT=3003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_attendance?schema=public
+      - COURSE_SERVICE_URL=http://sannalms-course-service:3001
     depends_on:
       - postgres
 

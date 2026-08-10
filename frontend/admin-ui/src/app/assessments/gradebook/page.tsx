@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 import Link from 'next/link';
 
 export default function GradebookPage() {
@@ -13,6 +14,9 @@ export default function GradebookPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
   const [calculating, setCalculating] = useState(false);
+
+  // People resolver (#fix): show student names instead of raw Keycloak UUIDs
+  const { nameOf, emailOf } = useUserDirectory();
 
   // Real logged-in user id (Keycloak sub) — NOT the hardcoded mock 'u-1'
   const myUserId = (typeof window !== 'undefined' && localStorage.getItem('userId')) || '';
@@ -30,8 +34,12 @@ export default function GradebookPage() {
         if (Array.isArray(data) && data.length > 0) {
           setCourses(data);
           setCourseId(data[0].id);
+          return;
         }
       } catch { /* course list unavailable */ }
+      // No courses yet (new college) or API failure — resolve loading so the
+      // page shows an empty state instead of hanging on "Loading..." forever.
+      setLoading(false);
     })();
   }, []);
 
@@ -169,7 +177,7 @@ export default function GradebookPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>Student ID</th>
+                  <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>Student</th>
                   {isSuperAdmin && <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>College</th>}
                   <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Score</th>
                   <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Grade</th>
@@ -181,7 +189,11 @@ export default function GradebookPage() {
               <tbody>
                 {grades.map(g => (
                   <tr key={g.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '12px' }}>{g.user_id} {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no grade yet</span>}</td>
+                    <td style={{ padding: '12px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{nameOf(g.user_id)}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{emailOf(g.user_id)}</div>
+                      {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no grade yet</span>}
+                    </td>
                     {isSuperAdmin && (
                       <td style={{ padding: '12px' }}>
                         {collegeByUser[g.user_id] ? (

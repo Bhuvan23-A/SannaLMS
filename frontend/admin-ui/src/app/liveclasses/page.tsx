@@ -23,8 +23,12 @@ export default function LiveClassesPage() {
         if (Array.isArray(data) && data.length > 0) {
           setCourses(data);
           setCourseId(data[0].id);
+          return;
         }
       } catch { /* course list unavailable */ }
+      // No courses yet (new college) or API failure — resolve loading so the
+      // page shows an empty state instead of hanging on "Loading..." forever.
+      setLoading(false);
     })();
   }, []);
 

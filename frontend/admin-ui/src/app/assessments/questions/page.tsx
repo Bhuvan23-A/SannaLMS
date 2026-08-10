@@ -66,12 +66,14 @@ export default function QuestionsPage() {
 
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
 
-  // Options scoped to the selected college (super admin) or the caller's tenant
-  const visibleDepartments = isSuperAdmin
-    ? departments.filter((d: any) => !selectedCollege || !d.tenant_id || d.tenant_id === selectedCollege.tenant_id)
-    : departments;
-  const visibleBranches = branches.filter((b: any) => !deptId || b.department_id === deptId);
-  const visibleSemesters = semesters.filter((s: any) => !branchId || s.branch_id === branchId);
+  // Options scoped to the selected college (super admin) or the caller's tenant.
+  // Branches/semesters must ALSO respect the college so a college admin never
+  // sees another college's org chart in their bank (#fix).
+  const inCollege = (item: any) => !isSuperAdmin || !selectedCollege || !item.tenant_id || item.tenant_id === selectedCollege.tenant_id;
+  const visibleDepartments = departments.filter((d: any) => inCollege(d));
+  const visibleBranches = branches.filter((b: any) => inCollege(b) && (!deptId || b.department_id === deptId));
+  const visibleSemesters = semesters.filter((s: any) => inCollege(s) && (!branchId || s.branch_id === branchId));
+  const orgEmpty = visibleDepartments.length === 0;
 
   const importFromPdf = async (e: any) => {
     const file = e.target.files?.[0];
@@ -199,31 +201,28 @@ export default function QuestionsPage() {
                 </select>
               </>
             )}
-            {isAdmin && visibleDepartments.length > 0 && (
+            {isAdmin && (
               <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Dept:</label>
+                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Department:</label>
                 <select className="input-field" style={{ maxWidth: '180px' }} value={deptId} onChange={e => { setDeptId(e.target.value); setBranchId(''); setSemId(''); }}>
                   <option value="">All</option>
-                  {visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {visibleDepartments.length === 0 ? <option value="" disabled>No departments yet</option> : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
-              </>
-            )}
-            {isAdmin && visibleBranches.length > 0 && (
-              <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Branch:</label>
                 <select className="input-field" style={{ maxWidth: '180px' }} value={branchId} onChange={e => { setBranchId(e.target.value); setSemId(''); }}>
                   <option value="">All</option>
-                  {visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option> : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
-              </>
-            )}
-            {isAdmin && visibleSemesters.length > 0 && (
-              <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Semester:</label>
                 <select className="input-field" style={{ maxWidth: '180px' }} value={semId} onChange={e => setSemId(e.target.value)}>
                   <option value="">All</option>
-                  {visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {visibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option> : visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+                {orgEmpty && isSuperAdmin && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    ℹ️ No departments yet for this college — add them under Management → Departments / Branches / Semesters.
+                  </span>
+                )}
               </>
             )}
           </div>

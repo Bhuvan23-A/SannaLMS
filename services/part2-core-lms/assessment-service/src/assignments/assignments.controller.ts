@@ -39,6 +39,14 @@ export class AssignmentsController {
     return this.assignmentsService.submitAssignment(id, body, String(userId), String(tenantId));
   }
 
+  // The student's own submission for an assignment, incl. trainer score/feedback
+  @Get(':id/my-submission')
+  @Roles('STUDENT')
+  mySubmission(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const userId = req.user?.id || 'u-1';
+    return this.assignmentsService.getMySubmission(id, String(userId));
+  }
+
   @Put('submissions/:id/grade')
   @Roles('PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
   grade(@Param('id') id: string, @Body() body: Record<string, any>) {

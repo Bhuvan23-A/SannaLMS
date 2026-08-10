@@ -13,6 +13,12 @@ export class CoursesService {
         description: createCourseDto.description,
         status: createCourseDto.status || CourseStatus.DRAFT,
         tenant_id: tenantId,
+        department_id: createCourseDto.department_id || null,
+        branch_id: createCourseDto.branch_id || null,
+        semester_id: createCourseDto.semester_id || null,
+        // year is a String column — coerce numbers so API clients sending 2
+        // (instead of "2") don't hit an opaque Prisma 500.
+        year: createCourseDto.year != null && createCourseDto.year !== '' ? String(createCourseDto.year) : null,
       },
     });
   }
@@ -24,6 +30,10 @@ export class CoursesService {
         title: data.title,
         description: data.description,
         status: data.status,
+        department_id: data.department_id ?? undefined,
+        branch_id: data.branch_id ?? undefined,
+        semester_id: data.semester_id ?? undefined,
+        year: data.year != null && data.year !== '' ? String(data.year) : (data.year === '' ? null : undefined),
       }
     });
 
@@ -59,7 +69,40 @@ export class CoursesService {
     return updated;
   }
 
-  async findAll(tenantId?: string) {
+  async findAll(tenantId?: string, viewer?: { role?: string; roles?: string[]; userId?: string }) {
+    const roles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
+    // Role precedence matters: every Keycloak user carries the realm-default
+    // 'student' role, so admins/trainers must be checked BEFORE the student
+    // branch or they'd get the empty enrollment-scoped list.
+    const isAdmin = roles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN'].includes(r));
+    const isTrainer = roles.some((r) => ['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
+    const isStudent = roles.includes('STUDENT');
+
+    // Real-LMS scoping (#fix): trainers only see the courses they teach, and
+    // students only see the courses they are enrolled in. Admins keep the
+    // tenant-wide list (all colleges for super admin).
+    if (isAdmin || !viewer?.userId) {
+      // fall through to the tenant-wide list below
+    } else if (isTrainer) {
+      const rows = await this.prisma.extendedClient.courseTrainer.findMany({
+        where: { user_id: viewer.userId },
+        select: { course_id: true },
+      });
+      const ids = (rows as any[]).map((r) => r.course_id);
+      return this.prisma.extendedClient.course.findMany({
+        where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' },
+      });
+    } else if (isStudent) {
+      const rows = await this.prisma.extendedClient.enrollment.findMany({
+        where: { user_id: viewer.userId },
+        select: { course_id: true },
+      });
+      const ids = (rows as any[]).map((r) => r.course_id);
+      return this.prisma.extendedClient.course.findMany({
+        where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' },
+      });
+    }
+
     if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
       return this.prisma.extendedClient.course.findMany({
         where: { tenant_id: tenantId }

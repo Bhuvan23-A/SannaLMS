@@ -5,7 +5,7 @@ import {
   LogOut, User, Activity, BookOpen, Terminal, CheckSquare, 
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
-  FileText, Calendar, Upload, Users, ShieldCheck
+  FileText, Calendar, Upload, Bell, GraduationCap
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -49,7 +49,7 @@ export const Dashboard: React.FC = () => {
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
   // Determine roles from Keycloak. Realm role names vary by case/legacy export
@@ -84,7 +84,9 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   // --- CORE LMS STATE ---
-  const [courses, setCourses] = useState<any[]>([
+  // Demo courses are only a fallback: as soon as the real "my courses" API
+  // responds (role-scoped to the student's enrollments), they are replaced.
+  const DEMO_COURSES: any[] = [
     {
       id: 'c-1',
       title: 'Introduction to Python & Isolated RAG Architectures',
@@ -121,12 +123,76 @@ export const Dashboard: React.FC = () => {
       image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80',
       modules: []
     }
-  ]);
+  ];
+
+  const [courses, setCourses] = useState<any[]>(DEMO_COURSES);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   
   const [selectedCourse, setSelectedCourse] = useState<any>(courses[0]);
   const [activeLesson, setActiveLesson] = useState<any>(courses[0].modules[0].lessons[0]);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const [videoWatchedProgress, setVideoWatchedProgress] = useState(0);
+
+  // --- REAL "MY COURSES" (#fix): students see the courses they are enrolled in,
+  // with their real curriculum (modules -> lessons -> topics) from course-service.
+  const [playerCourseId, setPlayerCourseId] = useState<string>(courses[0]?.id || '');
+
+  const fetchMyCourses = async () => {
+    setCoursesLoading(true);
+    try {
+      const resp = await apiClient.get('/courses');
+      const list = Array.isArray(resp.data) ? resp.data : [];
+      if (list.length === 0) return; // keep the demo fallback when nothing is published yet
+      const enriched: any[] = [];
+      for (const c of list) {
+        const course: any = {
+          id: c.id,
+          title: c.title,
+          description: c.description || '',
+          duration: c.year ? `Year ${c.year}` : '',
+          enrolled: true,
+          progress: 0,
+          image: '',
+          modules: [],
+        };
+        try {
+          const modRes = await apiClient.get(`/modules/course/${c.id}`);
+          const mods = Array.isArray(modRes.data) ? modRes.data : [];
+          for (const m of mods) {
+            const mod: any = { id: m.id, title: m.title, lessons: [] };
+            try {
+              const lesRes = await apiClient.get(`/lessons/module/${m.id}`);
+              const lessons = Array.isArray(lesRes.data) ? lesRes.data : [];
+              for (const l of lessons) {
+                let video = '';
+                let transcript = '';
+                try {
+                  const topRes = await apiClient.get(`/topics/lesson/${l.id}`);
+                  const topics = Array.isArray(topRes.data) ? topRes.data : [];
+                  if (topics[0]?.content) { video = topics[0].content; transcript = topics[0].content; }
+                } catch { /* lesson has no topics yet */ }
+                mod.lessons.push({ id: l.id, title: l.title, duration: '—', completed: false, video, transcript });
+              }
+            } catch { /* module has no lessons yet */ }
+            course.modules.push(mod);
+          }
+        } catch { /* course has no modules yet */ }
+        enriched.push(course);
+      }
+      if (enriched.length > 0) {
+        setCourses(enriched);
+        setSelectedCourse(enriched[0]);
+        setPlayerCourseId(enriched[0].id);
+        if (enriched[0].modules?.length > 0 && enriched[0].modules[0].lessons?.length > 0) {
+          setActiveLesson(enriched[0].modules[0].lessons[0]);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Could not load real courses — showing demo content', err?.message || err);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
 
   // --- TAB 1: Code Sandbox State ---
   const [codeLanguage, setCodeLanguage] = useState<'python' | 'cpp' | 'java'>('python');
@@ -203,6 +269,15 @@ export const Dashboard: React.FC = () => {
   const [assignmentsLoading, setAssignmentsLoading] = useState(false);
   const [assignmentsError, setAssignmentsError] = useState('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
+  // The student's own submission for the selected assignment (trainer's score + feedback)
+  const [mySubmission, setMySubmission] = useState<any>(null);
+
+  const fetchMySubmission = async (assignmentId: string) => {
+    try {
+      const response = await apiClient.get(`/assignments/${assignmentId}/my-submission`);
+      setMySubmission(response.data || null);
+    } catch { setMySubmission(null); }
+  };
 
   const fetchAssignments = async () => {
     setAssignmentsLoading(true);
@@ -212,7 +287,10 @@ export const Dashboard: React.FC = () => {
       const data = response.data || [];
       const list = Array.isArray(data) ? data : [];
       setAssignmentList(list);
-      if (list.length > 0 && !selectedAssignmentId) setSelectedAssignmentId(list[0].id);
+      if (list.length > 0 && !selectedAssignmentId) {
+        setSelectedAssignmentId(list[0].id);
+        fetchMySubmission(list[0].id);
+      }
     } catch (err: any) {
       setAssignmentsError(err?.response?.data?.message || err?.message || 'Failed to load assignments');
     } finally {
@@ -296,22 +374,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // --- ATTENDANCE SESSIONS STATE ---
-  const [attendanceSessionOptions, setAttendanceSessionOptions] = useState<any[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState('');
-
-  const fetchAttendanceSessions = async () => {
-    try {
-      const response = await apiClient.get('/attendance/sessions');
-      const sessions = response.data || [];
-      const list = Array.isArray(sessions) ? sessions : [];
-      setAttendanceSessionOptions(list);
-      if (list.length > 0) setSelectedSessionId(list[0].id || '');
-    } catch (err: any) {
-      console.warn('Could not load attendance sessions', err);
-    }
-  };
-
   useEffect(() => {
     if (!examStarted || timeLeft <= 0) return;
     const interval = setInterval(() => {
@@ -324,11 +386,20 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'leaderboard') fetchLeaderboard();
     if (activeTab === 'certificates') fetchMyCertificates();
-    if (activeTab === 'attendance') fetchAttendanceSessions();
+    if (activeTab === 'attendance') fetchAttendanceCourses();
     if (activeTab === 'assessment') fetchQuizzes();
     if (activeTab === 'assignments') fetchAssignments();
+    if (activeTab === 'grades') fetchMyGrades();
+    if (activeTab === 'notifications') fetchNotifications();
+    if (activeTab === 'courses') fetchMyCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // On first load, replace demo courses with the student's real enrolled courses.
+  useEffect(() => {
+    fetchMyCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- CORE LMS METHODS ---
   const handleLessonClick = (lesson: any) => {
@@ -571,35 +642,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // --- STUDENT ASSIGNMENTS STATE ---
-  const [submissionsList, setSubmissionsList] = useState<Array<{
-    id: string;
-    studentName: string;
-    fileName: string;
-    content: string;
-    plagiarismScore: number;
-    plagiarismStatus: 'CLEAN' | 'FLAGGED';
-    submittedAt: string;
-  }>>([
-    {
-      id: 'sub-101',
-      studentName: 'Charlie Brown',
-      fileName: 'bubble_sort.py',
-      content: `def sort(arr):\n    n = len(arr)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]\n    return arr`,
-      plagiarismScore: 0,
-      plagiarismStatus: 'CLEAN',
-      submittedAt: '10:45 AM',
-    },
-    {
-      id: 'sub-102',
-      studentName: 'Alice Johnson',
-      fileName: 'bubble.py',
-      content: `def bubbleSort(items):\n    n = len(items)\n    for i in range(n):\n        for j in range(0, n-i-1):\n            if items[j] > items[j+1]:\n                items[j], items[j+1] = items[j+1], items[j]\n    return items`,
-      plagiarismScore: 84.6,
-      plagiarismStatus: 'FLAGGED',
-      submittedAt: '11:15 AM',
-    }
-  ]);
   const [studentNameInput, setStudentNameInput] = useState<string>(() => (keycloak.tokenParsed?.preferred_username as string) || 'demo');
   const [uploadedFileName, setUploadedFileName] = useState<string>('sort_algorithm.py');
   const [pickedFile, setPickedFile] = useState<File | null>(null);
@@ -631,152 +673,133 @@ export const Dashboard: React.FC = () => {
       setPickedFileInfo(`📎 ${f.name} (${kb} KB) — uploaded as-is (${ext.toUpperCase()} preview not available here).`);
     }
   };
-  const [assignmentSubTab, setAssignmentSubTab] = useState<'upload' | 'peer-review' | 'plagiarism'>('upload');
-  const [plagiarismCompareA, setPlagiarismCompareA] = useState<string>(
-    `def solve(a, b):\n    total = a + b\n    return total`
-  );
-  const [plagiarismCompareB, setPlagiarismCompareB] = useState<string>(
-    `def calculate(x, y):\n    ans = x + y\n    return ans`
-  );
-  const [comparisonScore, setComparisonScore] = useState<number | null>(null);
-  const [peerAllocations, setPeerAllocations] = useState<Array<{
-    id: string;
-    reviewer: string;
-    studentName: string;
-    fileName: string;
-    score: number | null;
-    feedback: string;
-    submitted: boolean;
-  }>>([]);
-
   const handleSubmitAssignment = async () => {
     if (!uploadedFileName.trim()) {
       alert('Please choose a file from your device (or enter a file name) before submitting your assignment.');
       return;
     }
-    const clean = (txt: string) => txt.replace(/\/\/.*$/gm, '').replace(/#.*$/gm, '').replace(/\s+/g, '').toLowerCase();
-    const cleanUploaded = clean(uploadedCodeContent);
-    
-    let maxScore = 0;
-    submissionsList.forEach(existing => {
-      const cleanExisting = clean(existing.content);
-      const set1 = new Set(cleanUploaded.split(''));
-      const set2 = new Set(cleanExisting.split(''));
-      let intersect = 0;
-      set1.forEach(c => { if (set2.has(c)) intersect++; });
-      const union = set1.size + set2.size - intersect;
-      const score = Math.round(((intersect / union) * 100) * 10) / 10;
-      if (score > maxScore) maxScore = score;
-    });
-    const status: 'CLEAN' | 'FLAGGED' = maxScore >= 60 ? 'FLAGGED' : 'CLEAN';
-
     // Submit against the real assignment (created by the trainer) so it lands in the gradebook
-    const assignmentId = selectedAssignmentId || assignmentList[0]?.id || 'ass-1';
-    let realSubmitError = '';
+    const assignmentId = selectedAssignmentId || assignmentList[0]?.id;
+    if (!assignmentId) {
+      alert('⚠️ No assignment selected. Please pick an assignment from the list first.');
+      return;
+    }
     try {
       await apiClient.post(`/assignments/${assignmentId}/submit`, {
         text_content: uploadedCodeContent,
         file_url: uploadedFileName,
       });
+      fetchMySubmission(assignmentId);
+      // The server records the submission; the trainer reviews it and releases a
+      // score + feedback. No fake "plagiarism verdict" on submit.
+      alert('✅ Assignment submitted successfully! Your trainer will review and grade it.');
     } catch (err: any) {
-      realSubmitError = err?.response?.data?.message || err?.message || 'submission failed';
+      alert(`⚠️ Submission failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
     }
-
-    // Also upload to the plagiarism engine (Part 3) with the auth token
-    const tokenParsed: any = keycloak.tokenParsed;
-    const tenantId = tokenParsed?.tenant_id || tokenParsed?.attributes?.tenant_id?.[0] || tokenParsed?.tenantId || 'test-college';
-    const studentId = keycloak.subject || userProfile?.id || 'u-1';
-    try {
-      const formData = new FormData();
-      // Send the real file when one was chosen from the device, otherwise the editor text
-      formData.append('file', pickedFile || new Blob([uploadedCodeContent], { type: 'text/plain' }), uploadedFileName || 'submission.txt');
-      formData.append('studentId', studentId);
-      formData.append('assignmentId', assignmentId);
-      await apiClient.post('/assignment/submit', formData, {
-        // Let axios set Content-Type + boundary from the FormData body automatically
-        headers: { 'x-tenant-id': tenantId },
-      });
-    } catch (err: any) {
-      console.warn('Plagiarism engine upload failed — keeping local record only.', err?.message || err);
-    }
-
-    const newSub = {
-      id: `sub-${Math.floor(100 + Math.random() * 900)}`,
-      studentName: studentNameInput || userProfile?.firstName || 'demo',
-      fileName: uploadedFileName,
-      content: uploadedCodeContent,
-      plagiarismScore: maxScore,
-      plagiarismStatus: status,
-      submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setSubmissionsList(prev => [newSub, ...prev]);
-    alert(realSubmitError
-      ? `⚠️ Saved locally, but the server submission failed: ${realSubmitError}\nPlagiarism score evaluated: ${maxScore}% (${status})`
-      : `Assignment submitted successfully (${assignmentId}).\nPlagiarism score evaluated: ${maxScore}% (${status})`);
   };
 
-  const handleDistributeReviews = () => {
-    if (submissionsList.length < 2) {
-      alert('Need at least 2 submissions to assign peer reviews.');
-      return;
-    }
-    const allocations = [];
-    for (let i = 0; i < submissionsList.length; i++) {
-      const reviewer = submissionsList[i].studentName;
-      const targetIdx = (i + 1) % submissionsList.length;
-      const targetSub = submissionsList[targetIdx];
-      allocations.push({
-        id: `peer-${100 + i}`,
-        reviewer,
-        studentName: targetSub.studentName,
-        fileName: targetSub.fileName,
-        score: null,
-        feedback: '',
-        submitted: false
-      });
-    }
-    setPeerAllocations(allocations);
-    alert('Peer review allocations distributed using double-blind matching!');
-  };
-
-  const submitPeerReview = (id: string, score: number, feedback: string) => {
-    setPeerAllocations(prev => prev.map(p => p.id === id ? { ...p, score, feedback, submitted: true } : p));
-    alert('Peer review submitted successfully!');
-  };
-
-  // --- STUDENT ATTENDANCE STATE ---
-  const [attendanceSessions, setAttendanceSessions] = useState<any[]>([
-    { id: 'sess-1', courseName: 'Introduction to Python & Isolated RAG Architectures', date: '2026-07-31', time: '10:00 AM', status: 'PRESENT', type: 'GPS' },
-    { id: 'sess-2', courseName: 'Introduction to Python & Isolated RAG Architectures', date: '2026-07-30', time: '10:00 AM', status: 'PRESENT', type: 'QR' },
-    { id: 'sess-3', courseName: 'Introduction to Python & Isolated RAG Architectures', date: '2026-07-29', time: '10:00 AM', status: 'ABSENT', type: 'GPS' },
-  ]);
-  const [attendanceStats, setAttendanceStats] = useState({ present: 2, total: 3, percentage: 66.7 });
+  // --- STUDENT ATTENDANCE STATE (course-aware) ---
+  // Real "my courses" come from the enrollments API; falls back to the tenant
+  // course list (or the demo list) when a student isn't enrolled yet, so the
+  // attendance tab always has context.
+  const [attendanceCourses, setAttendanceCourses] = useState<any[]>([]);
+  const [attendanceCourseId, setAttendanceCourseId] = useState('');
+  const [attendanceSessionOptions, setAttendanceSessionOptions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [attendanceSessions, setAttendanceSessions] = useState<any[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState({ present: 0, total: 0, percentage: 0 });
   const [qrCodeInput, setQrCodeInput] = useState('');
   const [gpsLatitude, setGpsLatitude] = useState('12.9716');
   const [gpsLongitude, setGpsLongitude] = useState('77.5946');
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState('');
 
+  const studentUserId = keycloak.subject || userProfile?.id || 'u-1';
+  const selectedAttendanceSession = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
+  const selectedAttendanceCourse = attendanceCourses.find((x: any) => x.id === attendanceCourseId);
+
+  const fetchAttendanceCourses = async () => {
+    let list: any[] = [];
+    try {
+      const response = await apiClient.get(`/enrollments/user/${studentUserId}`);
+      const data = response.data || [];
+      if (Array.isArray(data) && data.length > 0) {
+        list = data.filter((e: any) => e.course).map((e: any) => ({ id: e.course_id, title: e.course?.title || e.course_id }));
+      }
+    } catch (err) { console.warn('Could not load enrolled courses', err); }
+    // Fallback: all courses in the student's college (demo-friendly when no enrollment exists yet)
+    if (list.length === 0) {
+      try {
+        const resp = await apiClient.get('/courses');
+        const data = resp.data || [];
+        if (Array.isArray(data) && data.length > 0) list = data.map((c: any) => ({ id: c.id, title: c.title }));
+      } catch (err) { console.warn('Could not load courses', err); }
+    }
+    // Last resort: the demo course list so the tab always has context
+    if (list.length === 0) list = courses.map((c: any) => ({ id: c.id, title: c.title }));
+    setAttendanceCourses(list);
+    if (list.length > 0) {
+      const first = list[0];
+      setAttendanceCourseId(first.id);
+      await fetchAttendanceSessions(first.id);
+      await fetchAttendanceReport(first.id, first.title);
+    }
+  };
+
+  const fetchAttendanceSessions = async (courseId: string) => {
+    try {
+      const response = await apiClient.get(`/attendance/sessions?course_id=${encodeURIComponent(courseId)}`);
+      const sessions = Array.isArray(response.data) ? response.data : [];
+      setAttendanceSessionOptions(sessions);
+      setSelectedSessionId(sessions.length > 0 ? sessions[0].id : '');
+    } catch (err) {
+      console.warn('Could not load attendance sessions', err);
+      setAttendanceSessionOptions([]);
+      setSelectedSessionId('');
+    }
+  };
+
+  const fetchAttendanceReport = async (courseId: string, courseTitle: string) => {
+    try {
+      const response = await apiClient.get(`/attendance/report/${encodeURIComponent(courseId)}/student/${studentUserId}`);
+      const data = response.data || {};
+      setAttendanceStats({
+        present: data.present || 0,
+        total: data.total_sessions || 0,
+        percentage: data.percentage || 0,
+      });
+      const records = Array.isArray(data.records) ? data.records : [];
+      setAttendanceSessions(records.map((r: any) => ({
+        id: r.id,
+        courseName: courseTitle,
+        date: r.check_in_at ? new Date(r.check_in_at).toLocaleDateString() : '',
+        time: r.check_in_at ? new Date(r.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        status: r.status,
+        type: r.method,
+      })));
+    } catch (err) { console.warn('Could not load attendance report', err); }
+  };
+
+  const refreshAttendance = async () => {
+    if (!attendanceCourseId) return;
+    const title = selectedAttendanceCourse?.title || 'Course';
+    await fetchAttendanceSessions(attendanceCourseId);
+    await fetchAttendanceReport(attendanceCourseId, title);
+  };
+
   const handleGPSCheckIn = async () => {
+    if (!selectedSessionId) { setCheckInMessage('❌ Please pick a session first.'); return; }
     setCheckingIn(true);
     setCheckInMessage('');
     try {
-      const response = await apiClient.post('/attendance/checkin/gps', {
-        session_id: selectedSessionId || 'sess-1',
+      await apiClient.post('/attendance/checkin/gps', {
+        session_id: selectedSessionId,
         lat: parseFloat(gpsLatitude),
         lng: parseFloat(gpsLongitude)
-      });                      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
-                      awardXp('perfect_attendance');
-      setAttendanceSessions(prev => [
-        { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'GPS' },
-        ...prev
-      ]);
-      setAttendanceStats(prev => {
-        const p = prev.present + 1;
-        const t = prev.total + 1;
-        return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
       });
+      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
+      awardXp('perfect_attendance');
+      await refreshAttendance();
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
       setCheckInMessage(`❌ Check-in Failed: ${message}`);
@@ -794,25 +817,63 @@ export const Dashboard: React.FC = () => {
     setCheckingIn(true);
     setCheckInMessage('');
     try {
-      await apiClient.post('/attendance/checkin/qr', {
-        qr_token: token
-      });                      setCheckInMessage('✅ QR Code Check-in Successful!');
-                      awardXp('perfect_attendance');
-      setAttendanceSessions(prev => [
-        { id: `sess-${Date.now()}`, courseName: 'Introduction to Python & Isolated RAG Architectures', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), status: 'PRESENT', type: 'QR' },
-        ...prev
-      ]);
-      setAttendanceStats(prev => {
-        const p = prev.present + 1;
-        const t = prev.total + 1;
-        return { present: p, total: t, percentage: Math.round((p / t) * 100 * 10) / 10 };
-      });
+      await apiClient.post('/attendance/checkin/qr', { qr_token: token });
+      setCheckInMessage('✅ QR Code Check-in Successful!');
+      awardXp('perfect_attendance');
+      await refreshAttendance();
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
       setCheckInMessage(`❌ QR Check-in Failed: ${message}`);
     } finally {
       setCheckingIn(false);
     }
+  };
+
+  // --- NOTIFICATIONS INBOX (#fix) ---
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    setNotificationsLoading(true);
+    try {
+      const response = await apiClient.get('/notifications/history');
+      setNotifications(Array.isArray(response.data) ? response.data : []);
+    } catch { setNotifications([]); } finally { setNotificationsLoading(false); }
+  };
+
+  const markNotificationRead = async (id: string) => {
+    try { await apiClient.put(`/notifications/${id}/read`); } catch { /* non-critical */ }
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+  };
+
+  // --- MY GRADES (#fix) ---
+  const [myGrades, setMyGrades] = useState<any[]>([]);
+  const [gradesLoading, setGradesLoading] = useState(false);
+
+  const fetchMyGrades = async () => {
+    setGradesLoading(true);
+    try {
+      // Real enrolled courses -> per-course gradebook + assignment marks
+      const enrollRes = await apiClient.get(`/enrollments/user/${studentUserId}`);
+      const enrollments = Array.isArray(enrollRes.data) ? enrollRes.data : [];
+      const rows: any[] = [];
+      for (const en of enrollments) {
+        if (!en.course) continue;
+        let grade: any = null;
+        try { grade = (await apiClient.get(`/gradebook/${en.course_id}/student/${studentUserId}`)).data || null; } catch { /* no grade row yet */ }
+        const assignRes = await apiClient.get(`/assignments?course_id=${encodeURIComponent(en.course_id)}`).catch(() => ({ data: [] }));
+        const assigns = Array.isArray(assignRes.data) ? assignRes.data : [];
+        const marks: any[] = [];
+        for (const a of assigns) {
+          try {
+            const ms = (await apiClient.get(`/assignments/${a.id}/my-submission`)).data;
+            if (ms?.submission) marks.push({ title: a.title, max_marks: a.max_marks, ...ms.submission });
+          } catch { /* no submission */ }
+        }
+        rows.push({ course: en.course, grade, marks });
+      }
+      setMyGrades(rows);
+    } catch { setMyGrades([]); } finally { setGradesLoading(false); }
   };
 
   // --- USER DIRECTORY (ADMIN METHOD) ---
@@ -871,6 +932,12 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>
                   <Calendar size={18} /> Attendance
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>
+                  <GraduationCap size={18} /> My Grades
+                </button>
+                <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
+                  <Bell size={18} /> Notifications
+                </button>
               </>
             )}
 
@@ -925,9 +992,19 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           
-          <button onClick={logout} style={{ width: '100%', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', color: '#fb7185', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
-            <LogOut size={16} /> Logout
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <a
+              href={`${window.location.origin}/auth/realms/sannalms/account/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ flex: 1, background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', fontSize: '0.9rem', transition: 'all 0.2s' }}
+            >
+              <Settings size={16} /> Account
+            </a>
+            <button onClick={logout} style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', color: '#fb7185', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
+              <LogOut size={16} /> Logout
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -946,8 +1023,10 @@ export const Dashboard: React.FC = () => {
               {activeTab === 'tutor' && 'Gemini AI Tutor'}
               {activeTab === 'leaderboard' && 'Global Gamification'}
               {activeTab === 'certificates' && 'Cryptographic Awards'}
-              {activeTab === 'assignments' && 'Student Submissions & Plagiarism Engine'}
+              {activeTab === 'assignments' && 'Assignments & Submissions'}
               {activeTab === 'attendance' && 'Student GPS & QR Attendance Portal'}
+              {activeTab === 'grades' && 'My Grades & Progress'}
+              {activeTab === 'notifications' && 'Notifications Inbox'}
             </h1>
           </div>
 
@@ -1120,7 +1199,39 @@ export const Dashboard: React.FC = () => {
 
         {/* 2. COURSES & LECTURE PLAYER TAB */}
         {activeTab === 'courses' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Course switcher — students enrolled in multiple courses can jump between them */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{coursesLoading ? 'Loading your courses…' : 'My Courses:'}</span>
+              {courses.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => { setSelectedCourse(c); setPlayerCourseId(c.id); if (c.modules?.[0]?.lessons?.[0]) setActiveLesson(c.modules[0].lessons[0]); }}
+                  style={{
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    border: '1px solid',
+                    borderColor: playerCourseId === c.id ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)',
+                    background: playerCourseId === c.id ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)',
+                    color: playerCourseId === c.id ? '#a5b4fc' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {c.title}
+                </button>
+              ))}
+            </div>
+
+            {(!selectedCourse || (selectedCourse.modules || []).length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <BookOpen size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No course content published yet. Your trainer will add modules and lessons here.</p>
+              </div>
+            ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
             
             {/* Player Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -1139,11 +1250,15 @@ export const Dashboard: React.FC = () => {
                   />
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8))', position: 'absolute', top: 0, left: 0 }}>
-                    <button onClick={() => setIsPlayingVideo(true)} style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'var(--accent-cyan)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', boxShadow: '0 0 20px rgba(6,182,212,0.4)', transition: 'transform 0.2s' }}>
-                      <Play size={32} fill="#fff" />
-                    </button>
+                    {activeLesson.video ? (
+                      <button onClick={() => setIsPlayingVideo(true)} style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'var(--accent-cyan)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', boxShadow: '0 0 20px rgba(6,182,212,0.4)', transition: 'transform 0.2s' }}>
+                        <Play size={32} fill="#fff" />
+                      </button>
+                    ) : (
+                      <FileText size={40} color="var(--text-secondary)" />
+                    )}
                     <p style={{ marginTop: '1.5rem', fontWeight: 600, fontSize: '1.1rem' }}>{activeLesson.title}</p>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Click to play media session</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{activeLesson.video ? 'Click to play media session' : 'No video uploaded — read the lesson content below'}</span>
                   </div>
                 )}
               </div>
@@ -1226,7 +1341,8 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-
+            </div>
+            )}
           </div>
         )}
 
@@ -1627,63 +1743,7 @@ export const Dashboard: React.FC = () => {
         {/* 8. ASSIGNMENTS TAB */}
         {activeTab === 'assignments' && (
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => setAssignmentSubTab('upload')}
-                style={{
-                  background: assignmentSubTab === 'upload' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                  border: 'none',
-                  color: assignmentSubTab === 'upload' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.25rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                <Upload size={14} /> 1. Upload Submission
-              </button>
-
-              <button
-                onClick={() => setAssignmentSubTab('peer-review')}
-                style={{
-                  background: assignmentSubTab === 'peer-review' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                  border: 'none',
-                  color: assignmentSubTab === 'peer-review' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.25rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                <Users size={14} /> 2. Anonymized Peer Reviews
-              </button>
-
-              <button
-                onClick={() => setAssignmentSubTab('plagiarism')}
-                style={{
-                  background: assignmentSubTab === 'plagiarism' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-                  border: 'none',
-                  color: assignmentSubTab === 'plagiarism' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '0.25rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                }}
-              >
-                <ShieldCheck size={14} /> 3. Code Plagiarism Winnowing
-              </button>
-            </div>
-
-            {assignmentSubTab === 'upload' && (
+{true && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff' }}>Submit New Assignment</h3>
@@ -1710,7 +1770,7 @@ export const Dashboard: React.FC = () => {
                     <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Select Assignment to Submit</label>
                     <select
                       value={selectedAssignmentId}
-                      onChange={e => setSelectedAssignmentId(e.target.value)}
+                      onChange={e => { setSelectedAssignmentId(e.target.value); fetchMySubmission(e.target.value); }}
                       style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
                     >
                       {assignmentList.map((a: any) => (
@@ -1783,175 +1843,146 @@ export const Dashboard: React.FC = () => {
 
                   {/* Right History */}
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: '#fff' }}>Submission History & MOSS Results</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {submissionsList.map(sub => (
-                        <div key={sub.id} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '0.5rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>{sub.fileName}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{sub.submittedAt}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>By: {sub.studentName}</span>
-                            <span style={{ 
-                              fontWeight: 700, 
-                              color: sub.plagiarismStatus === 'CLEAN' ? 'var(--accent-emerald)' : '#ef4444',
-                              background: sub.plagiarismStatus === 'CLEAN' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                              padding: '2px 8px',
-                              borderRadius: '4px'
-                            }}>
-                              MOSS Plagiarism: {sub.plagiarismScore}%
-                            </span>
-                          </div>
+                    {mySubmission?.submission && (
+                      <div style={{ marginBottom: '1.5rem', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.75rem', padding: '1rem' }}>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.6rem', color: '#fff' }}>My Submission & Marks</h3>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                          Submitted: {mySubmission.submission.submitted_at ? new Date(mySubmission.submission.submitted_at).toLocaleString() : '—'}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {assignmentSubTab === 'peer-review' && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#fff' }}>Double-Blind Peer Review Allocations</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>The assignment service matches reviewers. Students evaluate classmates' code files without knowing their identity.</p>
-                  </div>
-                  <button onClick={handleDistributeReviews} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                    Distribute Reviews
-                  </button>
-                </div>
-
-                {peerAllocations.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
-                    <Users size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No active peer review sessions allocated. Click "Distribute Reviews" to mock start.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-                    {peerAllocations.map(peer => (
-                      <div key={peer.id} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '0.75rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                          <div>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Allocation ID: {peer.id}</span>
-                            <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', marginTop: '0.25rem' }}>Anonymous Code File: {peer.fileName}</h4>
-                          </div>
-                          <span style={{ fontSize: '0.85rem', color: peer.submitted ? 'var(--accent-emerald)' : '#fbbf24', fontWeight: 600 }}>
-                            {peer.submitted ? '✓ Evaluated' : '⏳ Pending Review'}
-                          </span>
-                        </div>
-
-                        {!peer.submitted ? (
-                          <div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                              <div>
-                                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Score (out of 100)</label>
-                                <input
-                                  id={`score-${peer.id}`}
-                                  type="number"
-                                  placeholder="85"
-                                  style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
-                                />
-                              </div>
-                              <div>
-                                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Feedback Comments</label>
-                                <input
-                                  id={`feedback-${peer.id}`}
-                                  type="text"
-                                  placeholder="Clean implementation of helper function..."
-                                  style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
-                                />
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => {
-                                const scoreVal = parseInt((document.getElementById(`score-${peer.id}`) as HTMLInputElement)?.value || '85');
-                                const feedbackVal = (document.getElementById(`feedback-${peer.id}`) as HTMLInputElement)?.value || 'Great job!';
-                                submitPeerReview(peer.id, scoreVal, feedbackVal);
-                              }}
-                              style={{ border: 'none', background: 'var(--accent-cyan)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
-                            >
-                              Submit Evaluation
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid rgba(16,185,129,0.1)' }}>
-                            <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Submitted Grade: <strong style={{ color: '#fff' }}>{peer.score}/100</strong></span>
-                            <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>Reviewer Feedback: <em style={{ color: '#fff' }}>"{peer.feedback}"</em></span>
+                        {mySubmission.submission.file_url && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                            File: <span style={{ color: 'var(--accent-cyan)' }}>{mySubmission.submission.file_url}</span>
                           </div>
                         )}
+                        {mySubmission.submission.is_graded ? (
+                          <div style={{ fontSize: '0.9rem', marginTop: '0.4rem' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--accent-emerald)' }}>Score: {mySubmission.submission.score} / {mySubmission.assignment?.max_marks ?? '—'}</span>
+                            {mySubmission.submission.feedback && (
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>Feedback: {mySubmission.submission.feedback}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.85rem', color: '#fbbf24', marginTop: '0.4rem' }}>⏳ Submitted — awaiting trainer review & marks</div>
+                        )}
                       </div>
-                    ))}
+                    )}
+                    {!mySubmission?.submission && (
+                      <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '0.75rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem', color: '#fff' }}>How grading works</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                          Your submission goes straight to your trainer. They review it, award marks, and add feedback —
+                          you'll see your score here once it's graded. Marks also flow into <strong>My Grades</strong>.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )}
 
-            {assignmentSubTab === 'plagiarism' && (
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem', color: '#fff' }}>MOSS Winnowing Plagiarism Checker</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Compare raw student code snippets side-by-side to detect identical structure (ignoring variable name modifications).</p>
+            
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Code Snippet A</label>
-                    <textarea
-                      rows={8}
-                      value={plagiarismCompareA}
-                      onChange={e => setPlagiarismCompareA(e.target.value)}
-                      style={{ width: '100%', background: '#040711', color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem', outline: 'none' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Code Snippet B</label>
-                    <textarea
-                      rows={8}
-                      value={plagiarismCompareB}
-                      onChange={e => setPlagiarismCompareB(e.target.value)}
-                      style={{ width: '100%', background: '#040711', color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.8rem', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem', outline: 'none' }}
-                    />
-                  </div>
-                </div>
+            
+          </div>
+        )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                  <button
-                    onClick={() => {
-                      const clean = (txt: string) => txt.replace(/\/\/.*$/gm, '').replace(/#.*$/gm, '').replace(/\s+/g, '').toLowerCase();
-                      const cA = clean(plagiarismCompareA);
-                      const cB = clean(plagiarismCompareB);
-                      const set1 = new Set(cA.split(''));
-                      const set2 = new Set(cB.split(''));
-                      let int = 0;
-                      set1.forEach(c => { if (set2.has(c)) int++; });
-                      const union = set1.size + set2.size - int;
-                      setComparisonScore(Math.round(((int / union) * 100) * 10) / 10);
-                    }}
-                    style={{ border: 'none', background: 'var(--accent-indigo)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    Run Comparison
-                  </button>
+        {/* 9a. MY GRADES TAB (#fix) */}
+        {activeTab === 'grades' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>My Grades</h2>
+              <button onClick={fetchMyGrades} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
+                {gradesLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
 
-                  {comparisonScore !== null && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '0.95rem' }}>Structure Similarity Score:</span>
-                      <span style={{ 
-                        fontWeight: 800, 
-                        fontSize: '1.1rem', 
-                        color: comparisonScore >= 60 ? '#ef4444' : 'var(--accent-emerald)',
-                        background: comparisonScore >= 60 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
-                        padding: '4px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid',
-                        borderColor: comparisonScore >= 60 ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'
-                      }}>
-                        {comparisonScore}% ({comparisonScore >= 60 ? 'PLAGIARISM SUSPECTED' : 'CLEAN'})
-                      </span>
+            {gradesLoading ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Loading your grades...</p>
+            ) : myGrades.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <GraduationCap size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No enrolled courses yet. Once your college admin enrolls you, your grades and assignment marks will appear here.</p>
+              </div>
+            ) : myGrades.map(row => (
+              <div key={row.course.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '1rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{row.course.title}</h3>
+                  {row.grade && row.grade.grade ? (
+                    <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center', fontSize: '0.9rem' }}>
+                      <span style={{ fontWeight: 800, color: row.grade.grade === 'F' ? '#ef4444' : 'var(--accent-emerald)' }}>Grade: {row.grade.grade}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>Score: {row.grade.total_score} / {row.grade.max_score}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>CGPA: {row.grade.cgpa ? Number(row.grade.cgpa).toFixed(1) : '—'}</span>
                     </div>
+                  ) : (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No grade calculated yet — completes your assignments & quizzes</span>
                   )}
                 </div>
+                {row.marks.length > 0 && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                        <th style={{ padding: '8px', textAlign: 'left', color: 'var(--text-secondary)' }}>Assignment</th>
+                        <th style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)' }}>Score</th>
+                        <th style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {row.marks.map((m: any) => (
+                        <tr key={m.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '8px', color: '#fff' }}>{m.title}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>{m.is_graded ? `${m.score} / ${m.max_marks}` : '—'}</td>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>
+                            {m.is_graded ? (
+                              <span style={{ color: '#34d399', fontWeight: 700 }}>✓ Graded{m.feedback ? ` — ${m.feedback}` : ''}</span>
+                            ) : (
+                              <span style={{ color: '#fbbf24' }}>Submitted — pending review</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
-            )}
+            ))}
+          </div>
+        )}
+
+        {/* 9b. NOTIFICATIONS TAB (#fix) */}
+        {activeTab === 'notifications' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>Notifications</h2>
+              <button onClick={fetchNotifications} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
+                {notificationsLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+
+            {notificationsLoading ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+            ) : notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <Bell size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No notifications yet. Announcements from your college and trainers will appear here.</p>
+              </div>
+            ) : notifications.map(n => (
+              <div
+                key={n.id}
+                onClick={() => !n.is_read && markNotificationRead(n.id)}
+                style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: `1px solid ${n.is_read ? 'rgba(255,255,255,0.05)' : 'rgba(59,130,246,0.45)'}`, borderRadius: '0.75rem', padding: '1rem' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <strong style={{ color: '#fff', fontSize: '0.95rem' }}>
+                    {n.title}
+                    {!n.is_read && (
+                      <span style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 800, color: '#fff', background: '#3b82f6', padding: '2px 8px', borderRadius: '10px', verticalAlign: 'middle' }}>NEW</span>
+                    )}
+                  </strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{n.created_at ? new Date(n.created_at).toLocaleString() : ''}</span>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{n.body}</p>
+              </div>
+            ))}
           </div>
         )}
 
@@ -1977,7 +2008,33 @@ export const Dashboard: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem', color: '#fff' }}>Attendance Check-In</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: '#fff' }}>Attendance Check-In</h3>
+
+                {attendanceCourses.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Course</label>
+                    <select
+                      value={attendanceCourseId}
+                      onChange={async (e) => {
+                        const cid = e.target.value;
+                        setAttendanceCourseId(cid);
+                        setCheckInMessage('');
+                        await fetchAttendanceSessions(cid);
+                        await fetchAttendanceReport(cid, attendanceCourses.find((c: any) => c.id === cid)?.title || 'Course');
+                      }}
+                      style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.4rem 0.6rem', outline: 'none', fontSize: '0.8rem' }}
+                    >
+                      {attendanceCourses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {selectedAttendanceSession && (
+                  <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', padding: '0.7rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                    📍 You are checking into: <strong>{selectedAttendanceCourse?.title || 'Course'}</strong> — <strong>{selectedAttendanceSession.title || selectedAttendanceSession.course_id}</strong>
+                    <span style={{ color: 'var(--text-secondary)' }}>{selectedAttendanceSession.date ? ` (${new Date(selectedAttendanceSession.date).toLocaleString()})` : ''}</span>
+                  </div>
+                )}
                 
                 {checkInMessage && (
                   <div style={{ 
@@ -2003,9 +2060,9 @@ export const Dashboard: React.FC = () => {
                       onChange={e => setSelectedSessionId(e.target.value)}
                       style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.4rem 0.6rem', outline: 'none', fontSize: '0.8rem', marginBottom: '0.75rem' }}
                     >
-                      {attendanceSessionOptions.length === 0 && <option value="">No sessions loaded</option>}
+                      {attendanceSessionOptions.length === 0 && <option value="">No sessions for this course yet</option>}
                       {attendanceSessionOptions.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}</option>
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''}</option>
                       ))}
                     </select>
                     <button
@@ -2069,9 +2126,9 @@ export const Dashboard: React.FC = () => {
                       onChange={e => setSelectedSessionId(e.target.value)}
                       style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.4rem 0.6rem', outline: 'none', fontSize: '0.8rem', marginBottom: '0.75rem' }}
                     >
-                      {attendanceSessionOptions.length === 0 && <option value="">No sessions loaded</option>}
+                      {attendanceSessionOptions.length === 0 && <option value="">No sessions for this course yet</option>}
                       {attendanceSessionOptions.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id} ({s.id})</option>
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''}</option>
                       ))}
                     </select>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>

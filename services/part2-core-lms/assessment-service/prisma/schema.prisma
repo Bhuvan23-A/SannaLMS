@@ -98,6 +98,10 @@ model AssignmentSubmission {
   submitted_at  DateTime @default(now())
 
   assignment    Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+
+  // One submission per student per assignment — re-submitting updates the
+  // existing row instead of piling up duplicates (real-LMS behavior).
+  @@unique([assignment_id, user_id])
 }
 
 model Gradebook {

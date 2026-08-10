@@ -25,11 +25,19 @@ export class EnrollmentsService {
       }
     }
 
+    // Resolve the tenant from the course itself when the client didn't send one,
+    // so enrollments always land in the right college.
+    let effectiveTenant = tenantId;
+    if (!effectiveTenant || effectiveTenant === 'test-tenant' || effectiveTenant === 'master') {
+      const course = await this.prisma.extendedClient.course.findUnique({ where: { id: data.course_id } });
+      effectiveTenant = course?.tenant_id || 'test-tenant';
+    }
+
     return this.prisma.extendedClient.enrollment.create({
       data: {
         user_id: data.user_id,
         course_id: data.course_id,
-        tenant_id: tenantId,
+        tenant_id: effectiveTenant,
       }
     });
   }

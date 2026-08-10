@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { fetchApi } from '@/lib/api';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 import Link from 'next/link';
 
 export default function ThreadsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +11,8 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
+  // People resolver (#fix): show author names instead of raw UUIDs
+  const { nameOf } = useUserDirectory();
 
   useEffect(() => {
     loadThreads();
@@ -74,7 +77,7 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
             </div>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '15px' }}>{t.content}</p>
             <div style={{ fontSize: '12px', color: '#888' }}>
-              By {t.user_id} on {new Date(t.created_at).toLocaleString()}
+              By {nameOf(t.user_id)} on {new Date(t.created_at).toLocaleString()}
             </div>
           </div>
         ))}

@@ -17,7 +17,9 @@ export class CollegeService {
    * their own tenant (college) so a college admin never sees "all 7 colleges".
    */
   async getColleges(tenantId?: string) {
-    const where: Prisma.CollegeWhereInput = {};
+    // Soft-deleted colleges are hidden everywhere (the row stays for history
+    // but never surfaces in lists or counts) — that's what makes Delete work.
+    const where: Prisma.CollegeWhereInput = { deleted_at: null };
     if (tenantId && tenantId !== 'master' && tenantId !== 'test-tenant') {
       where.tenant_id = tenantId;
     }
@@ -32,8 +34,8 @@ export class CollegeService {
   }
 
   async getCollege(id: string) {
-    const college = await this.prisma.extendedClient.college.findUnique({
-      where: { id },
+    const college = await this.prisma.extendedClient.college.findFirst({
+      where: { id, deleted_at: null },
       include: {
         departments: true,
         users: { include: { user: true } },
@@ -69,5 +71,15 @@ export class CollegeService {
       data: { deleted_at: new Date() },
     });
     return { deleted: true, id };
+  }
+
+  async restoreCollege(id: string) {
+    const existing = await this.prisma.extendedClient.college.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('College not found');
+    await this.prisma.extendedClient.college.update({
+      where: { id },
+      data: { deleted_at: null },
+    });
+    return { restored: true, id };
   }
 }

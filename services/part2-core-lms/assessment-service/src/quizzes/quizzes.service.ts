@@ -42,7 +42,12 @@ export class QuizzesService {
       where: { tenant_id: tenantId, course_id: courseId },
       include: { questions: { include: { question: true } } }
     });
-    const isStudent = (viewer?.roles || []).some((r: string) => r.toUpperCase() === 'STUDENT');
+    // Every Keycloak user carries the realm-default 'student' role, so staff
+    // (admins/trainers) must be excluded from the student branch or they'd get
+    // the student-scoped (assigned-to) view instead of the full list.
+    const upRoles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
+    const isStaff = upRoles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
+    const isStudent = upRoles.includes('STUDENT') && !isStaff;
     // Students only see quizzes assigned to them (whole-course or individually)
     const visible = isStudent
       ? quizzes.filter((q: any) => {

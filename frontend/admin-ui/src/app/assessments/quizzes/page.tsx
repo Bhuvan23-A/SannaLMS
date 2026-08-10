@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 import Link from 'next/link';
 
 export default function QuizzesPage() {
@@ -32,6 +33,9 @@ export default function QuizzesPage() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<any>(null);
 
+  // People resolver (#fix): show student names instead of raw Keycloak UUIDs
+  const { nameOf, emailOf } = useUserDirectory();
+
   useEffect(() => {
     (async () => {
       try {
@@ -39,8 +43,12 @@ export default function QuizzesPage() {
         if (Array.isArray(data) && data.length > 0) {
           setCourses(data);
           setCourseId(data[0].id);
+          return;
         }
       } catch { /* course list unavailable */ }
+      // No courses yet (new college) or API failure — resolve loading so the
+      // page shows an empty state instead of hanging on "Loading..." forever.
+      setLoading(false);
     })();
   }, []);
 
@@ -269,7 +277,10 @@ export default function QuizzesPage() {
                 ) : enrolledStudents.map((en: any) => (
                   <label key={en.user_id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px', cursor: 'pointer' }}>
                     <input type="checkbox" checked={selectedStudents.includes(en.user_id)} onChange={() => toggleStudent(en.user_id)} />
-                    <span style={{ fontSize: '13px' }}>{en.user_id}</span>
+                    <span style={{ fontSize: '13px' }}>
+                      {nameOf(en.user_id)}
+                      {emailOf(en.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '12px' }}>{emailOf(en.user_id)}</span>}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -353,7 +364,10 @@ export default function QuizzesPage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {submissionsData.map((sub: any) => (
                           <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
-                            <span style={{ fontSize: '13px' }}>Student: {sub.user_id}</span>
+                            <span style={{ fontSize: '13px' }}>
+                              <strong>{nameOf(sub.user_id)}</strong>
+                              {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
+                            </span>
                             <span>
                               {sub.score !== null && sub.score !== undefined
                                 ? <span className="badge badge-success">Score: {sub.score}</span>

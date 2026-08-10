@@ -1,23 +1,37 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 
 export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [name, setName] = useState('');
+  const [branches, setBranches] = useState<any[]>([]);
   const [branchId, setBranchId] = useState('');
-  const [tenantId, setTenantId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchApi('/api/v1/branches');
+        setBranches(Array.isArray(data) ? data : []);
+      } catch { setBranches([]); }
+    })();
+  }, []);
+
+  const selectedBranch = branches.find((b: any) => b.id === branchId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       await fetchApi('/api/v1/semesters', {
         method: 'POST',
-        body: JSON.stringify({ name, branch_id: branchId, tenant_id: tenantId }),
+        body: JSON.stringify({
+          name,
+          branch_id: branchId,
+          tenant_id: selectedBranch?.tenant_id || 'test-college',
+        }),
       });
       onSuccess();
     } catch (err: any) {
@@ -37,7 +51,7 @@ export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: (
     }}>
       <div className="glass-panel animate-fade-in" style={{ width: '400px', padding: '30px' }}>
         <h2 style={{ marginBottom: '20px' }}>Add Semester</h2>
-        
+
         {error && (
           <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>
             {error}
@@ -46,25 +60,19 @@ export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: (
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Name</label>
-            <input 
-              required className="input-field" value={name} onChange={e => setName(e.target.value)} 
-              placeholder="e.g. Semester 5" 
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Semester Name</label>
+            <input
+              required className="input-field" value={name} onChange={e => setName(e.target.value)}
+              placeholder="e.g. Semester 1 (2026)"
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Branch ID</label>
-            <input 
-              required className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)} 
-              placeholder="UUID of the Branch" 
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Tenant ID</label>
-            <input 
-              required className="input-field" value={tenantId} onChange={e => setTenantId(e.target.value)} 
-              placeholder="e.g. joy" 
-            />
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Branch</label>
+            <select required className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)}>
+              <option value="">Select branch…</option>
+              {branches.length === 0 ? <option value="" disabled>No branches found — add one first</option>
+                : branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}{b.tenant_id ? ` (${b.tenant_id})` : ''}</option>)}
+            </select>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>

@@ -13,7 +13,21 @@ export class BranchService {
   async getBranches(tenantId?: string) {
     return this.prisma.extendedClient.branch.findMany({
       where: tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : undefined,
-      include: { semesters: true },
+      include: { semesters: true, department: true },
     });
+  }
+
+  async updateBranch(id: string, data: { name?: string; department_id?: string }) {
+    return this.prisma.extendedClient.branch.update({
+      where: { id },
+      data: {
+        name: data.name,
+        department_id: data.department_id,
+      },
+    });
+  }
+
+  async deleteBranch(id: string) {
+    return this.prisma.extendedClient.branch.delete({ where: { id } });
   }
 }

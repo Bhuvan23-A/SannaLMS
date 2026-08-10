@@ -1,10 +1,41 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import * as crypto from 'crypto';
 
+// Internal course-service URL (Docker container name — matches the kong.yml
+// sannalms-* convention). Overridable for local dev.
+const COURSE_SERVICE_URL = process.env.COURSE_SERVICE_URL || 'http://sannalms-course-service:3001';
+
 @Injectable()
 export class AttendanceService {
+  private readonly logger = new Logger(AttendanceService.name);
+
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * A student may only check in to sessions of courses they are enrolled in
+   * (real-LMS rule). Verifies via course-service /enrollments/user/:id.
+   * Fails OPEN on network/service errors (never blocks a check-in because of
+   * an internal hiccup), but rejects a confirmed non-enrollment.
+   */
+  private async isEnrolled(userId: string, courseId: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${COURSE_SERVICE_URL}/api/v1/enrollments/user/${encodeURIComponent(userId)}`,
+        { headers: { 'x-mock-roles': 'STUDENT' } }
+      );
+      if (!res.ok) {
+        this.logger.warn(`Enrollment check failed (HTTP ${res.status}) — allowing check-in`);
+        return true;
+      }
+      const enrollments = await res.json();
+      const list = Array.isArray(enrollments) ? enrollments : [];
+      return list.some((e: any) => e.course_id === courseId);
+    } catch (err) {
+      this.logger.warn(`Enrollment check error — allowing check-in: ${(err as Error).message}`);
+      return true;
+    }
+  }
 
   // ─── Sessions ─────────────────────────────────────────────
   async createSession(data: Record<string, any>, tenantId: string) {
@@ -45,6 +76,9 @@ export class AttendanceService {
   async checkInByQR(qrToken: string, userId: string, tenantId: string) {
     const session = await this.prisma.session.findUnique({ where: { qr_token: qrToken } });
     if (!session) throw new Error('Invalid QR code or session not found');
+    if (!(await this.isEnrolled(userId, session.course_id))) {
+      throw new Error('You are not enrolled in this course. Ask your college admin to add you.');
+    }
     return this.prisma.attendanceRecord.upsert({
       where: { session_id_user_id: { session_id: session.id, user_id: userId } },
       create: { session_id: session.id, user_id: userId, tenant_id: tenantId, status: 'PRESENT', method: 'QR' },
@@ -68,6 +102,9 @@ export class AttendanceService {
 
     if (dist > (session.radius_m ?? 100)) {
       throw new Error(`You are ${Math.round(dist)}m away. Must be within ${session.radius_m}m.`);
+    }
+    if (!(await this.isEnrolled(userId, session.course_id))) {
+      throw new Error('You are not enrolled in this course. Ask your college admin to add you.');
     }
 
     return this.prisma.attendanceRecord.upsert({

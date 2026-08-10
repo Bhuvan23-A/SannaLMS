@@ -16,6 +16,16 @@ export default function CollegesPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [flash, setFlash] = useState('');
+  // College-admin access: assign an admin and/or reset their password (#fix)
+  const [assignAdminCollege, setAssignAdminCollege] = useState<any>(null);
+  const [assignAdminEmail, setAssignAdminEmail] = useState('');
+  const [assignAdminSaving, setAssignAdminSaving] = useState(false);
+  const [assignAdminError, setAssignAdminError] = useState('');
+  const [assignAdminResult, setAssignAdminResult] = useState<any>(null);
+  const [resetPasswordCollege, setResetPasswordCollege] = useState<any>(null);
+  const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
+  const [resetPasswordResult, setResetPasswordResult] = useState<any>(null);
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 4000); };
 
@@ -63,13 +73,54 @@ export default function CollegesPage() {
   };
 
   const deleteCollege = async (college: any) => {
-    if (!window.confirm(`Delete "${college.name}"?\n\nThis soft-deletes the college and its admin can no longer access the platform. This cannot be undone.`)) return;
+    if (!window.confirm(`Delete "${college.name}"?\n\nThe college is removed from the platform and its admin loses access. This can be undone only by restoring from a backup.`)) return;
     try {
       await fetchApi(`/api/v1/colleges/${college.id}`, { method: 'DELETE' });
       showFlash(`🗑 "${college.name}" deleted`);
       loadColleges();
     } catch (err: any) {
       alert(err.message || 'Failed to delete college');
+    }
+  };
+
+  const openAssignAdmin = (college: any) => {
+    setAssignAdminCollege(college);
+    setAssignAdminEmail('');
+    setAssignAdminError('');
+    setAssignAdminResult(null);
+  };
+
+  const submitAssignAdmin = async (e: any) => {
+    e.preventDefault();
+    if (!assignAdminCollege) return;
+    try {
+      setAssignAdminSaving(true);
+      setAssignAdminError('');
+      const res = await fetchApi(`/api/v1/colleges/${assignAdminCollege.id}/admin`, {
+        method: 'POST',
+        body: JSON.stringify({ email: assignAdminEmail.trim() }),
+      });
+      setAssignAdminResult(res);
+      loadColleges();
+    } catch (err: any) {
+      setAssignAdminError(err.message);
+    } finally {
+      setAssignAdminSaving(false);
+    }
+  };
+
+  const openResetPassword = async (college: any) => {
+    setResetPasswordCollege(college);
+    setResetPasswordError('');
+    setResetPasswordResult(null);
+    try {
+      setResetPasswordSaving(true);
+      const res = await fetchApi(`/api/v1/colleges/${college.id}/admin/reset-password`, { method: 'POST' });
+      setResetPasswordResult(res);
+    } catch (err: any) {
+      setResetPasswordError(err.message);
+    } finally {
+      setResetPasswordSaving(false);
     }
   };
 
@@ -128,6 +179,8 @@ export default function CollegesPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{college.created_by}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>✏️ Edit</button>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>👤 Admin</button>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>🔑 Reset Pwd</button>
                     <button
                       className="btn-secondary"
                       style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
@@ -150,6 +203,91 @@ export default function CollegesPage() {
             loadColleges();
           }}
         />
+      )}
+
+      {/* Assign College Admin modal — how a super admin hands access to a college (#fix) */}
+      {assignAdminCollege && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>👤 College Admin Access</h2>
+              <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              College: <strong>{assignAdminCollege.name}</strong>
+            </p>
+            {assignAdminError && (
+              <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{assignAdminError}</div>
+            )}
+            {assignAdminResult ? (
+              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '14px', marginBottom: '8px' }}>✅ Admin created / linked. Share these credentials with the college admin:</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Username: <strong>{assignAdminResult.admin_username}</strong>
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Password: <strong>{assignAdminResult.admin_password}</strong>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>Sign in at the student portal — the platform routes admins to the admin dashboard automatically.</div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Admin email</label>
+                <input required type="email" className="input-field" placeholder="admin@college.edu" value={assignAdminEmail} onChange={e => setAssignAdminEmail(e.target.value)} />
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {!assignAdminResult && (
+                <button type="submit" className="btn-primary" disabled={assignAdminSaving}>{assignAdminSaving ? 'Creating...' : 'Create Admin & Get Credentials'}</button>
+              )}
+              <button type="button" className="btn-secondary" onClick={() => setAssignAdminCollege(null)}>Close</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Reset admin password modal — shows the fresh credentials once (#fix) */}
+      {resetPasswordCollege && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>🔑 Reset Admin Password</h2>
+              <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              College: <strong>{resetPasswordCollege.name}</strong>
+            </p>
+            {resetPasswordError && (
+              <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{resetPasswordError}</div>
+            )}
+            {resetPasswordResult ? (
+              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '14px', marginBottom: '8px' }}>✅ Password reset. Share these credentials with the college admin:</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Username: <strong>{resetPasswordResult.admin_username}</strong>
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Password: <strong>{resetPasswordResult.admin_password}</strong>
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>{resetPasswordSaving ? 'Resetting...' : 'This resets the college admin password to the default and shows it here once.'}</p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button type="button" className="btn-secondary" onClick={() => setResetPasswordCollege(null)}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editing && (

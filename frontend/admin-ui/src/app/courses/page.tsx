@@ -5,11 +5,16 @@ import { fetchApi } from "@/lib/api";
 import CreateCourseModal from "@/components/CreateCourseModal";
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 
 export default function CoursesPage() {
   const { isAdmin, isTrainer, role } = useRole();
   // Only the college admin can create courses and assign trainers/students (#fix)
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+  // People resolver (#fix): pick students/trainers by name, never by UUID
+  const { users, nameOf, emailOf } = useUserDirectory();
+  const studentUsers = users.filter((u: any) => u.role === 'STUDENT');
+  const trainerUsers = users.filter((u: any) => ['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'GUEST_FACULTY'].includes(u.role));
   const [courses, setCourses] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -159,7 +164,7 @@ export default function CoursesPage() {
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Title</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Tenant ID</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Dept / Branch / Sem / Year</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -177,7 +182,11 @@ export default function CoursesPage() {
                       {course.status}
                     </span>
                   </td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{course.tenant_id}</td>
+                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    {course.department_id || course.branch_id || course.semester_id || course.year
+                      ? [course.department_id && 'D', course.branch_id && 'B', course.semester_id && 'S'].filter(Boolean).join('·') + (course.year ? ` · Yr ${course.year}` : '')
+                      : '—'}
+                  </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
                     <Link href={`/courses/${course.id}`} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', marginRight: '10px' }}>
                       {(isAdmin || isTrainer) ? 'Manage' : 'View'}
@@ -248,8 +257,14 @@ export default function CoursesPage() {
           <form onSubmit={addStudent} className="panel" style={{ width: '420px', maxWidth: '92vw' }}>
             <h3 style={{ marginBottom: '8px' }}>➕ Add Student</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{studentCourse.title}</strong></p>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Student user ID (Keycloak ID)</label>
-            <input required className="input-field" placeholder="e.g. dfeb5f09-8937-..." style={{ marginBottom: '16px' }} value={studentUserId} onChange={e => setStudentUserId(e.target.value)} />
+            <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
+            <select required className="input-field" style={{ marginBottom: '16px' }} value={studentUserId} onChange={e => setStudentUserId(e.target.value)}>
+              <option value="">Select student…</option>
+              {studentUsers.length === 0 ? <option value="" disabled>No students in your college yet — use Bulk Import Users first</option>
+                : studentUsers.map((u: any) => (
+                  <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</option>
+                ))}
+            </select>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button type="submit" className="btn-primary" disabled={studentAdding}>{studentAdding ? 'Adding...' : 'Add Student'}</button>
               <button type="button" className="btn-secondary" onClick={() => setStudentCourse(null)}>Cancel</button>
@@ -264,8 +279,14 @@ export default function CoursesPage() {
           <form onSubmit={assignTrainer} className="panel" style={{ width: '440px', maxWidth: '92vw' }}>
             <h3 style={{ marginBottom: '8px' }}>👨‍🏫 Assign Trainer</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{trainerCourse.title}</strong></p>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Trainer user ID (Keycloak ID)</label>
-            <input required className="input-field" placeholder="e.g. dfeb5f09-8937-..." style={{ marginBottom: '12px' }} value={trainerUserId} onChange={e => setTrainerUserId(e.target.value)} />
+            <label style={{ display: 'block', marginBottom: '5px' }}>Trainer / TA</label>
+            <select required className="input-field" style={{ marginBottom: '12px' }} value={trainerUserId} onChange={e => setTrainerUserId(e.target.value)}>
+              <option value="">Select trainer…</option>
+              {trainerUsers.length === 0 ? <option value="" disabled>No trainers in your college yet — use Bulk Import Users first</option>
+                : trainerUsers.map((u: any) => (
+                  <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email} ({u.role.replace('_', ' ')})</option>
+                ))}
+            </select>
             <label style={{ display: 'block', marginBottom: '5px' }}>Role</label>
             <select className="input-field" style={{ marginBottom: '16px' }} value={trainerRole} onChange={e => setTrainerRole(e.target.value)}>
               <option value="PRIMARY_TRAINER">Primary Trainer</option>
@@ -281,8 +302,11 @@ export default function CoursesPage() {
               {trainersLoading ? <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Loading...</p>
                 : trainersList.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No trainers assigned yet.</p>
                 : trainersList.map((t: any) => (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '6px', fontSize: '12px' }}>
-                    <span style={{ fontFamily: 'monospace' }}>{t.user_id}</span>
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '6px', fontSize: '12px' }}>
+                    <span>
+                      <strong>{nameOf(t.user_id)}</strong>
+                      {emailOf(t.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>{emailOf(t.user_id)}</span>}
+                    </span>
                     <span className="badge badge-info">{t.role}</span>
                   </div>
                 ))}

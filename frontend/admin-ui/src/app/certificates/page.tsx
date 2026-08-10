@@ -3,9 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { useUserDirectory } from '@/hooks/useUserDirectory';
 
 export default function CertificatesPage() {
   const { isAdmin, isTrainer, role } = useRole();
+  // People resolver (#fix): pick the student by name, never by UUID
+  const { users: studentUsers } = useUserDirectory();
+  const students = studentUsers.filter((u: any) => u.role === 'STUDENT');
   const [certificates, setCertificates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifyNo, setVerifyNo] = useState('');
@@ -160,20 +164,37 @@ export default function CertificatesPage() {
           <h3 style={{ marginBottom: '20px' }}>Issue New Certificate</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Student Name</label>
-              <input required className="input-field" value={issueForm.student_name} onChange={e => setIssueForm({ ...issueForm, student_name: e.target.value })} />
+              <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
+              <select
+                required
+                className="input-field"
+                value={issueForm.user_id}
+                onChange={e => {
+                  const u = students.find((s: any) => s.id === e.target.value);
+                  setIssueForm({ ...issueForm, user_id: e.target.value, student_name: u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : '' });
+                }}
+              >
+                <option value="">Select student…</option>
+                {students.length === 0 ? <option value="" disabled>No students found</option>
+                  : students.map((u: any) => (
+                    <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</option>
+                  ))}
+              </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Student ID</label>
-              <input required className="input-field" value={issueForm.user_id} onChange={e => setIssueForm({ ...issueForm, user_id: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Course Title</label>
-              <input required className="input-field" value={issueForm.course_title} onChange={e => setIssueForm({ ...issueForm, course_title: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Course ID</label>
-              <input required className="input-field" value={issueForm.course_id} onChange={e => setIssueForm({ ...issueForm, course_id: e.target.value })} />
+              <label style={{ display: 'block', marginBottom: '5px' }}>Course</label>
+              <select
+                required
+                className="input-field"
+                value={issueForm.course_id}
+                onChange={e => {
+                  const c = courses.find((x: any) => x.id === e.target.value);
+                  setIssueForm({ ...issueForm, course_id: e.target.value, course_title: c?.title || '' });
+                }}
+              >
+                <option value="">Select course…</option>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Grade</label>
