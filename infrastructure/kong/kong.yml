@@ -180,9 +180,11 @@ services:
         strip_path: false
 
 plugins:
+  # 1000 req/min/node — the LMS pages fire several API calls per load and
+  # multiple admins work simultaneously; 200/min caused constant 429s (#perf).
   - name: rate-limiting
     config:
-      minute: 200
+      minute: 1000
       policy: local
 
   - name: cors

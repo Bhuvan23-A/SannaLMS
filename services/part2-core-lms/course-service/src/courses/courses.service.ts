@@ -116,6 +116,40 @@ export class CoursesService {
     return this.prisma.extendedClient.course.findMany();
   }
 
+  // Lightweight count mirroring the role scoping above (#perf).
+  async countAll(tenantId?: string, viewer?: { role?: string; roles?: string[]; userId?: string; includeCompleted?: boolean }) {
+    const roles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
+    const isAdmin = roles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN'].includes(r));
+    const isTrainer = roles.some((r) => ['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
+    const isStudent = roles.includes('STUDENT');
+
+    const client = this.prisma.extendedClient;
+    if (isAdmin || !viewer?.userId) {
+      // fall through to tenant-wide count below
+    } else if (isTrainer) {
+      const rows = await client.courseTrainer.findMany({
+        where: { user_id: viewer.userId },
+        select: { course_id: true },
+      });
+      const ids = (rows as any[]).map((r) => r.course_id);
+      return { count: await client.course.count({ where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' } }) };
+    } else if (isStudent) {
+      const rows = await client.enrollment.findMany({
+        where: viewer.includeCompleted
+          ? { user_id: viewer.userId, status: { in: ['ACTIVE', 'COMPLETED'] } }
+          : { user_id: viewer.userId, status: 'ACTIVE' },
+        select: { course_id: true },
+      });
+      const ids = (rows as any[]).map((r) => r.course_id);
+      return { count: await client.course.count({ where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' } }) };
+    }
+
+    if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
+      return { count: await client.course.count({ where: { tenant_id: tenantId } }) };
+    }
+    return { count: await client.course.count() };
+  }
+
   async findOne(id: string) {
     const course = await this.prisma.extendedClient.course.findUnique({
       where: { id }

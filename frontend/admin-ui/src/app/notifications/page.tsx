@@ -35,6 +35,22 @@ export default function NotificationsPage() {
   const [semesters, setSemesters] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
 
+  // Super admin sees every college's org rows mixed — scope them to the
+  // selected college so targets are unambiguous (#fix)
+  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
+  const collegeNameByTenant = (tid?: string) => colleges.find((c: any) => c.tenant_id === tid)?.name || '';
+  const visibleCourses = courses.filter((c: any) => !isSuperAdmin || !selectedCollege || !c.tenant_id || c.tenant_id === selectedCollege.tenant_id);
+  const visibleDepartments = departments.filter((d: any) => !isSuperAdmin || !selectedCollege || !d.tenant_id || d.tenant_id === selectedCollege.tenant_id);
+  const visibleBranches = branches.filter((b: any) => !isSuperAdmin || !selectedCollege || !b.tenant_id || b.tenant_id === selectedCollege.tenant_id);
+  const visibleSemesters = semesters.filter((s: any) => !isSuperAdmin || !selectedCollege || !s.tenant_id || s.tenant_id === selectedCollege.tenant_id);
+
+  // Keep the selected course inside the selected college (super admin)
+  useEffect(() => {
+    if (visibleCourses.length === 0) return;
+    if (!visibleCourses.some((c: any) => c.id === courseId)) setCourseId(visibleCourses[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCourses, courseId]);
+
   // Role-scoped target options (per requirement):
   //  Super admin: college / department / branch / semester / course / role / user
   //  College admin: department / branch / semester / course / role / user
@@ -194,36 +210,36 @@ export default function NotificationsPage() {
               )}
 
               {targetType === 'COLLEGE' && colleges.length > 0 && (
-                <select className="input-field" value={collegeId} onChange={e => setCollegeId(e.target.value)}>
+                <select className="input-field" value={collegeId} onChange={e => { setCollegeId(e.target.value); setCourseId(''); setDepartmentId(''); setBranchId(''); setSemesterId(''); }}>
                   {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
 
               {targetType === 'DEPARTMENT' && (
                 <select className="input-field" value={departmentId} onChange={e => setDepartmentId(e.target.value)}>
-                  {departments.length === 0 && <option value="">No departments</option>}
-                  {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {visibleDepartments.length === 0 && <option value="">{isSuperAdmin ? 'No departments in this college' : 'No departments'}</option>}
+                  {visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{isSuperAdmin ? `${collegeNameByTenant(d.tenant_id) ? `${collegeNameByTenant(d.tenant_id)} · ` : ''}${d.name}` : d.name}</option>)}
                 </select>
               )}
 
               {targetType === 'BRANCH' && (
                 <select className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)}>
-                  {branches.length === 0 && <option value="">No branches</option>}
-                  {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {visibleBranches.length === 0 && <option value="">{isSuperAdmin ? 'No branches in this college' : 'No branches'}</option>}
+                  {visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{isSuperAdmin ? `${collegeNameByTenant(b.tenant_id) ? `${collegeNameByTenant(b.tenant_id)} · ` : ''}${b.name}` : b.name}</option>)}
                 </select>
               )}
 
               {targetType === 'SEMESTER' && (
                 <select className="input-field" value={semesterId} onChange={e => setSemesterId(e.target.value)}>
-                  {semesters.length === 0 && <option value="">No semesters</option>}
-                  {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {visibleSemesters.length === 0 && <option value="">{isSuperAdmin ? 'No semesters in this college' : 'No semesters'}</option>}
+                  {visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{isSuperAdmin ? `${collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : ''}${s.name}` : s.name}</option>)}
                 </select>
               )}
 
               {targetType === 'COURSE' && (
                 <select className="input-field" value={courseId} onChange={e => setCourseId(e.target.value)}>
-                  {courses.length === 0 && <option value="">No courses</option>}
-                  {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                  {visibleCourses.length === 0 && <option value="">{isSuperAdmin ? 'No courses in this college' : 'No courses'}</option>}
+                  {visibleCourses.map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
                 </select>
               )}
 
@@ -235,7 +251,7 @@ export default function NotificationsPage() {
                     <option value="teaching_assistant">Teaching Assistants</option>
                   </select>
                   {isSuperAdmin && colleges.length > 0 && (
-                    <select className="input-field" value={collegeId} onChange={e => setCollegeId(e.target.value)}>
+                    <select className="input-field" value={collegeId} onChange={e => { setCollegeId(e.target.value); setCourseId(''); setDepartmentId(''); setBranchId(''); setSemesterId(''); }}>
                       {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   )}

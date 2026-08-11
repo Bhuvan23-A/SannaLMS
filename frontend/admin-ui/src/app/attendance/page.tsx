@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import CollegeCoursePicker from '@/components/CollegeCoursePicker';
 
 export default function AttendancePage() {
   const { isAdmin, isTrainer, role } = useRole();
@@ -11,6 +12,7 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
+  const [collegeId, setCollegeId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', date: '', lat: '', lng: '', radius_m: 100 });
   const [activeSession, setActiveSession] = useState<any>(null);
@@ -31,11 +33,7 @@ export default function AttendancePage() {
     (async () => {
       try {
         const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data) && data.length > 0) {
-          setCourses(data);
-          setCourseId(data[0].id);
-          return;
-        }
+        if (Array.isArray(data)) setCourses(data);
       } catch { /* course list unavailable */ }
       // No courses yet (new college) or API failure — resolve loading so the
       // page shows an empty state instead of hanging on "Loading..." forever.
@@ -133,14 +131,9 @@ export default function AttendancePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>📍 Attendance Management</h1>
-          {courses.length > 0 && (
-            <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
-            </div>
-          )}
+          <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           {role === 'STUDENT' && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import CollegeCoursePicker from '@/components/CollegeCoursePicker';
 import Link from 'next/link';
 
 export default function AssignmentsPage() {
@@ -14,6 +15,7 @@ export default function AssignmentsPage() {
   // list instead of a hardcoded 'c-1', so trainers/admin pick the right course.
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
+  const [collegeId, setCollegeId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', due_date: '', max_marks: 100 });
   // Assign-to targeting (#12): whole course or specific enrolled students
@@ -35,11 +37,7 @@ export default function AssignmentsPage() {
     (async () => {
       try {
         const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data) && data.length > 0) {
-          setCourses(data);
-          setCourseId(data[0].id);
-          return;
-        }
+        if (Array.isArray(data)) setCourses(data);
       } catch { /* course list unavailable */ }
       // No courses yet (new college) or API failure — resolve loading so the
       // page shows an empty state instead of hanging on "Loading..." forever.
@@ -135,14 +133,9 @@ export default function AssignmentsPage() {
         <div>
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Assignments</h1>
-          {courses.length > 0 && (
-            <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
-            </div>
-          )}
+          <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
+          </div>
         </div>
         {(isAdmin || isTrainer) && <button className="btn-primary" onClick={openCreateForm}>+ Create Assignment</button>}
       </div>

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import CollegeCoursePicker from '@/components/CollegeCoursePicker';
+import { useColleges } from '@/hooks/useColleges';
 
 export default function CertificatesPage() {
   const { isAdmin, isTrainer, role } = useRole();
@@ -21,6 +23,13 @@ export default function CertificatesPage() {
   // Certificate template upload per course (#17)
   const [courses, setCourses] = useState<any[]>([]);
   const [templateCourseId, setTemplateCourseId] = useState('');
+  const [collegeId, setCollegeId] = useState('');
+  // Super admin needs college context to tell colleges' courses/students apart
+  const { colleges, activeColleges, isSuperAdmin, collegeNameByTenant } = useColleges();
+  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
+  const visibleStudents = isSuperAdmin && selectedCollege
+    ? students.filter((s: any) => !s.tenant_id || s.tenant_id === selectedCollege.tenant_id)
+    : students;
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateUploading, setTemplateUploading] = useState(false);
@@ -32,10 +41,7 @@ export default function CertificatesPage() {
     (async () => {
       try {
         const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data) && data.length > 0) {
-          setCourses(data);
-          setTemplateCourseId(data[0].id);
-        }
+        if (Array.isArray(data)) setCourses(data);
       } catch { /* course list unavailable */ }
     })();
   }, []);
@@ -113,9 +119,7 @@ export default function CertificatesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Course</label>
-              <select className="input-field" value={templateCourseId} onChange={e => setTemplateCourseId(e.target.value)}>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
+              <CollegeCoursePicker courses={courses} courseId={templateCourseId} onCourseChange={setTemplateCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Template file (PDF / image)</label>
@@ -175,9 +179,9 @@ export default function CertificatesPage() {
                 }}
               >
                 <option value="">Select student…</option>
-                {students.length === 0 ? <option value="" disabled>No students found</option>
-                  : students.map((u: any) => (
-                    <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</option>
+                {visibleStudents.length === 0 ? <option value="" disabled>{isSuperAdmin ? 'No students in this college' : 'No students found'}</option>
+                  : visibleStudents.map((u: any) => (
+                    <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}{isSuperAdmin && collegeNameByTenant(u.tenant_id) ? ` (${collegeNameByTenant(u.tenant_id)})` : ''}</option>
                   ))}
               </select>
             </div>
@@ -193,7 +197,7 @@ export default function CertificatesPage() {
                 }}
               >
                 <option value="">Select course…</option>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                {(isSuperAdmin && selectedCollege ? courses.filter((c: any) => !c.tenant_id || c.tenant_id === selectedCollege.tenant_id) : courses).map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
               </select>
             </div>
             <div>

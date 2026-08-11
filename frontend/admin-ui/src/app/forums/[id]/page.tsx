@@ -18,6 +18,14 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
     loadThreads();
   }, [forumId]);
 
+  // Live updates: refresh the thread list every 10s so new threads/replies
+  // appear without a manual reload (#live).
+  useEffect(() => {
+    const t = setInterval(() => { loadThreads(); }, 10000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forumId]);
+
   const loadThreads = async () => {
     try {
       setLoading(true);

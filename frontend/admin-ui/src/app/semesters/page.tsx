@@ -2,16 +2,23 @@
 import { useState, useEffect } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
+import { useColleges } from "@/hooks/useColleges";
 import CreateSemesterModal from "@/components/CreateSemesterModal";
 
 export default function SemestersPage() {
   const [semesters, setSemesters] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
+  // College context (#fix): super admin filters college -> department -> branch
+  // so the list only shows one college's semesters at a time.
+  const { isSuperAdmin, activeColleges, collegeName } = useColleges();
+  const [collegeFilter, setCollegeFilter] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -38,6 +45,7 @@ export default function SemestersPage() {
   useEffect(() => {
     loadSemesters();
     fetchApi('/api/v1/branches').then(d => setBranches(Array.isArray(d) ? d : [])).catch(() => {});
+    fetchApi('/api/v1/departments').then(d => setDepartments(Array.isArray(d) ? d : [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -75,6 +83,15 @@ export default function SemestersPage() {
   };
 
   const branchName = (id: string) => branches.find(b => b.id === id)?.name || id;
+
+  // Semesters carry their branch (getSemesters includes branch), branches carry
+  // department_id, departments carry college_id — so we can cascade filters.
+  const deptCollege = (deptId?: string) => departments.find((d: any) => d.id === deptId)?.college_id;
+  const visibleBranches = branches.filter((b: any) => {
+    if (collegeFilter && deptCollege(b.department_id) !== collegeFilter) return false;
+    if (deptFilter && b.department_id !== deptFilter) return false;
+    return true;
+  });
 
   // Find the next semester within the same branch (Semester N → N+1).
   const nextSemester = (s: any) => {
@@ -126,6 +143,8 @@ export default function SemestersPage() {
   };
 
   const filtered = semesters.filter(s => {
+    if (collegeFilter && deptCollege(s.branch?.department_id) !== collegeFilter) return false;
+    if (deptFilter && s.branch?.department_id !== deptFilter) return false;
     if (branchFilter && s.branch_id !== branchFilter) return false;
     if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -143,11 +162,21 @@ export default function SemestersPage() {
             placeholder="🔍 Search semesters..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: '220px' }}
+            style={{ width: '180px' }}
           />
-          <select className="input-field" style={{ maxWidth: '220px' }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select className="input-field" style={{ maxWidth: '200px' }} value={collegeFilter} onChange={e => { setCollegeFilter(e.target.value); setDeptFilter(''); setBranchFilter(''); }}>
+              <option value="">All colleges</option>
+              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+          <select className="input-field" style={{ maxWidth: '200px' }} value={deptFilter} onChange={e => { setDeptFilter(e.target.value); setBranchFilter(''); }}>
+            <option value="">All departments</option>
+            {departments.filter((d: any) => !collegeFilter || d.college_id === collegeFilter).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <select className="input-field" style={{ maxWidth: '200px' }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
             <option value="">All branches</option>
-            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {visibleBranches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Add Semester</button>
         </div>
@@ -164,6 +193,7 @@ export default function SemestersPage() {
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
+              {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Actions</th>
             </tr>
@@ -199,6 +229,7 @@ export default function SemestersPage() {
                   ) : (
                     <>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{semester.name}</td>
+                      {isSuperAdmin && <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

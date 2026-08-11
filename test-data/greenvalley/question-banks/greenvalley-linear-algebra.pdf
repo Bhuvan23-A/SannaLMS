@@ -1,0 +1,127 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+6 0 obj
+<< /Length 1435 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (Linear Algebra - Question Bank) Tj
+0 -15 Td (Course: Linear Algebra | B.Sc Mathematics | Semester 2 | Year 1) Tj
+0 -15 Td () Tj
+0 -15 Td (1. A matrix with the same number of rows and columns is called:) Tj
+0 -15 Td (a\) square) Tj
+0 -15 Td (b\) rectangular) Tj
+0 -15 Td (c\) diagonal) Tj
+0 -15 Td (d\) null) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. The determinant of a 2 by 2 identity matrix is:) Tj
+0 -15 Td (a\) 0) Tj
+0 -15 Td (b\) 1) Tj
+0 -15 Td (c\) 2) Tj
+0 -15 Td (d\) -1) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (3. A vector space must always contain the:) Tj
+0 -15 Td (a\) zero vector) Tj
+0 -15 Td (b\) unit vector) Tj
+0 -15 Td (c\) standard basis) Tj
+0 -15 Td (d\) dimension) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (4. Two vectors are linearly dependent if one is:) Tj
+0 -15 Td (a\) a scalar multiple of the other) Tj
+0 -15 Td (b\) perpendicular to the other) Tj
+0 -15 Td (c\) equal to zero) Tj
+0 -15 Td (d\) orthogonal) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (5. The rank of a matrix equals the number of:) Tj
+0 -15 Td (a\) linearly independent rows) Tj
+0 -15 Td (b\) total rows) Tj
+0 -15 Td (c\) total columns) Tj
+0 -15 Td (d\) zero entries) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (6. The eigenvalues of an identity matrix are:) Tj
+0 -15 Td (a\) 0) Tj
+0 -15 Td (b\) 1) Tj
+0 -15 Td (c\) -1) Tj
+0 -15 Td (d\) 2) Tj
+0 -15 Td (Answer: b) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1208 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td () Tj
+0 -15 Td (7. Matrix multiplication is:) Tj
+0 -15 Td (a\) commutative) Tj
+0 -15 Td (b\) not commutative in general) Tj
+0 -15 Td (c\) always equal to addition) Tj
+0 -15 Td (d\) undefined for square matrices) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (8. How many entries does a 3 by 3 matrix have?) Tj
+0 -15 Td (a\) 3) Tj
+0 -15 Td (b\) 6) Tj
+0 -15 Td (c\) 9) Tj
+0 -15 Td (d\) 12) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (9. The transpose of a row vector is a:) Tj
+0 -15 Td (a\) column vector) Tj
+0 -15 Td (b\) scalar) Tj
+0 -15 Td (c\) diagonal matrix) Tj
+0 -15 Td (d\) zero matrix) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (10. A linear system has infinitely many solutions when the coefficient matrix is:) Tj
+0 -15 Td (a\) singular) Tj
+0 -15 Td (b\) invertible) Tj
+0 -15 Td (c\) identity) Tj
+0 -15 Td (d\) diagonal) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (11. Explain what eigenvalues and eigenvectors are.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+0 -15 Td (12. State the conditions for a set of vectors to form a basis.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000000449 00000 n 
+0000001936 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3196
+%%EOF

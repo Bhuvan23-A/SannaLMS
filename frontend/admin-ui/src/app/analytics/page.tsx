@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRole } from '@/hooks/useRole';
+import { useColleges } from '@/hooks/useColleges';
 import { fetchApi } from '@/lib/api';
 
 interface Stat {
@@ -14,6 +15,8 @@ interface Stat {
 export default function AnalyticsPage() {
   const { isAdmin, isTrainer, role } = useRole();
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+  // Super admin sees every college's courses in the list — tag them (#fix)
+  const { isSuperAdmin, colleges: collegeList, collegeNameByTenant } = useColleges();
   const [stats, setStats] = useState<Stat[]>([]);
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
@@ -24,9 +27,12 @@ export default function AnalyticsPage() {
       // Count endpoints that return arrays. A failed fetch yields null
       // ("unavailable") and is recorded so the banner names the failing APIs.
       const failed: string[] = [];
+      // Counts must be cheap: colleges/enrollments lists are multi-MB (they
+      // embed users/courses), so use the lightweight ?count=1 mode (#perf).
       const count = async (url: string, label: string): Promise<number | null> => {
         try {
           const data = await fetchApi(url);
+          if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as any).count === 'number') return (data as any).count;
           return Array.isArray(data) ? data.length : 0;
         } catch (err: any) {
           failed.push(`${label} (${err?.message || 'error'})`);
@@ -34,14 +40,14 @@ export default function AnalyticsPage() {
         }
       };
       const [coursesData, colleges, departments, liveclasses, forums, quizzes, certificates, enrollments] = await Promise.all([
-        count('/api/v1/courses', 'Courses'),
-        count('/api/v1/colleges', 'Colleges'),
+        count('/api/v1/courses?count=1', 'Courses'),
+        count('/api/v1/colleges?count=1', 'Colleges'),
         count('/api/v1/departments', 'Departments'),
         count('/api/v1/liveclasses', 'Live Classes'),
         count('/api/v1/forums', 'Forum Topics'),
         count('/api/v1/quizzes', 'Quizzes'),
         count('/api/v1/certificates', 'Certificates'),
-        count('/api/v1/enrollments', 'Enrollments'),
+        count('/api/v1/enrollments?count=1', 'Enrollments'),
       ]);
       const fmt = (n: number | null) => n === null ? '—' : n.toLocaleString();
       setStats([
@@ -133,6 +139,9 @@ export default function AnalyticsPage() {
                       {i + 1}
                     </span>
                     <span style={{ fontSize: '14px' }}>{course.title}</span>
+                    {isSuperAdmin && collegeNameByTenant(course.tenant_id) && (
+                      <span className="badge badge-info" style={{ marginLeft: '8px' }}>{collegeNameByTenant(course.tenant_id)}</span>
+                    )}
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {course.status} · {course.created_at ? new Date(course.created_at).toLocaleDateString() : ''}

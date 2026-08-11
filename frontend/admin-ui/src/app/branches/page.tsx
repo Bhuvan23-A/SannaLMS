@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
+import { useColleges } from "@/hooks/useColleges";
 import CreateBranchModal from "@/components/CreateBranchModal";
 
 export default function BranchesPage() {
@@ -12,6 +13,10 @@ export default function BranchesPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+  // College context (#fix): super admin filters by college; the department
+  // dropdown cascades to the selected college's departments only.
+  const { isSuperAdmin, activeColleges, collegeName } = useColleges();
+  const [collegeFilter, setCollegeFilter] = useState('');
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -72,7 +77,13 @@ export default function BranchesPage() {
 
   const deptName = (id: string) => departments.find(d => d.id === id)?.name || id;
 
+  // Branches carry their department (getBranches includes department), so the
+  // college of a branch is department.college_id.
+  const visibleDepartments = departments.filter((d: any) => !collegeFilter || d.college_id === collegeFilter);
+
   const filtered = branches.filter(b => {
+    const bCollegeId = b.department?.college_id;
+    if (collegeFilter && bCollegeId !== collegeFilter) return false;
     if (departmentFilter && b.department_id !== departmentFilter) return false;
     if (search && !b.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -90,11 +101,17 @@ export default function BranchesPage() {
             placeholder="🔍 Search branches..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: '220px' }}
+            style={{ width: '200px' }}
           />
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select className="input-field" style={{ maxWidth: '220px' }} value={collegeFilter} onChange={e => { setCollegeFilter(e.target.value); setDepartmentFilter(''); }}>
+              <option value="">All colleges</option>
+              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
           <select className="input-field" style={{ maxWidth: '220px' }} value={departmentFilter} onChange={e => setDepartmentFilter(e.target.value)}>
             <option value="">All departments</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {visibleDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
           <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Add Branch</button>
         </div>
@@ -111,6 +128,7 @@ export default function BranchesPage() {
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
+              {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Department</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Semesters</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Actions</th>
@@ -118,9 +136,9 @@ export default function BranchesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center' }}>No branches found.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>No branches found.</td></tr>
             ) : (
               filtered.map((branch) => (
                 <tr key={branch.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
@@ -129,10 +147,11 @@ export default function BranchesPage() {
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <input className="input-field" value={editName} onChange={e => setEditName(e.target.value)} style={{ width: '100%' }} />
                       </td>
+                      {isSuperAdmin && <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(branch.department?.college_id)}</td>}
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <select className="input-field" value={editDepartmentId} onChange={e => setEditDepartmentId(e.target.value)} style={{ width: '100%' }}>
                           <option value="">Select department</option>
-                          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          {visibleDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </td>
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branch.semesters?.length || 0}</td>
@@ -148,6 +167,7 @@ export default function BranchesPage() {
                   ) : (
                     <>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branch.name}</td>
+                      {isSuperAdmin && <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(branch.department?.college_id)}</td>}
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{deptName(branch.department_id)}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <span className="badge badge-info">{branch.semesters?.length || 0}</span>

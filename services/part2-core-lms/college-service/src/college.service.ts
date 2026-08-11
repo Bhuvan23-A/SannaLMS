@@ -36,6 +36,17 @@ export class CollegeService {
     return colleges.map((c: any) => ({ ...c, status: c.deleted_at ? 'HELD' : 'ACTIVE' }));
   }
 
+  // Lightweight count for dashboards — avoids the heavy users relation (#perf).
+  async countColleges(tenantId?: string, includeHeld = false) {
+    const where: Prisma.CollegeWhereInput = {};
+    if (!includeHeld) where.deleted_at = null;
+    if (tenantId && tenantId !== 'master' && tenantId !== 'test-tenant') {
+      where.tenant_id = tenantId;
+    }
+    const count = await this.prisma.extendedClient.college.count({ where });
+    return { count };
+  }
+
   async getCollege(id: string, includeHeld = false) {
     const college = await this.prisma.extendedClient.college.findFirst({
       where: { id, ...(includeHeld ? {} : { deleted_at: null }) },

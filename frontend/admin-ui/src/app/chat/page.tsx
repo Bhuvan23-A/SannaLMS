@@ -22,6 +22,9 @@ export default function ChatPage() {
   const [newRoomName, setNewRoomName] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Only auto-scroll to the newest message when the user is already near the
+  // bottom — polling shouldn't yank someone reading history back down.
+  const nearBottomRef = useRef(true);
 
   const isTrainerOrAdmin = ['PRIMARY_TRAINER', 'COLLEGE_ADMIN', 'SUPER_ADMIN'].includes(role);
 
@@ -33,7 +36,9 @@ export default function ChatPage() {
   const loadMessages = async (room: Room) => {
     const data = await fetchApi(`/api/v1/chat/rooms/${room.id}/messages`).catch(() => []);
     setMessages(data || []);
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    if (nearBottomRef.current) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }
   };
 
   const loadDMs = async () => {
@@ -43,6 +48,26 @@ export default function ChatPage() {
 
   useEffect(() => { loadRooms(); }, []);
   useEffect(() => { if (selectedRoom) loadMessages(selectedRoom); }, [selectedRoom]);
+
+  // Live updates: rooms refresh every 15s, an open conversation every 5s, and
+  // the DM view every 5s (#live). Lightweight — a handful of small GETs/min.
+  useEffect(() => {
+    const t = setInterval(() => { loadRooms(); }, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!selectedRoom) return;
+    const t = setInterval(() => { loadMessages(selectedRoom); }, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom]);
+  useEffect(() => {
+    if (view !== 'dm') return;
+    const t = setInterval(() => { loadDMs(); }, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, dmTarget]);
 
   const sendRoomMessage = async () => {
     if (!newMsg.trim() || !selectedRoom) return;
@@ -125,7 +150,11 @@ export default function ChatPage() {
                   <h3>#{selectedRoom.name}</h3>
                   <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 12px' }} onClick={() => joinRoom(selectedRoom.id)}>Join</button>
                 </div>
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}
+                  onScroll={(e: any) => {
+                    const el = e.currentTarget as HTMLDivElement;
+                    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+                  }}>
                   {messages.map(msg => (
                     <div key={msg.id} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>

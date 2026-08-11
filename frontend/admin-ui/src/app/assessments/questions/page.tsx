@@ -49,12 +49,14 @@ export default function QuestionsPage() {
           isAdmin ? fetchApi('/api/v1/semesters').catch(() => []) : Promise.resolve([]),
         ]);
         setCourses(Array.isArray(coursesData) ? coursesData : []);
-        setColleges(Array.isArray(collegesData) ? collegesData : []);
+        // Only active colleges — held ones are suspended (#fix)
+        const active = (Array.isArray(collegesData) ? collegesData : []).filter((c: any) => c.status !== 'HELD');
+        setColleges(active);
         setDepartments(Array.isArray(depts) ? depts : []);
         setBranches(Array.isArray(brs) ? brs : []);
         setSemesters(Array.isArray(sems) ? sems : []);
-        if (Array.isArray(coursesData) && coursesData.length > 0) setCourseId(coursesData[0].id);
-        if (isSuperAdmin && Array.isArray(collegesData) && collegesData.length > 0) setCollegeId(collegesData[0].id);
+        if (isSuperAdmin && active.length > 0) setCollegeId(active[0].id);
+        else if (Array.isArray(coursesData) && coursesData.length > 0) setCourseId(coursesData[0].id);
       } catch { /* reference data unavailable */ }
     })();
   }, [isAdmin, isTrainer, isSuperAdmin]);
@@ -73,7 +75,18 @@ export default function QuestionsPage() {
   const visibleDepartments = departments.filter((d: any) => inCollege(d));
   const visibleBranches = branches.filter((b: any) => inCollege(b) && (!deptId || b.department_id === deptId));
   const visibleSemesters = semesters.filter((s: any) => inCollege(s) && (!branchId || s.branch_id === branchId));
+  // Courses scoped to the selected college — same-named courses from different
+  // colleges would otherwise be indistinguishable (#fix)
+  const visibleCourses = courses.filter((c: any) => !isSuperAdmin || !selectedCollege || !c.tenant_id || c.tenant_id === selectedCollege.tenant_id);
+  const collegeNameByTenant = (tid?: string) => colleges.find((c: any) => c.tenant_id === tid)?.name || '';
   const orgEmpty = visibleDepartments.length === 0;
+
+  // Keep the selected course inside the selected college (super admin)
+  useEffect(() => {
+    if (visibleCourses.length === 0) return;
+    if (!visibleCourses.some((c: any) => c.id === courseId)) setCourseId(visibleCourses[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleCourses, courseId]);
 
   const importFromPdf = async (e: any) => {
     const file = e.target.files?.[0];
@@ -185,19 +198,19 @@ export default function QuestionsPage() {
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Question Bank</h1>
           <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {courses.length > 0 && (
-              <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-                <select className="input-field" style={{ maxWidth: '260px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
-                  {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                </select>
-              </>
-            )}
             {isSuperAdmin && colleges.length > 0 && (
               <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>College:</label>
-                <select className="input-field" style={{ maxWidth: '220px' }} value={collegeId} onChange={e => { setCollegeId(e.target.value); setDeptId(''); setBranchId(''); setSemId(''); }}>
+                <select className="input-field" style={{ maxWidth: '220px' }} value={collegeId} onChange={e => { setCollegeId(e.target.value); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}>
                   {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </>
+            )}
+            {visibleCourses.length > 0 && (
+              <>
+                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
+                <select className="input-field" style={{ maxWidth: '360px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                  {visibleCourses.map((c: any) => <option key={c.id} value={c.id}>{collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
                 </select>
               </>
             )}
@@ -214,9 +227,16 @@ export default function QuestionsPage() {
                   {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option> : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Semester:</label>
-                <select className="input-field" style={{ maxWidth: '180px' }} value={semId} onChange={e => setSemId(e.target.value)}>
+                <select className="input-field" style={{ maxWidth: '220px' }} value={semId} onChange={e => setSemId(e.target.value)}>
                   <option value="">All</option>
-                  {visibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option> : visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {visibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option> : visibleSemesters.map((s: any) => {
+                    // Same-named semesters exist in every branch — qualify with the
+                    // branch so "Semester 1" isn't listed 300 times (#fix)
+                    const br = branches.find((b: any) => b.id === s.branch_id);
+                    const brName = br?.name ? `${br.name} · ` : '';
+                    const colName = isSuperAdmin ? `${collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : ''}` : '';
+                    return <option key={s.id} value={s.id}>{colName}{brName}{s.name}</option>;
+                  })}
                 </select>
                 {orgEmpty && isSuperAdmin && (
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>

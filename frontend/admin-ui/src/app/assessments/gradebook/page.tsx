@@ -5,6 +5,7 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import GradeCard from '@/components/GradeCard';
+import CollegeCoursePicker from '@/components/CollegeCoursePicker';
 import Link from 'next/link';
 
 export default function GradebookPage() {
@@ -14,6 +15,7 @@ export default function GradebookPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
+  const [collegeId, setCollegeId] = useState('');
   const [calculating, setCalculating] = useState(false);
 
   // People resolver (#fix): show student names instead of raw Keycloak UUIDs
@@ -37,10 +39,7 @@ export default function GradebookPage() {
     (async () => {
       try {
         const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data) && data.length > 0) {
-          setCourses(data);
-          setCourseId(data[0].id);
-        }
+        if (Array.isArray(data)) setCourses(data);
       } catch { /* course list unavailable */ }
       try {
         const sems = await fetchApi('/api/v1/semesters');
@@ -137,12 +136,9 @@ export default function GradebookPage() {
         <div>
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Gradebook</h1>
-          {courses.length > 0 && (isAdmin || isTrainer) && (
-            <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-              <select className="input-field" style={{ maxWidth: '380px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-              </select>
+          {(isAdmin || isTrainer) && (
+            <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
             </div>
           )}
         </div>

@@ -49,6 +49,12 @@ export class EnrollmentsService {
     return this.prisma.extendedClient.enrollment.findMany({ where });
   }
 
+  // Lightweight count for dashboards — avoids shipping thousands of rows (#perf).
+  countByTenant(tenantId?: string) {
+    const where = tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' ? { tenant_id: tenantId } : {};
+    return this.prisma.extendedClient.enrollment.count({ where }).then((count) => ({ count }));
+  }
+
   findAll(userId: string) {
     return this.prisma.extendedClient.enrollment.findMany({
       where: { user_id: userId },

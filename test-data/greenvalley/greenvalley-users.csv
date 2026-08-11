@@ -1,0 +1,41 @@
+email,first_name,last_name,role,department,branch,year
+gv.cse.s1.01@greenvalley.edu,Aarav,Sharma,student,School of Engineering,B.Tech CSE,1
+gv.cse.s1.02@greenvalley.edu,Diya,Patel,student,School of Engineering,B.Tech CSE,1
+gv.cse.s2.01@greenvalley.edu,Arjun,Mehta,student,School of Engineering,B.Tech CSE,1
+gv.cse.s2.02@greenvalley.edu,Sara,Khan,student,School of Engineering,B.Tech CSE,1
+gv.ece.s1.01@greenvalley.edu,Rohan,Gupta,student,School of Engineering,B.Tech ECE,1
+gv.ece.s1.02@greenvalley.edu,Ananya,Iyer,student,School of Engineering,B.Tech ECE,1
+gv.ece.s2.01@greenvalley.edu,Kabir,Singh,student,School of Engineering,B.Tech ECE,1
+gv.ece.s2.02@greenvalley.edu,Ishita,Das,student,School of Engineering,B.Tech ECE,1
+gv.bba.s1.01@greenvalley.edu,Nikhil,Rao,student,School of Management,BBA,1
+gv.bba.s1.02@greenvalley.edu,Priya,Nair,student,School of Management,BBA,1
+gv.bba.s2.01@greenvalley.edu,Aditya,Menon,student,School of Management,BBA,1
+gv.bba.s2.02@greenvalley.edu,Riya,Joshi,student,School of Management,BBA,1
+gv.mba.s1.01@greenvalley.edu,Vikram,Reddy,student,School of Management,MBA,1
+gv.mba.s1.02@greenvalley.edu,Meera,Chopra,student,School of Management,MBA,1
+gv.mba.s2.01@greenvalley.edu,Siddharth,Jain,student,School of Management,MBA,1
+gv.mba.s2.02@greenvalley.edu,Kavya,Raman,student,School of Management,MBA,1
+gv.maths.s1.01@greenvalley.edu,Dev,Patil,student,School of Sciences,B.Sc Mathematics,1
+gv.maths.s1.02@greenvalley.edu,Nisha,Verma,student,School of Sciences,B.Sc Mathematics,1
+gv.maths.s2.01@greenvalley.edu,Tanvi,Saxena,student,School of Sciences,B.Sc Mathematics,1
+gv.maths.s2.02@greenvalley.edu,Yash,Agarwal,student,School of Sciences,B.Sc Mathematics,1
+gv.phy.s1.01@greenvalley.edu,Rehan,Ansari,student,School of Sciences,B.Sc Physics,1
+gv.phy.s1.02@greenvalley.edu,Shreya,Bose,student,School of Sciences,B.Sc Physics,1
+gv.phy.s2.01@greenvalley.edu,Harsh,Bhatia,student,School of Sciences,B.Sc Physics,1
+gv.phy.s2.02@greenvalley.edu,Pooja,Thakur,student,School of Sciences,B.Sc Physics,1
+gv.eng.s1.01@greenvalley.edu,Zara,Sheikh,student,School of Humanities,BA English,1
+gv.eng.s1.02@greenvalley.edu,Omar,Farooq,student,School of Humanities,BA English,1
+gv.eng.s2.01@greenvalley.edu,Lakshmi,Venkat,student,School of Humanities,BA English,1
+gv.eng.s2.02@greenvalley.edu,Neil,Dsouza,student,School of Humanities,BA English,1
+gv.his.s1.01@greenvalley.edu,Maya,Kulkarni,student,School of Humanities,BA History,1
+gv.his.s1.02@greenvalley.edu,Arnav,Chowdhury,student,School of Humanities,BA History,1
+gv.his.s2.01@greenvalley.edu,Simran,Kaur,student,School of Humanities,BA History,1
+gv.his.s2.02@greenvalley.edu,Ibrahim,Malik,student,School of Humanities,BA History,1
+gv.engineering.trainer@greenvalley.edu,Dr. Ravi,Menon,professor,School of Engineering,B.Tech CSE,
+gv.management.trainer@greenvalley.edu,Dr. Anita,Krishnan,professor,School of Management,BBA,
+gv.sciences.trainer@greenvalley.edu,Dr. Sunil,Desai,professor,School of Sciences,B.Sc Mathematics,
+gv.humanities.trainer@greenvalley.edu,Dr. Lakshmi,Narayan,professor,School of Humanities,BA English,
+gv.engineering.ta@greenvalley.edu,Priya,Venkatesh,teaching_assistant,School of Engineering,B.Tech CSE,
+gv.management.ta@greenvalley.edu,Rahul,Sharma,teaching_assistant,School of Management,BBA,
+gv.sciences.ta@greenvalley.edu,Divya,Reddy,teaching_assistant,School of Sciences,B.Sc Physics,
+gv.humanities.ta@greenvalley.edu,Akash,Bhatt,teaching_assistant,School of Humanities,BA History,

@@ -100,14 +100,11 @@ export default function Sidebar() {
     { name: '🎓 My Certificates', href: '/certificates' },
   ];
 
+  // Trainers/assistant trainers see only their teaching tools — no platform
+  // dashboard, calendar, search, forums/chat, certificates or analytics (#fix).
   const trainerLinks = [
-    { name: '🏠 Dashboard', href: '/' },
-    { name: '📅 Calendar', href: '/calendar' },
+    { name: '📚 My Courses', href: '/courses' },
     { name: '🔔 Notifications', href: '/notifications' },
-    { name: '🔍 Search', href: '/search' },
-    { name: '💬 Forums', href: '/forums' },
-    { name: '🗨️ Chat', href: '/chat' },
-    { name: '📚 Courses', href: '/courses' },
     { divider: 'Assessment' },
     { name: '📊 Question Bank', href: '/assessments/questions' },
     { name: '🧪 Quizzes', href: '/assessments/quizzes' },
@@ -117,8 +114,6 @@ export default function Sidebar() {
     { name: '📍 Attendance', href: '/attendance' },
     { divider: 'More' },
     { name: '🎥 Live Classes', href: '/liveclasses' },
-    { name: '🎓 Certificates', href: '/certificates' },
-    { name: '📊 Analytics', href: '/analytics' },
   ];
 
   const links = role === 'SUPER_ADMIN' ? superAdminLinks : role === 'COLLEGE_ADMIN' ? collegeAdminLinks : isTrainer ? trainerLinks : studentLinks;

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, Query } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { Roles } from '../roles.guard';
 
@@ -18,9 +18,14 @@ export class EnrollmentsController {
   // their own college.
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
-  findAllEnrollments(@Req() req: any) {
+  findAllEnrollments(@Req() req: any, @Query('count') count?: string) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    // Lightweight count mode — the dashboard/analytics only need a number, not
+    // thousands of enrollment rows (#perf).
+    if (count === '1' || count === 'true') {
+      return this.enrollmentsService.countByTenant(String(tenantId));
+    }
     return this.enrollmentsService.findAllByTenant(String(tenantId));
   }
 

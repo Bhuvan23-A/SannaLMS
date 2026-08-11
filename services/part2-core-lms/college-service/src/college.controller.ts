@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards, Query } from '@nestjs/common';
 import { CollegeService } from './college.service';
 import { UsersService, DEFAULT_PASSWORD } from './users/users.service';
 import { TenantPurgeService } from './tenant-purge.service';
@@ -45,9 +45,14 @@ export class CollegeController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'STUDENT')
-  async getColleges(@Req() req: any) {
+  async getColleges(@Req() req: any, @Query('count') count?: string) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? undefined : (req.user?.tenantId || undefined);
+    // Lightweight count mode — the dashboard/analytics only need a number and
+    // shouldn't download every college WITH all its users (#perf).
+    if (count === '1' || count === 'true') {
+      return this.collegeService.countColleges(tenantId, isSuperAdmin);
+    }
     // Super admins see held colleges too (so they can restore / delete them).
     return this.collegeService.getColleges(tenantId, isSuperAdmin);
   }

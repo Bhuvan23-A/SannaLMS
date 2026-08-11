@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
 import CreateCourseModal from "@/components/CreateCourseModal";
+import { useColleges } from "@/hooks/useColleges";
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
@@ -11,6 +12,10 @@ export default function CoursesPage() {
   const { isAdmin, isTrainer, role } = useRole();
   // Only the college admin can create courses and assign trainers/students (#fix)
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+  // College context (#fix): super admins see every college's courses mixed
+  // together — filter by college and show which college each course belongs to.
+  const { isSuperAdmin, activeColleges, collegeNameByTenant, collegeName } = useColleges();
+  const [collegeFilter, setCollegeFilter] = useState('');
   // People resolver (#fix): pick students/trainers by name, never by UUID
   const { users, nameOf, emailOf } = useUserDirectory();
   const studentUsers = users.filter((u: any) => u.role === 'STUDENT');
@@ -143,13 +148,21 @@ export default function CoursesPage() {
     <div className="animate-fade-in">
       <Topbar title="Courses Management" />
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>All Courses</h3>
-        {/* Only the college admin creates courses in their college (#fix) */}
-        {isCollegeAdmin && <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>}
-        {!isCollegeAdmin && (isAdmin || isTrainer) && (
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Only college admins can create courses</span>
-        )}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
+              <option value="">All colleges</option>
+              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+          {/* Only the college admin creates courses in their college (#fix) */}
+          {isCollegeAdmin && <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>}
+          {!isCollegeAdmin && (isAdmin || isTrainer) && (
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Only college admins can create courses</span>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -163,6 +176,7 @@ export default function CoursesPage() {
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Title</th>
+              {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Dept / Branch / Sem / Year</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
@@ -170,13 +184,22 @@ export default function CoursesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 5 : 4} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
             ) : courses.length === 0 ? (
-              <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center' }}>No courses found.</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 5 : 4} style={{ padding: '20px', textAlign: 'center' }}>No courses found.</td></tr>
             ) : (
-              courses.map((course) => (
+              courses.filter((course: any) => {
+                if (!collegeFilter) return true;
+                const col = activeColleges.find((x: any) => x.id === collegeFilter);
+                return col ? course.tenant_id === col.tenant_id : true;
+              }).map((course) => (
                 <tr key={course.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{course.title}</td>
+                  {isSuperAdmin && (
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                      {collegeNameByTenant(course.tenant_id) || collegeName(course.college_id) || '—'}
+                    </td>
+                  )}
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                     <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px', background: course.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)' }}>
                       {course.status}

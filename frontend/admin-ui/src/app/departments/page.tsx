@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
+import { useColleges } from "@/hooks/useColleges";
 import CreateDepartmentModal from "@/components/CreateDepartmentModal";
 
 export default function DepartmentsPage() {
@@ -9,6 +10,10 @@ export default function DepartmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // College context (#fix): super admins see every college mixed together, so
+  // let them filter by college and show which college each department belongs to.
+  const { isSuperAdmin, activeColleges, collegeName } = useColleges();
+  const [collegeFilter, setCollegeFilter] = useState('');
 
   const loadDepartments = async () => {
     try {
@@ -41,9 +46,17 @@ export default function DepartmentsPage() {
     <div className="animate-fade-in">
       <Topbar title="Departments Management" />
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>All Departments</h3>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Add Department</button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
+              <option value="">All colleges</option>
+              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Add Department</button>
+        </div>
       </div>
 
       {error && (
@@ -57,7 +70,7 @@ export default function DepartmentsPage() {
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College ID</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Created By</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Department ID</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
@@ -69,10 +82,12 @@ export default function DepartmentsPage() {
             ) : departments.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>No departments found. Create a college and then add a department via API.</td></tr>
             ) : (
-              departments.map((dept) => (
+              departments.filter((d: any) => !collegeFilter || d.college_id === collegeFilter).map((dept) => (
                 <tr key={dept.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{dept.name}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{dept.college_id}</td>
+                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                    {isSuperAdmin ? collegeName(dept.college_id) : 'My College'}
+                  </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{dept.created_by}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.85em' }}>{dept.id}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>

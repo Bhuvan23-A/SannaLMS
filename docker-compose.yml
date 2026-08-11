@@ -241,9 +241,28 @@ services:
       # the tutor falls back to the built-in RAG synthesis engine.
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-latest}
+      # Real Mongo store for analytics/placements/gamification data — without
+      # this the service silently ran on an in-memory fallback that reset on
+      # every restart (#fix).
+      - MONGODB_URL=mongodb://mongodb:27017
+      - DATABASE_NAME=lms_production_db
     depends_on:
       - postgres
       - redis
+      - mongodb
+
+  # MongoDB backing the Part-4 AI service (analytics, placements, gamification).
+  mongodb:
+    image: mongo:4.4
+    container_name: sannalms-mongodb
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   # ================================================================
   # Part 1: Infrastructure, Auth & Identity
@@ -438,3 +457,4 @@ volumes:
   kong_data:
   redis_data:
   minio_data:
+  mongo_data:

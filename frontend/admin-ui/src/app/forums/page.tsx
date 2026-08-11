@@ -16,6 +16,14 @@ export default function ForumsPage() {
     loadForums();
   }, []);
 
+  // Live updates: refresh the forum list every 15s so new forums appear
+  // without a manual reload (#live).
+  useEffect(() => {
+    const t = setInterval(() => { loadForums(); }, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadForums = async () => {
     try {
       setLoading(true);

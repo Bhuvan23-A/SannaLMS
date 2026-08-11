@@ -76,7 +76,14 @@ export const Dashboard: React.FC = () => {
           window.location.replace(adminUrl);
         }
       } else if (hasAnyRole('instructor', 'primary_trainer', 'trainer', 'teaching_assistant', 'assistant')) {
+        // Trainers/assistant trainers do all their work in the admin portal —
+        // route them straight there instead of the demo dashboard (#ux).
         setSelectedRole('INSTRUCTOR');
+        if (!adminRedirectedRef.current) {
+          adminRedirectedRef.current = true;
+          const adminUrl = `${ADMIN_URL}/?token=${encodeURIComponent(keycloak.token)}`;
+          window.location.replace(adminUrl);
+        }
       } else {
         setSelectedRole('STUDENT');
       }
