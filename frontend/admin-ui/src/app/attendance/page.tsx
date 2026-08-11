@@ -5,6 +5,7 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
+import SessionQR from '@/components/SessionQR';
 
 export default function AttendancePage() {
   const { isAdmin, isTrainer, role } = useRole();
@@ -236,11 +237,7 @@ export default function AttendancePage() {
                   {s._count && <span className="badge badge-success">{s._count.records} checked in</span>}
                   {s.qr_token && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '8px', background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '8px' }}>
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(s.qr_token)}`}
-                        alt="Session QR code"
-                        style={{ background: '#fff', padding: '4px', borderRadius: '6px', width: '56px', height: '56px' }}
-                      />
+                      <SessionQR token={s.qr_token} />
                       <div style={{ flex: 1, minWidth: '200px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span className="badge badge-warning" style={{ fontFamily: 'monospace', fontSize: '11px' }}>QR Token</span>

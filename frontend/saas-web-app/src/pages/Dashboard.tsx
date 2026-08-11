@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient, keycloak } from '../api/client';
+import SessionQR from '../SessionQR';
 import { 
   LogOut, User, Activity, BookOpen, Terminal, CheckSquare, 
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
@@ -139,6 +140,8 @@ export const Dashboard: React.FC = () => {
   const [activeLesson, setActiveLesson] = useState<any>(courses[0].modules[0].lessons[0]);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const [videoWatchedProgress, setVideoWatchedProgress] = useState(0);
+  // Video can be blocked by some networks/ad blockers — show the transcript fallback.
+  const [videoError, setVideoError] = useState(false);
 
   // --- REAL "MY COURSES" (#fix): students see the courses they are enrolled in,
   // with their real curriculum (modules -> lessons -> topics) from course-service.
@@ -413,6 +416,7 @@ export const Dashboard: React.FC = () => {
     setActiveLesson(lesson);
     setIsPlayingVideo(false);
     setVideoWatchedProgress(0);
+    setVideoError(false);
   };
 
   const handleLessonCompleteToggle = (lessonId: string) => {
@@ -1085,7 +1089,12 @@ export const Dashboard: React.FC = () => {
                   <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem' }}>Enrolled Courses</h3>
                   {courses.filter(c => c.enrolled).map(course => (
                     <div key={course.id} style={{ display: 'flex', gap: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.04)' }}>
-                      <img src={course.image} alt={course.title} style={{ width: '120px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <img src={course.image} alt={course.title} style={{ width: '120px', height: '80px', borderRadius: '8px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          // Blocked/missing image (ad blocker, firewall): swap in a
+                          // local placeholder instead of a broken icon (#fix).
+                          (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" rx="8" fill="#1e293b"/><text x="60" y="47" font-size="22" text-anchor="middle">📚</text></svg>');
+                        }} />
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
                           <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{course.title}</h4>
@@ -1242,8 +1251,7 @@ export const Dashboard: React.FC = () => {
             
             {/* Player Column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ background: '#000', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', aspectRatio: '16/9' }}>
-                {isPlayingVideo ? (
+              <div style={{ background: '#000', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', aspectRatio: '16/9' }}>                        {isPlayingVideo && !videoError ? (
                   <video 
                     src={activeLesson.video} 
                     controls 
@@ -1254,7 +1262,15 @@ export const Dashboard: React.FC = () => {
                       const dur = e.currentTarget.duration;
                       if (dur) setVideoWatchedProgress(Math.round((cur / dur) * 100));
                     }}
+                    onError={() => setVideoError(true)}
                   />
+                ) : isPlayingVideo && videoError ? (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8))', color: '#cbd5e1', textAlign: 'center', padding: '1.5rem' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎬</div>
+                    <p style={{ fontSize: '0.9rem', maxWidth: '360px', lineHeight: 1.5 }}>
+                      This video is unavailable on your network. Read the lesson transcript below instead.
+                    </p>
+                  </div>
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8))', position: 'absolute', top: 0, left: 0 }}>
                     {activeLesson.video ? (
@@ -2087,11 +2103,7 @@ export const Dashboard: React.FC = () => {
                       const s = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
                       return s?.qr_token ? (
                         <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
-                          <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(s.qr_token)}`}
-                            alt="Session QR code"
-                            style={{ background: '#fff', padding: '6px', borderRadius: '8px', maxWidth: '110px' }}
-                          />
+                          <SessionQR token={s.qr_token} />
                           <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.4rem', wordBreak: 'break-all' }}>
                             {s.qr_token}
                           </p>

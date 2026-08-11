@@ -42,7 +42,16 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+    const base = errorData.message || `API Error: ${response.status} ${response.statusText}`;
+    // Give users a real hint instead of a cryptic "403 Forbidden" — this is
+    // almost always a role/permission mismatch or an expired session (#fix).
+    if (response.status === 403) {
+      throw new Error(`${base} — you don't have permission to do this (your role may not allow it)`);
+    }
+    if (response.status === 401) {
+      throw new Error(`${base} — your session may have expired. Please log in again.`);
+    }
+    throw new Error(base);
   }
 
   return response.json();
