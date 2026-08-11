@@ -20,7 +20,10 @@ export default function CreateDepartmentModal({ onClose, onSuccess }: { onClose:
     })();
   }, []);
 
-  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
+  // Held colleges are suspended — never build structure inside one.
+  const activeColleges = colleges.filter((c: any) => c.status !== 'HELD');
+
+  const selectedCollege = activeColleges.find((c: any) => c.id === collegeId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,8 +75,8 @@ export default function CreateDepartmentModal({ onClose, onSuccess }: { onClose:
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College</label>
             <select required className="input-field" value={collegeId} onChange={e => setCollegeId(e.target.value)}>
               <option value="">Select college…</option>
-              {colleges.length === 0 ? <option value="" disabled>No colleges found</option>
-                : colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {activeColleges.length === 0 ? <option value="" disabled>No active colleges found</option>
+                : activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
 

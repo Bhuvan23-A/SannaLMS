@@ -5,6 +5,7 @@ import { fetchApi } from '@/lib/api';
 export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [name, setName] = useState('');
   const [departments, setDepartments] = useState<any[]>([]);
+  const [heldCollegeIds, setHeldCollegeIds] = useState<Set<string>>(new Set());
   const [departmentId, setDepartmentId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,13 +13,21 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
   useEffect(() => {
     (async () => {
       try {
-        const data = await fetchApi('/api/v1/departments');
-        setDepartments(Array.isArray(data) ? data : []);
+        const [depts, colleges] = await Promise.all([
+          fetchApi('/api/v1/departments').catch(() => []),
+          fetchApi('/api/v1/colleges').catch(() => []),
+        ]);
+        setDepartments(Array.isArray(depts) ? depts : []);
+        // Held colleges are suspended — never build structure inside one.
+        const held = new Set<string>((Array.isArray(colleges) ? colleges : [])
+          .filter((c: any) => c.status === 'HELD').map((c: any) => c.id));
+        setHeldCollegeIds(held);
       } catch { setDepartments([]); }
     })();
   }, []);
 
-  const selectedDepartment = departments.find((d: any) => d.id === departmentId);
+  const visibleDepartments = departments.filter((d: any) => !heldCollegeIds.has(d.college_id));
+  const selectedDepartment = visibleDepartments.find((d: any) => d.id === departmentId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,9 +79,12 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Department</label>
             <select required className="input-field" value={departmentId} onChange={e => setDepartmentId(e.target.value)}>
               <option value="">Select department…</option>
-              {departments.length === 0 ? <option value="" disabled>No departments found — add one first</option>
-                : departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}{d.tenant_id ? ` (${d.tenant_id})` : ''}</option>)}
+              {visibleDepartments.length === 0 ? <option value="" disabled>No active departments found — add one first</option>
+                : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}{d.tenant_id ? ` (${d.tenant_id})` : ''}</option>)}
             </select>
+            {departments.length > visibleDepartments.length && (
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Departments in held colleges are hidden.</p>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
