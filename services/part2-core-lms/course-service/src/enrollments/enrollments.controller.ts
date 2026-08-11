@@ -7,6 +7,7 @@ interface BulkEnrollBody {
   course_ids?: string[];
   branch_id?: string;
   semester_id?: string;
+  section_id?: string;
   tenant_id?: string;
 }
 

@@ -13,6 +13,7 @@ export class QuestionsController {
   importPdf(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body('course_id') courseId: string,
+    @Body('subject_id') subjectId: string,
     @Body('department_id') departmentId: string,
     @Body('branch_id') branchId: string,
     @Body('semester_id') semesterId: string,
@@ -32,7 +33,7 @@ export class QuestionsController {
       file,
       courseId,
       String(tenantId),
-      { department_id: departmentId, branch_id: branchId, semester_id: semesterId }
+      { department_id: departmentId, branch_id: branchId, semester_id: semesterId, subject_id: subjectId }
     );
   }
 
@@ -48,6 +49,7 @@ export class QuestionsController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   findAll(
     @Query('course_id') courseId: string,
+    @Query('subject_id') subjectId: string,
     @Query('department_id') departmentId: string,
     @Query('branch_id') branchId: string,
     @Query('semester_id') semesterId: string,
@@ -60,6 +62,7 @@ export class QuestionsController {
     const tenantId = isSuperAdmin ? (tenantIdParam || 'master') : (req.user?.tenantId || 'test-tenant');
     return this.questionsService.getQuestions(String(tenantId), {
       course_id: courseId,
+      subject_id: subjectId,
       department_id: departmentId,
       branch_id: branchId,
       semester_id: semesterId,

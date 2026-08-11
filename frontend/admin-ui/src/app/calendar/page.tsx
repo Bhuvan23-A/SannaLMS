@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRole } from '@/hooks/useRole';
 import { fetchApi } from '@/lib/api';
+import CollegeTargetPicker from '@/components/CollegeTargetPicker';
 
 export default function CalendarPage() {
   const { role, isAdmin, isTrainer, isStudent } = useRole();
@@ -16,6 +17,7 @@ export default function CalendarPage() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [eventType, setEventType] = useState('CLASS');
+  const [targetTenants, setTargetTenants] = useState<string[]>([]);
 
   useEffect(() => {
     fetchEvents();
@@ -45,16 +47,24 @@ export default function CalendarPage() {
           description,
           start_time: toIso(startTime),
           end_time: toIso(endTime),
-          event_type: eventType
+          event_type: eventType,
+          target_tenants: targetTenants
           // tenant_id is derived server-side from the verified token (master for super admin)
         })
       });
       
       setShowModal(false);
+      setTargetTenants([]);
       fetchEvents();
     } catch (err: any) {
       alert(err.message);
     }
+  };
+
+  // Tag the card with which colleges the event was targeted at (super admin view).
+  const targetLabel = (ev: any) => {
+    if (!ev.target_tenants || ev.target_tenants.length === 0) return 'Private';
+    return ev.target_tenants.includes('__ALL__') ? 'All Colleges' : `${ev.target_tenants.length} college${ev.target_tenants.length > 1 ? 's' : ''}`;
   };
 
   const deleteEvent = async (id: string) => {
@@ -99,7 +109,14 @@ export default function CalendarPage() {
                   {ev.event_type}
                 </span>
               </div>
-              <h3 style={{ fontSize: '18px', marginBottom: '10px', paddingRight: '60px' }}>{ev.title}</h3>
+              <h3 style={{ fontSize: '18px', marginBottom: '10px', paddingRight: '60px' }}>
+                {ev.title}
+                {role === 'SUPER_ADMIN' && (
+                  <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(0,200,255,0.1)', color: 'var(--primary-color)' }}>
+                    {targetLabel(ev)}
+                  </span>
+                )}
+              </h3>
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '15px' }}>
                 {ev.description || 'No description provided.'}
               </p>
@@ -157,6 +174,7 @@ export default function CalendarPage() {
                   <option value="OTHER">Other</option>
                 </select>
               </div>
+              <CollegeTargetPicker value={targetTenants} onChange={setTargetTenants} />
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="btn-primary" style={{ flex: 1 }}>Schedule</button>
                 <button type="button" className="btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>

@@ -14,7 +14,24 @@ export class ProgressService {
 
     if (!topic) throw new ForbiddenException('Topic not found');
 
-    const courseId = topic.lesson.module.course_id;
+    // Subject-owned modules (course_id null) resolve the offering through the
+    // user's enrollment: any active offering of that subject counts.
+    let courseId = topic.lesson.module.course_id;
+    if (!courseId) {
+      const subjectId = topic.lesson.module.subject_id;
+      if (!subjectId) throw new ForbiddenException('Content Access Blocked: module is not linked to a course or subject.');
+      const enrollment = await this.prisma.extendedClient.enrollment.findFirst({
+        where: {
+          user_id: userId,
+          status: 'ACTIVE',
+          course: { subject_id: subjectId },
+        },
+      });
+      if (!enrollment) {
+        throw new ForbiddenException('Content Access Blocked: You do not have an active enrollment for this subject.');
+      }
+      courseId = enrollment.course_id;
+    }
 
     const enrollment = await this.prisma.extendedClient.enrollment.findUnique({
       where: { user_id_course_id: { user_id: userId, course_id: courseId } }

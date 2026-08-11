@@ -156,6 +156,9 @@ export default function SemestersPage() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>All Semesters</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 0 auto' }}>
+          ℹ️ Semesters here are the <strong>program timeline</strong> (Sem 1–8 once per branch). Running classes live under <strong>Sections</strong>.
+        </p>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
             className="input-field"
@@ -192,6 +195,7 @@ export default function SemestersPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Semester #</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
               {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
@@ -200,9 +204,9 @@ export default function SemestersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center' }}>No semesters found.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>No semesters found.</td></tr>
             ) : (
               filtered.map((semester) => (
                 <tr key={semester.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
@@ -228,6 +232,7 @@ export default function SemestersPage() {
                     </>
                   ) : (
                     <>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace' }}>{semester.semester_number ?? (() => { const m = /(\d+)/.exec(semester.name); return m ? m[1] : '—'; })()}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{semester.name}</td>
                       {isSuperAdmin && <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CourseStatus } from '@prisma/client';
 
@@ -6,29 +6,87 @@ import { CourseStatus } from '@prisma/client';
 export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Create a course — in stage-2 terms, a COURSE OFFERING: an instance of a
+   * Subject taught to a Section (cohort). When subject_id is given the title,
+   * subject code and credits inherit from the catalog subject; when section_id
+   * is given the org targeting (branch/department/year-of-study/semester) is
+   * mirrored from the section, and every roster member is auto-enrolled.
+   * Legacy payloads (title + optional org fields, no subject/section) still work.
+   */
   async create(createCourseDto: any, tenantId: string) {
-    return this.prisma.extendedClient.course.create({
+    let subject: any = null;
+    if (createCourseDto.subject_id) {
+      subject = await this.prisma.extendedClient.subject.findFirst({
+        where: { id: createCourseDto.subject_id, deleted_at: null },
+      });
+      if (!subject) throw new NotFoundException('Subject not found');
+    }
+
+    const sectionId = createCourseDto.section_id || null;
+    if (subject && sectionId) {
+      // One offering per subject per section.
+      const clash = await this.prisma.extendedClient.course.findFirst({
+        where: { subject_id: subject.id, section_id: sectionId, deleted_at: null },
+      });
+      if (clash) {
+        throw new BadRequestException(`This subject is already offered to this section (${clash.title})`);
+      }
+    }
+
+    const title = createCourseDto.title?.trim() || subject?.name;
+    if (!title) throw new BadRequestException('title is required (or provide a subject_id)');
+
+    const course = await this.prisma.extendedClient.course.create({
       data: {
-        title: createCourseDto.title,
-        description: createCourseDto.description,
+        title,
+        description: createCourseDto.description || subject?.description || null,
         status: createCourseDto.status || CourseStatus.DRAFT,
         tenant_id: tenantId,
-        department_id: createCourseDto.department_id || null,
-        branch_id: createCourseDto.branch_id || null,
+        department_id: createCourseDto.department_id ?? subject?.department_id ?? null,
+        branch_id: createCourseDto.branch_id ?? subject?.branch_id ?? null,
         semester_id: createCourseDto.semester_id || null,
         // year is a String column — coerce numbers so API clients sending 2
-        // (instead of "2") don't hit an opaque Prisma 500. DEPRECATED: kept so
-        // old clients keep working; new clients send year_of_study instead.
+        // (instead of "2") don't hit an opaque Prisma 500. DEPRECATED.
         year: createCourseDto.year != null && createCourseDto.year !== '' ? String(createCourseDto.year) : null,
-        // Stage-1 college-accurate fields: subject identity + cohort targeting.
-        // year_of_study is a real 1..4 year of study (NOT a calendar year).
-        subject_code: createCourseDto.subject_code?.trim() || null,
-        credits: this.toInt(createCourseDto.credits),
+        // Stage-1 college-accurate fields (mirrored from subject/section).
+        subject_code: createCourseDto.subject_code ?? subject?.code ?? null,
+        credits: this.toInt(createCourseDto.credits ?? subject?.credits),
         section: createCourseDto.section?.trim() || null,
         academic_session: createCourseDto.academic_session?.trim() || null,
         year_of_study: this.toInt(createCourseDto.year_of_study),
+        // Stage-2 structured pointers.
+        subject_id: subject?.id || null,
+        section_id: sectionId,
+        semester_number: this.toInt(createCourseDto.semester_number),
       },
     });
+
+    // Auto-enroll every roster member of the section into this new offering.
+    if (sectionId) {
+      const members = await this.prisma.extendedClient.sectionMembership.findMany({
+        where: { section_id: sectionId, status: 'ACTIVE', deleted_at: null },
+        select: { user_id: true },
+      });
+      for (const m of members) {
+        const existing = await this.prisma.extendedClient.enrollment.findUnique({
+          where: { user_id_course_id: { user_id: m.user_id, course_id: course.id } },
+        });
+        if (!existing) {
+          await this.prisma.extendedClient.enrollment.create({
+            data: {
+              user_id: m.user_id,
+              course_id: course.id,
+              tenant_id: tenantId,
+              auto_enrolled: true,
+              section_id: sectionId,
+            },
+          });
+        }
+      }
+    }
+
+    return course;
   }
 
   async update(id: string, data: any) {
@@ -47,6 +105,9 @@ export class CoursesService {
         section: data.section !== undefined ? (data.section?.trim() || null) : undefined,
         academic_session: data.academic_session !== undefined ? (data.academic_session?.trim() || null) : undefined,
         year_of_study: data.year_of_study !== undefined ? this.toInt(data.year_of_study) : undefined,
+        subject_id: data.subject_id !== undefined ? (data.subject_id || null) : undefined,
+        section_id: data.section_id !== undefined ? (data.section_id || null) : undefined,
+        semester_number: data.semester_number !== undefined ? this.toInt(data.semester_number) : undefined,
       }
     });
 
@@ -107,6 +168,7 @@ export class CoursesService {
           deleted_at: null,
           ...(ids.length > 0 ? { id: { in: ids } } : { id: 'none' }),
         },
+        include: { subject: true },
       });
     } else if (isStudent) {
       // Real-LMS behavior: "My Courses" shows the ACTIVE semester's courses;
@@ -124,15 +186,20 @@ export class CoursesService {
           deleted_at: null,
           ...(ids.length > 0 ? { id: { in: ids } } : { id: 'none' }),
         },
+        include: { subject: true },
       });
     }
 
     if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
       return this.prisma.extendedClient.course.findMany({
-        where: { tenant_id: tenantId, deleted_at: null }
+        where: { tenant_id: tenantId, deleted_at: null },
+        include: { subject: true },
       });
     }
-    return this.prisma.extendedClient.course.findMany({ where: { deleted_at: null } });
+    return this.prisma.extendedClient.course.findMany({
+      where: { deleted_at: null },
+      include: { subject: true },
+    });
   }
 
   // Lightweight count mirroring the role scoping above (#perf).
@@ -171,7 +238,8 @@ export class CoursesService {
 
   async findOne(id: string) {
     const course = await this.prisma.extendedClient.course.findUnique({
-      where: { id }
+      where: { id },
+      include: { subject: true },
     });
     // Soft-deleted courses behave as "not found" for every viewer — they're
     // archived, not gone, so grades/enrollments history stays intact.

@@ -20,6 +20,13 @@ enum Role {
   STUDENT
 }
 
+// Academic calendar state — exactly one ACTIVE session per tenant.
+enum AcademicSessionStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+}
+
 // ----------------------------------------------------------------------
 // ORG HIERARCHY
 // ----------------------------------------------------------------------
@@ -79,12 +86,17 @@ model Branch {
 
   department Department @relation(fields: [department_id], references: [id])
   semesters  Semester[]
+  sections   Section[]
 }
 
 model Semester {
   id         String    @id @default(uuid())
-  name       String    // e.g. "Fall 2026"
+  name       String    // e.g. "Fall 2026" or "Semester 3"
   branch_id  String
+
+  // College-accurate (stage 2): the numeric position in the program timeline
+  // (1..8). Backfilled from the name; used to derive year_of_study = ceil(n/2).
+  semester_number Int?
   
   // Mandatory Standard Fields
   tenant_id  String
@@ -97,6 +109,63 @@ model Semester {
   deleted_by String?
 
   branch Branch @relation(fields: [branch_id], references: [id])
+}
+
+// ----------------------------------------------------------------------
+// ACADEMIC SESSION & SECTION (college-accurate, stage 2)
+// ----------------------------------------------------------------------
+
+// The running academic year, e.g. "2026-27". Exactly one ACTIVE per tenant.
+model AcademicSession {
+  id         String    @id @default(uuid())
+  tenant_id  String
+  name       String               // "2026-27"
+  start_date DateTime?
+  end_date   DateTime?
+  status     AcademicSessionStatus @default(PLANNED)
+  is_current Boolean   @default(false)
+
+  // Mandatory Standard Fields
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  sections Section[]
+
+  @@unique([tenant_id, name])
+}
+
+// A concrete cohort: "B.Tech CSE, 2026-27, Sem 3, Section A".
+// The atomic roster unit — students are admitted to a section, then
+// auto-enrolled in every offering (course) that section runs.
+model Section {
+  id                  String   @id @default(uuid())
+  tenant_id           String
+  branch_id           String   // program (real relation to Branch)
+  academic_session_id String   // which running year (real relation to AcademicSession)
+  year_of_study       Int      // 1..4 — Sem 3 => 2nd year, 1st semester of that year
+  semester_number     Int      // 1..8
+  name                String   @default("") // "A", "B", "C" — "" = class not split
+
+  // Mandatory Standard Fields
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  branch          Branch          @relation(fields: [branch_id], references: [id])
+  academic_session AcademicSession @relation(fields: [academic_session_id], references: [id])
+
+  @@unique([tenant_id, branch_id, academic_session_id, semester_number, name])
+  @@index([tenant_id, academic_session_id])
+  @@index([branch_id, semester_number])
 }
 
 // ----------------------------------------------------------------------

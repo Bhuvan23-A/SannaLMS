@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import CollegeTargetPicker from '@/components/CollegeTargetPicker';
 
 interface DM { id: string; from_user: string; to_user: string; content: string; file_url?: string; is_read: boolean; created_at: string; }
 interface Message { id: string; user_id: string; content: string; file_url?: string; created_at: string; }
@@ -20,6 +21,7 @@ export default function ChatPage() {
   const [dmTarget, setDmTarget] = useState('u-2');
   const [newMsg, setNewMsg] = useState('');
   const [newRoomName, setNewRoomName] = useState('');
+  const [targetTenants, setTargetTenants] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // Only auto-scroll to the newest message when the user is already near the
@@ -90,8 +92,9 @@ export default function ChatPage() {
   const createRoom = async () => {
     if (!newRoomName.trim()) return;
     setLoading(true);
-    await fetchApi('/api/v1/chat/rooms', { method: 'POST', body: JSON.stringify({ name: newRoomName, type: 'GROUP' }) }).catch(() => {});
+    await fetchApi('/api/v1/chat/rooms', { method: 'POST', body: JSON.stringify({ name: newRoomName, type: 'GROUP', target_tenants: targetTenants }) }).catch(() => {});
     setNewRoomName('');
+    setTargetTenants([]);
     setLoading(false);
     loadRooms();
   };
@@ -122,6 +125,9 @@ export default function ChatPage() {
                 <button className="btn-primary" style={{ width: '100%' }} onClick={createRoom} disabled={loading}>
                   {loading ? 'Creating...' : '+ Create Room'}
                 </button>
+                <div style={{ marginTop: '10px' }}>
+                  <CollegeTargetPicker value={targetTenants} onChange={setTargetTenants} />
+                </div>
               </div>
             )}
             {rooms.length === 0 && <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>No rooms. Create or join one.</p>}

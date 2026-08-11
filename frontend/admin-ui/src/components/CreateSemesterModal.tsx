@@ -4,6 +4,7 @@ import { fetchApi } from '@/lib/api';
 
 export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [name, setName] = useState('');
+  const [semesterNumber, setSemesterNumber] = useState('');
   const [branches, setBranches] = useState<any[]>([]);
   const [heldCollegeIds, setHeldCollegeIds] = useState<Set<string>>(new Set());
   const [branchId, setBranchId] = useState('');
@@ -41,6 +42,8 @@ export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: (
           name,
           branch_id: branchId,
           tenant_id: selectedBranch?.tenant_id || 'test-college',
+          // Auto-derive the semester number from the name if the user left it blank
+          semester_number: semesterNumber ? Number(semesterNumber) : (() => { const m = /(\d+)/.exec(name || ''); return m ? Number(m[1]) : undefined; })(),
         }),
       });
       onSuccess();
@@ -74,6 +77,13 @@ export default function CreateSemesterModal({ onClose, onSuccess }: { onClose: (
             <input
               required className="input-field" value={name} onChange={e => setName(e.target.value)}
               placeholder="e.g. Semester 1 (2026)"
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Semester Number</label>
+            <input
+              type="number" min={1} max={12} className="input-field" value={semesterNumber} onChange={e => setSemesterNumber(e.target.value)}
+              placeholder="Auto from name if blank (e.g. 3)"
             />
           </div>
           <div>

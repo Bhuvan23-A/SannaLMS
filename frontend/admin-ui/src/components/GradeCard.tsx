@@ -1,9 +1,10 @@
 'use client';
 
-// Reusable semester grade card: groups a student's grades by semester and
-// shows per-course grade/CGPA, semester GPA and overall CGPA.
+// Reusable grade card: groups a student's grades by ACADEMIC SESSION (2026-27)
+// — falling back to semester for legacy rows — and shows per-course
+// grade/CGPA, session GPA and overall CGPA.
 // grades: gradebook rows [{course_id, total_score, max_score, grade, cgpa}]
-// courses: [{id, title, semester_id}]  semesters: [{id, name}]
+// courses: [{id, title, semester_id, academic_session}]  semesters: [{id, name}]
 
 export default function GradeCard({ grades, courses, semesters, studentName }: {
   grades: any[];
@@ -20,15 +21,29 @@ export default function GradeCard({ grades, courses, semesters, studentName }: {
     return m ? parseInt(m[1], 10) : 0;
   };
 
-  // Group courses by semester (courses without a semester target → "General").
+  // Group by academic session first (stage-2 field), falling back to the
+  // semester for legacy courses that predate sessions.
+  const sessionKey = (c: any) => c.academic_session?.trim() || (c.semester_id ? `sem:${c.semester_id}` : 'general');
+  const sessionTitle = (key: string) => {
+    if (key === 'general') return 'General';
+    if (key.startsWith('sem:')) return semesterName(key.slice(4));
+    return key; // e.g. "2026-27"
+  };
+  const sessionSort = (key: string) => {
+    const m = /(\d{4})/.exec(sessionTitle(key) || '');
+    const year = m ? parseInt(m[1], 10) : 0;
+    const sem = key.startsWith('sem:') ? semesterNumber(key.slice(4)) : 0;
+    return year * 10 + (sem % 10);
+  };
+
   const groups = new Map<string, any[]>();
   (Array.isArray(courses) ? courses : []).forEach((c: any) => {
-    const key = c.semester_id || 'general';
+    const key = sessionKey(c);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(c);
   });
 
-  const sortedKeys = Array.from(groups.keys()).sort((a, b) => semesterNumber(a) - semesterNumber(b));
+  const sortedKeys = Array.from(groups.keys()).sort((a, b) => sessionSort(a) - sessionSort(b));
 
   const graded = (Array.isArray(grades) ? grades : []).filter((g: any) => g.cgpa != null);
   const overallCgpa = graded.length ? graded.reduce((s: number, g: any) => s + (g.cgpa || 0), 0) / graded.length : null;
@@ -71,7 +86,7 @@ export default function GradeCard({ grades, courses, semesters, studentName }: {
         return (
           <div key={key} className="panel" style={{ marginBottom: '20px', padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '16px', margin: 0 }}>📘 {semesterName(key)}</h3>
+              <h3 style={{ fontSize: '16px', margin: 0 }}>📘 {sessionTitle(key)}</h3>
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 Semester GPA: <strong style={{ color: 'var(--primary-color)' }}>{semGpa != null ? semGpa.toFixed(2) : '—'}</strong>
               </span>

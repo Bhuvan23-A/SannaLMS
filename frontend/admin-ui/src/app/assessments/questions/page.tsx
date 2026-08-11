@@ -10,8 +10,11 @@ export default function QuestionsPage() {
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // Question bank differentiation (#fix): pick course, and (for admins) the
-  // college / department / branch / semester the bank belongs to.
+  // Question bank differentiation (#fix): the bank is SUBJECT-FIRST — one bank
+  // per Subject catalog row, reused by every offering/section of that subject.
+  // Course, college, department, branch and semester refine the view.
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [subjectId, setSubjectId] = useState('');
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
   const [colleges, setColleges] = useState<any[]>([]);
@@ -41,13 +44,15 @@ export default function QuestionsPage() {
     if (!isAdmin && !isTrainer) { setLoading(false); return; }
     (async () => {
       try {
-        const [coursesData, collegesData, depts, brs, sems] = await Promise.all([
+        const [subjectsData, coursesData, collegesData, depts, brs, sems] = await Promise.all([
+          fetchApi('/api/v1/subjects').catch(() => []),
           fetchApi('/api/v1/courses').catch(() => []),
           isSuperAdmin ? fetchApi('/api/v1/colleges').catch(() => []) : Promise.resolve([]),
           isAdmin ? fetchApi('/api/v1/departments').catch(() => []) : Promise.resolve([]),
           isAdmin ? fetchApi('/api/v1/branches').catch(() => []) : Promise.resolve([]),
           isAdmin ? fetchApi('/api/v1/semesters').catch(() => []) : Promise.resolve([]),
         ]);
+        setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
         setCourses(Array.isArray(coursesData) ? coursesData : []);
         // Only active colleges — held ones are suspended (#fix)
         const active = (Array.isArray(collegesData) ? collegesData : []).filter((c: any) => c.status !== 'HELD');
@@ -56,7 +61,7 @@ export default function QuestionsPage() {
         setBranches(Array.isArray(brs) ? brs : []);
         setSemesters(Array.isArray(sems) ? sems : []);
         if (isSuperAdmin && active.length > 0) setCollegeId(active[0].id);
-        else if (Array.isArray(coursesData) && coursesData.length > 0) setCourseId(coursesData[0].id);
+        else if (Array.isArray(subjectsData) && subjectsData.length > 0) setSubjectId(subjectsData[0].id);
       } catch { /* reference data unavailable */ }
     })();
   }, [isAdmin, isTrainer, isSuperAdmin]);
@@ -64,7 +69,7 @@ export default function QuestionsPage() {
   useEffect(() => {
     if (isAdmin || isTrainer) loadQuestions(); else setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, isTrainer, courseId, collegeId, deptId, branchId, semId]);
+  }, [isAdmin, isTrainer, subjectId, courseId, collegeId, deptId, branchId, semId]);
 
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
 
@@ -78,15 +83,20 @@ export default function QuestionsPage() {
   // Courses scoped to the selected college — same-named courses from different
   // colleges would otherwise be indistinguishable (#fix)
   const visibleCourses = courses.filter((c: any) => !isSuperAdmin || !selectedCollege || !c.tenant_id || c.tenant_id === selectedCollege.tenant_id);
+  // Subjects scoped to the selected college (super admin) — a subject belongs
+  // to a college's catalog, so same-named subjects from other colleges are hidden.
+  const visibleSubjects = subjects.filter((s: any) => !isSuperAdmin || !selectedCollege || !s.tenant_id || s.tenant_id === selectedCollege.tenant_id);
   const collegeNameByTenant = (tid?: string) => colleges.find((c: any) => c.tenant_id === tid)?.name || '';
   const orgEmpty = visibleDepartments.length === 0;
 
-  // Keep the selected course inside the selected college (super admin)
+  // Keep the selected subject inside the selected college (super admin)
   useEffect(() => {
-    if (visibleCourses.length === 0) return;
-    if (!visibleCourses.some((c: any) => c.id === courseId)) setCourseId(visibleCourses[0].id);
+    if (visibleSubjects.length === 0) return;
+    if (!visibleSubjects.some((s: any) => s.id === subjectId)) setSubjectId(visibleSubjects[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleCourses, courseId]);
+  }, [visibleSubjects, subjectId]);
+
+  const selectedSubject = visibleSubjects.find((s: any) => s.id === subjectId);
 
   const importFromPdf = async (e: any) => {
     const file = e.target.files?.[0];
@@ -94,6 +104,7 @@ export default function QuestionsPage() {
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
+    if (subjectId) formData.append('subject_id', subjectId);
     if (courseId) formData.append('course_id', courseId);
     if (isSuperAdmin && selectedCollege?.tenant_id) formData.append('tenant_id', selectedCollege.tenant_id);
     if (deptId) formData.append('department_id', deptId);
@@ -116,6 +127,7 @@ export default function QuestionsPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+      if (subjectId) params.set('subject_id', subjectId);
       if (courseId) params.set('course_id', courseId);
       if (isSuperAdmin && selectedCollege?.tenant_id) params.set('tenant_id', selectedCollege.tenant_id);
       if (deptId) params.set('department_id', deptId);
@@ -168,6 +180,7 @@ export default function QuestionsPage() {
         ...form,
         options: form.type === 'MCQ' ? options : undefined
       };
+      if (subjectId) body.subject_id = subjectId;
       if (courseId) body.course_id = courseId;
       if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
       if (deptId) body.department_id = deptId;
@@ -201,15 +214,24 @@ export default function QuestionsPage() {
             {isSuperAdmin && colleges.length > 0 && (
               <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>College:</label>
-                <select className="input-field" style={{ maxWidth: '220px' }} value={collegeId} onChange={e => { setCollegeId(e.target.value); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}>
+                <select className="input-field" style={{ maxWidth: '220px' }} value={collegeId} onChange={e => { setCollegeId(e.target.value); setSubjectId(''); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}>
                   {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </>
+            )}
+            {visibleSubjects.length > 0 && (
+              <>
+                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Subject:</label>
+                <select className="input-field" style={{ maxWidth: '240px' }} value={subjectId} onChange={e => setSubjectId(e.target.value)}>
+                  {visibleSubjects.map((s: any) => <option key={s.id} value={s.id}>{s.code ? `${s.code} · ` : ''}{s.name}</option>)}
                 </select>
               </>
             )}
             {visibleCourses.length > 0 && (
               <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-                <select className="input-field" style={{ maxWidth: '360px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                <select className="input-field" style={{ maxWidth: '300px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
+                  <option value="">All offerings</option>
                   {visibleCourses.map((c: any) => <option key={c.id} value={c.id}>{collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
                 </select>
               </>
@@ -293,7 +315,7 @@ export default function QuestionsPage() {
             <textarea className="input-field" rows={3} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
           </div>
           <div style={{ marginBottom: '15px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-            📍 Will be saved under: <strong>{courses.find((c: any) => c.id === courseId)?.title || 'course'}</strong>
+            📍 Will be saved under: <strong>{selectedSubject ? `${selectedSubject.code ? selectedSubject.code + ' · ' : ''}${selectedSubject.name}` : (courses.find((c: any) => c.id === courseId)?.title || 'subject')}</strong>
             {isSuperAdmin && selectedCollege && <> · <strong>{selectedCollege.name}</strong></>}
             {deptId && <> · Dept: <strong>{visibleDepartments.find((d: any) => d.id === deptId)?.name}</strong></>}
             {branchId && <> · Branch: <strong>{visibleBranches.find((b: any) => b.id === branchId)?.name}</strong></>}
@@ -336,6 +358,11 @@ export default function QuestionsPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : q.type === 'CODING' ? 'badge-warning' : 'badge-success'}`}>{q.type}</span>
+                      {q.subject_id && subjects.find((s: any) => s.id === q.subject_id) && (
+                        <span className="badge badge-info" style={{ background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
+                          {subjects.find((s: any) => s.id === q.subject_id).code || ''} {subjects.find((s: any) => s.id === q.subject_id).name}
+                        </span>
+                      )}
                       <strong>{q.title}</strong>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>({q.marks} mark{q.marks > 1 ? 's' : ''})</span>
                       {(q.department_id || q.branch_id || q.semester_id) && (

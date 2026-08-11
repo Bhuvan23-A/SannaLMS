@@ -12,6 +12,7 @@ export class QuestionsService {
     const createData: any = {
       tenant_id: tenantId,
       course_id: data.course_id || data.courseId || 'c-1',
+      subject_id: data.subject_id || data.subjectId || null,
       // Org-hierarchy scoping: department/branch/semester the question belongs to
       department_id: data.department_id || data.departmentId || null,
       branch_id: data.branch_id || data.branchId || null,
@@ -46,6 +47,7 @@ export class QuestionsService {
     if (data.marks !== undefined) updateData.marks = Number(data.marks) || 1;
     if (data.answer_key !== undefined) updateData.answer_key = data.answer_key;
     if (data.course_id !== undefined) updateData.course_id = data.course_id;
+    if (data.subject_id !== undefined) updateData.subject_id = data.subject_id;
     if (data.department_id !== undefined) updateData.department_id = data.department_id;
     if (data.branch_id !== undefined) updateData.branch_id = data.branch_id;
     if (data.semester_id !== undefined) updateData.semester_id = data.semester_id;
@@ -68,10 +70,13 @@ export class QuestionsService {
     return { deleted: true, id };
   }
 
-  async getQuestions(tenantId: string, filters?: { course_id?: string; department_id?: string; branch_id?: string; semester_id?: string }) {
+  async getQuestions(tenantId: string, filters?: { course_id?: string; subject_id?: string; department_id?: string; branch_id?: string; semester_id?: string }) {
     const whereClause: any = { tenant_id: tenantId };
     if (filters?.course_id) {
       whereClause.course_id = filters.course_id;
+    }
+    if (filters?.subject_id) {
+      whereClause.subject_id = filters.subject_id;
     }
     if (filters?.department_id) {
       whereClause.department_id = filters.department_id;
@@ -110,7 +115,7 @@ export class QuestionsService {
     file: Express.Multer.File,
     courseId?: string,
     tenantId?: string,
-    org?: { department_id?: string; branch_id?: string; semester_id?: string }
+    org?: { department_id?: string; branch_id?: string; semester_id?: string; subject_id?: string }
   ) {
     const tenant = tenantId || 'test-tenant';
     const course = courseId || 'c-1';
@@ -123,6 +128,7 @@ export class QuestionsService {
       const questionData: any = {
         tenant_id: tenant,
         course_id: course,
+        subject_id: org?.subject_id || null,
         // The bank is differentiated per college + org hierarchy — carry the
         // department/branch/semester the PDF was imported under (#fix).
         department_id: org?.department_id || null,

@@ -32,6 +32,8 @@ services:
           - /api/v1/departments
           - /api/v1/branches
           - /api/v1/semesters
+          - /api/v1/academic-sessions
+          - /api/v1/sections
           - /api/v1/users
         strip_path: false
 
@@ -59,6 +61,8 @@ services:
           - /api/v1/prerequisites
           - /api/v1/course-trainers
           - /api/v1/promotions
+          - /api/v1/subjects
+          - /api/v1/rosters
         strip_path: false
 
   - name: assessment-service-p2

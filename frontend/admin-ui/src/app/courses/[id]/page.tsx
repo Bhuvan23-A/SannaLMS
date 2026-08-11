@@ -73,7 +73,13 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
 
   const addModule = async () => {
     if (!newModule.trim()) return;
-    await fetchApi('/api/v1/modules', { method: 'POST', body: JSON.stringify({ title: newModule, course_id: courseId, sequence_no: modules.length + 1 }) });
+    // Offering-level builder also feeds the subject syllabus (phase 5): pass
+    // subject_id so the module is shared by every section teaching the subject.
+    await fetchApi('/api/v1/modules', { method: 'POST', body: JSON.stringify({
+      title: newModule, course_id: courseId,
+      subject_id: course?.subject_id || undefined,
+      sequence_no: modules.length + 1,
+    }) });
     setNewModule('');
     loadCourse();
   };
@@ -160,6 +166,11 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
           </h1>
           <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary-color)' }}>{courseId}</span>
           {course && <span className={`badge badge-${course.status === 'PUBLISHED' ? 'success' : 'warning'}`} style={{ marginLeft: '12px' }}>{course.status}</span>}
+          {course?.subject && (
+            <span className="badge badge-info" style={{ marginLeft: '12px', background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
+              📚 {course.subject.code} · {course.subject.name}
+            </span>
+          )}
         </div>
       </div>
 

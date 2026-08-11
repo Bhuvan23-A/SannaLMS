@@ -1,6 +1,6 @@
 # College-Accurate Schema — Design Doc
 
-**Status:** Proposed (not yet implemented)
+**Status:** Stages 1–5 implemented and deployed (Aug 2026). Stage 2 ships real `Subject`, `Section`, `AcademicSession` tables, offering-based course creation, section rosters with auto-enrollment, and section-based promotion. **Stage 3 (read-path switch) is done:** courses resolve their Subject in every list/detail API, modules read the Subject-level syllabus with offering fallback, the question bank is subject-owned (`Question.subject_id`, backfilled live — 29 questions linked), and the question-bank UI is subject-first. **Stages 4–5 (write path + UI) complete:** subject-owned syllabus editor on the Subjects page (`GET /subjects/:id/syllabus` + module create with `subject_id`), the offering builder links new modules to the subject, section-to-section **Promote** on the Sections page, and the Semesters page shows the per-branch timeline with semester numbers. Multi-college targeting for super-admin events/forums/chat rooms is live (`target_tenants`, with `__ALL__` broadcast). **Phase 6 (destructive column drop) intentionally deferred** — requires ≥ 1 verified academic cycle; the readiness gate is `infrastructure/db/parity_audit.sql`.
 **Scope:** `course-service`, `college-service`, `assessment-service` schemas + admin UI
 **Author:** SannaLMS engineering
 **Related docs:** `docs/ARCHITECTURE.md`, `docs/RBAC_ADMIN_ACCESS_MATRIX.md`

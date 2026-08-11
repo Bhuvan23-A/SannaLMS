@@ -15,6 +15,12 @@ model Forum {
   title       String
   description String?
   is_locked   Boolean  @default(false)
+
+  // College targeting (#multi-college): empty = visible only in the creator's
+  // own college. Super admins set this to specific tenant_ids and/or
+  // ["__ALL__"] to broadcast to every college.
+  target_tenants String[] @default([])
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   threads     Thread[]
@@ -78,6 +84,12 @@ model ChatRoom {
   type        String   @default("GROUP") // GROUP | COURSE | COHORT
   course_id   String?
   created_by  String
+
+  // College targeting (#multi-college): empty = visible only in the creator's
+  // own college. Super admins set this to specific tenant_ids and/or
+  // ["__ALL__"] to broadcast to every college.
+  target_tenants String[] @default([])
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 

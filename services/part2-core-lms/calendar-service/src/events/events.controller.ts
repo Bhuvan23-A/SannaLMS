@@ -20,7 +20,7 @@ export class EventsController {
     // Super admin schedules global events under 'master'; others under their own tenant
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body['tenant_id'] || 'master') : (req.user?.tenantId || 'test-tenant');
-    return this.eventsService.create(body, String(tenantId));
+    return this.eventsService.create({ ...body, role: isSuperAdmin ? 'superadmin' : req.user?.roles?.[0] }, String(tenantId));
   }
 
   @Get()
@@ -34,7 +34,7 @@ export class EventsController {
   findAll(@Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.eventsService.findAll(String(tenantId));
+    return this.eventsService.findAll(String(tenantId), !!isSuperAdmin);
   }
 
   @Get(':id')

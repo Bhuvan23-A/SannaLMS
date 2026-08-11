@@ -24,6 +24,11 @@ model Event {
   event_type  EventType @default(OTHER)
   course_id   String?  // Logical link to course-service
 
+  // College targeting (#multi-college): empty = visible only in the creator's
+  // own college. Super admins set this to specific tenant_ids and/or
+  // ["__ALL__"] to broadcast to every college.
+  target_tenants String[] @default([])
+
   // Mandatory Standard Fields
   tenant_id  String
   version    Int       @default(1)

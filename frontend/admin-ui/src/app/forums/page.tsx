@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
+import CollegeTargetPicker from '@/components/CollegeTargetPicker';
 
 export default function ForumsPage() {
   const [forums, setForums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAdmin, isTrainer } = useRole();
+  const { role, isAdmin, isTrainer } = useRole();
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [targetTenants, setTargetTenants] = useState<string[]>([]);
 
   useEffect(() => {
     loadForums();
@@ -41,10 +43,11 @@ export default function ForumsPage() {
     try {
       await fetchApi('/api/v1/forums', {
         method: 'POST',
-        body: JSON.stringify({ title: newTitle, description: newDesc })
+        body: JSON.stringify({ title: newTitle, description: newDesc, target_tenants: targetTenants })
       });
       setNewTitle('');
       setNewDesc('');
+      setTargetTenants([]);
       loadForums();
     } catch (err) {
       alert('Failed to create forum');
@@ -73,13 +76,26 @@ export default function ForumsPage() {
         </form>
       )}
 
+      {(isAdmin || isTrainer) && (
+        <div style={{ marginBottom: '20px' }}>
+          <CollegeTargetPicker value={targetTenants} onChange={setTargetTenants} />
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {forums.length === 0 ? <p>No forums available.</p> : forums.map(f => (
           <Link href={`/forums/${f.id}`} key={f.id} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="panel" style={{ transition: 'transform 0.2s', cursor: 'pointer' }} 
                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-              <h2 style={{ fontSize: '20px', color: 'var(--primary-color)', marginBottom: '5px' }}>{f.title}</h2>
+              <h2 style={{ fontSize: '20px', color: 'var(--primary-color)', marginBottom: '5px' }}>
+                {f.title}
+                {role === 'SUPER_ADMIN' && f.target_tenants && f.target_tenants.length > 0 && (
+                  <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(0,200,255,0.1)', color: 'var(--primary-color)' }}>
+                    {f.target_tenants.includes('__ALL__') ? 'All Colleges' : `${f.target_tenants.length} college${f.target_tenants.length > 1 ? 's' : ''}`}
+                  </span>
+                )}
+              </h2>
               <p style={{ color: 'var(--text-secondary)' }}>{f.description}</p>
             </div>
           </Link>

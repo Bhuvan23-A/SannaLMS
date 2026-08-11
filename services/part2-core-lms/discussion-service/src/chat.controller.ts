@@ -55,6 +55,11 @@ export class ChatController {
     const userId = req.user?.id || 'u-1';
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    const rawTargets: unknown = body.target_tenants;
+    let targetTenants: string[] = [];
+    if (isSuperAdmin && Array.isArray(rawTargets)) {
+      targetTenants = rawTargets.map(String).filter(Boolean);
+    }
     return this.prisma.chatRoom.create({
       data: {
         name: body.name,
@@ -63,6 +68,7 @@ export class ChatController {
         course_id: body.course_id,
         created_by: String(userId),
         tenant_id: String(tenantId),
+        target_tenants: targetTenants,
         members: {
           create: [{ user_id: String(userId), role: 'ADMIN' }]
         }
@@ -77,9 +83,20 @@ export class ChatController {
     const userId = req.user?.id || 'u-1';
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    if (isSuperAdmin) {
+      // Super admin sees all rooms (their own 'master' ones + any college's).
+      return this.prisma.chatRoom.findMany({
+        where: { members: { some: { user_id: String(userId) } } },
+        include: { _count: { select: { members: true, messages: true } } }
+      });
+    }
     return this.prisma.chatRoom.findMany({
       where: {
-        tenant_id: String(tenantId),
+        OR: [
+          { tenant_id: String(tenantId) },
+          { target_tenants: { has: String(tenantId) } },
+          { target_tenants: { has: '__ALL__' } },
+        ],
         members: { some: { user_id: String(userId) } }
       },
       include: { _count: { select: { members: true, messages: true } } }

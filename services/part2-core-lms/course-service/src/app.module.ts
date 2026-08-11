@@ -18,6 +18,8 @@ import { ContentEngineModule } from './content-engine/content-engine.module';
 import { ResourcesModule } from './resources/resources.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { AdminModule } from './admin/admin.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { RostersModule } from './rosters/rosters.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -26,7 +28,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     CoursesModule, CourseTrainersModule, ModulesModule, LessonsModule,
-    TopicsModule, EnrollmentsModule, ProgressModule, PrerequisitesModule, ContentEngineModule, ResourcesModule, PromotionsModule, AdminModule
+    TopicsModule, EnrollmentsModule, ProgressModule, PrerequisitesModule, ContentEngineModule, ResourcesModule, PromotionsModule, AdminModule, SubjectsModule, RostersModule
   ],
   controllers: [AppController],
   providers: [

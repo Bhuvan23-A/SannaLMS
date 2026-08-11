@@ -24,6 +24,26 @@ export default function CoursesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Stage-2 lookups: resolve subject/section/session names for the table
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [subs, secs, brs, sess] = await Promise.all([
+        fetchApi('/api/v1/subjects').catch(() => []),
+        fetchApi('/api/v1/sections').catch(() => []),
+        fetchApi('/api/v1/branches').catch(() => []),
+        fetchApi('/api/v1/academic-sessions').catch(() => []),
+      ]);
+      setSubjects(Array.isArray(subs) ? subs : []);
+      setSections(Array.isArray(secs) ? secs : []);
+      setBranches(Array.isArray(brs) ? brs : []);
+      setSessions(Array.isArray(sess) ? sess : []);
+    })();
+  }, []);
   // Course resources (#6) + add student (#5)
   const [resourcesCourse, setResourcesCourse] = useState<any>(null);
   const [resourcesList, setResourcesList] = useState<any[]>([]);
@@ -139,6 +159,15 @@ export default function CoursesPage() {
       openAssignTrainer(trainerCourse);
       alert('✅ Trainer assigned to course');
     } catch (err: any) { alert(err.message || 'Failed to assign trainer'); } finally { setTrainerAdding(false); }
+  };
+
+  const subjectById = Object.fromEntries(subjects.map((s: any) => [s.id, s]));
+  const branchName = (id: string) => branches.find((b: any) => b.id === id)?.name;
+  const sessionName = (id: string) => sessions.find((s: any) => s.id === id)?.name;
+  const sectionLabel = (secId: string) => {
+    const s = sections.find((x: any) => x.id === secId);
+    if (!s) return null;
+    return `${branchName(s.branch_id) || ''} · ${sessionName(s.academic_session_id) || ''} · Sem ${s.semester_number}${s.name ? ` · Sec ${s.name}` : ''}`.replace(/^ · /, '');
   };
 
   const deleteCourse = async (id: string) => {
@@ -271,14 +300,20 @@ export default function CoursesPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
                     {(() => {
                       const parts: string[] = [];
-                      if (course.subject_code) parts.push(course.subject_code);
+                      const subj = subjectById[course.subject_id];
+                      if (subj?.code) parts.push(subj.code);
+                      else if (course.subject_code) parts.push(course.subject_code);
                       else if (course.department_id || course.branch_id || course.semester_id) {
                         parts.push([course.department_id && 'D', course.branch_id && 'B', course.semester_id && 'S'].filter(Boolean).join('·'));
                       }
-                      if (course.section) parts.push(`Sec ${course.section}`);
-                      if (course.academic_session) parts.push(course.academic_session);
-                      if (course.year_of_study) parts.push(`Yr ${course.year_of_study}`);
-                      else if (course.year) parts.push(`Yr ${course.year}`);
+                      const secLabel = course.section_id ? sectionLabel(course.section_id) : null;
+                      if (secLabel) parts.push(secLabel);
+                      else {
+                        if (course.section) parts.push(`Sec ${course.section}`);
+                        if (course.academic_session) parts.push(course.academic_session);
+                        if (course.year_of_study) parts.push(`Yr ${course.year_of_study}`);
+                        else if (course.year) parts.push(`Yr ${course.year}`);
+                      }
                       return parts.length > 0 ? parts.join(' · ') : '—';
                     })()}
                   </td>

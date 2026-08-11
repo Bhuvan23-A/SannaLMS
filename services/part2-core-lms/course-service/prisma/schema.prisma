@@ -24,6 +24,12 @@ enum EnrollmentStatus {
   COMPLETED
 }
 
+enum MembershipStatus {
+  ACTIVE
+  COMPLETED // promoted / graduated out of this section
+  DROPPED
+}
+
 enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -46,6 +52,40 @@ enum AssetType {
 }
 
 // ----------------------------------------------------------------------
+// SUBJECT CATALOG (college-accurate, stage 2)
+// ----------------------------------------------------------------------
+
+// A catalog subject: "Data Structures" (CS201, 4 credits). Defined once;
+// offerings (Course rows) are instances of a subject taught to a Section.
+model Subject {
+  id            String @id @default(uuid())
+  tenant_id     String
+  code          String // "CS201" — auto-generated ("SUB-###") if blank
+  name          String
+  description   String?
+  department_id String? // logical ref to college-service
+  branch_id     String? // program this subject belongs to
+  credits       Int    @default(3)
+  lt_p          String? // "3-1-0" lecture-tutorial-practical
+  status        CourseStatus @default(DRAFT)
+
+  // Mandatory Standard Fields
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  modules   Module[] // syllabus owned by the subject
+  offerings Course[] // CourseOffering instances
+
+  @@unique([tenant_id, branch_id, code])
+  @@index([tenant_id, department_id])
+}
+
+// ----------------------------------------------------------------------
 // COURSE ENGINE
 // ----------------------------------------------------------------------
 
@@ -63,13 +103,20 @@ model Course {
   year          String? // DEPRECATED (stage-2 of college-accurate schema drops it)
 
   // College-accurate fields (stage 1): subject identity + cohort targeting.
-  // stage 2 replaces these with real Subject / Section / AcademicSession tables;
-  // for now they are first-class columns so real colleges can capture them.
+  // Stage 2 adds the structured Subject/Section pointers below; these scalar
+  // columns are mirrored from them for display/back-compat (deprecated later).
   subject_code    String? // e.g. "CS201" — the catalog code of this subject
-  credits         Int?    // e.g. 4 — weight of this subject
+  credits         Int?    // e.g. 4 — weight of this subject (override; inherit from subject)
   section         String? // class section: "A", "B", "C" (empty = unsplit class)
   academic_session String? // running academic year, e.g. "2026-27"
   year_of_study   Int?    // 1..4 — the year of study this course targets
+
+  // Stage-2 structured pointers (college-accurate schema): an offering is an
+  // instance of a Subject taught to a Section (cohort). subject_id is a real
+  // relation (same DB); section_id is a logical ref to the college-service DB.
+  subject_id      String?
+  section_id      String?
+  semester_number Int? // denormalized from the section (1..8)
 
   // Mandatory Standard Fields
   tenant_id  String
@@ -87,6 +134,7 @@ model Course {
   prerequisites CoursePrerequisite[]
   history       CourseVersionHistory[]
   resources     CourseResource[]
+  subject       Subject? @relation(fields: [subject_id], references: [id])
 }
 
 // Files (PDFs, documents, links) attached at the course level — the "Resources"
@@ -128,11 +176,35 @@ model CourseTrainer {
   @@unique([course_id, user_id])
 }
 
+// The class roster: one row per student per Section. Enrolling a student in a
+// section auto-enrolls them in every active offering of that section.
+model SectionMembership {
+  id          String           @id @default(uuid())
+  tenant_id   String
+  section_id  String           // logical ref to college-service Section
+  user_id     String           // student (logical ref to college-service User)
+  status      MembershipStatus @default(ACTIVE)
+  enrolled_at DateTime         @default(now())
+
+  // Mandatory Standard Fields
+  version    Int       @default(1)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  created_by String?
+  updated_by String?
+  deleted_by String?
+
+  @@unique([section_id, user_id])
+  @@index([user_id, status])
+}
+
 model Module {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
-  course_id   String
-  sequence_no Int    @default(1)
+  course_id   String? // NULL when the module belongs only to the Subject syllabus
+  subject_id  String? // syllabus owned by the Subject (shared across offerings)
+  sequence_no Int     @default(1)
 
   // Mandatory Standard Fields
   tenant_id  String
@@ -144,7 +216,8 @@ model Module {
   updated_by String?
   deleted_by String?
 
-  course  Course   @relation(fields: [course_id], references: [id])
+  course  Course?  @relation(fields: [course_id], references: [id])
+  subject Subject? @relation(fields: [subject_id], references: [id])
   lessons Lesson[]
 }
 
@@ -213,7 +286,14 @@ model Enrollment {
 
   course Course @relation(fields: [course_id], references: [id])
 
+  // auto_enrolled=true means the enrollment came from section membership
+  // (auto-enroll in every offering of the section). Manual/elective enrollments
+  // are false. section_id denormalized for roster-level queries.
+  auto_enrolled Boolean  @default(false)
+  section_id    String?
+
   @@unique([user_id, course_id])
+  @@index([section_id])
 }
 
 model TopicProgress {
@@ -380,15 +460,20 @@ model CourseVersionHistory {
 
 // One row per student promoted from one semester to the next (audit trail).
 // branch_id / semester IDs reference the college-service org hierarchy.
+// Stage 2: sections carry the cohort — from_section_id/to_section_id are the
+// canonical pointers; semester IDs kept for the audit trail.
 model Promotion {
   id               String   @id @default(uuid())
   tenant_id        String
   branch_id        String
-  from_semester_id String
-  to_semester_id   String
+  from_semester_id String?
+  to_semester_id   String?
+  from_section_id  String?
+  to_section_id    String?
   student_id       String
   promoted_by      String?
   created_at       DateTime @default(now())
 
   @@index([tenant_id, branch_id, from_semester_id])
+  @@index([tenant_id, from_section_id])
 }

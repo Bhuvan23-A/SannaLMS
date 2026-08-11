@@ -11,6 +11,8 @@ model Question {
   id            String   @id @default(uuid())
   tenant_id     String
   course_id     String
+  subject_id    String? // NEW (phase 3): bank is owned by the Subject catalog row —
+                        // one bank per subject, reused across every offering/section.
   // Optional org-hierarchy scoping so the question bank can be differentiated
   // by college (tenant_id), department, branch and semester — super admin can
   // filter by college, college admin by department/branch/semester, trainers
