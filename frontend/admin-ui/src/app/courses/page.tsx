@@ -41,6 +41,17 @@ export default function CoursesPage() {
   const [trainerAdding, setTrainerAdding] = useState(false);
   const [trainersList, setTrainersList] = useState<any[]>([]);
   const [trainersLoading, setTrainersLoading] = useState(false);
+  // Bulk enroll (#bulk): enroll many students into every course of a
+  // branch+semester in one action instead of per-course clicks.
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkBranches, setBulkBranches] = useState<any[]>([]);
+  const [bulkSemesters, setBulkSemesters] = useState<any[]>([]);
+  const [bulkBranchId, setBulkBranchId] = useState('');
+  const [bulkSemesterId, setBulkSemesterId] = useState('');
+  const [bulkCourseIds, setBulkCourseIds] = useState<string[]>([]);
+  const [bulkSelectedStudents, setBulkSelectedStudents] = useState<string[]>([]);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkResult, setBulkResult] = useState<any>(null);
 
   const loadCourses = async () => {
     try {
@@ -144,6 +155,53 @@ export default function CoursesPage() {
     loadCourses();
   }, []);
 
+  // Org data for the bulk-enroll modal (branch -> semester cascade)
+  const openBulkEnroll = async () => {
+    setBulkOpen(true);
+    setBulkBranchId('');
+    setBulkSemesterId('');
+    setBulkCourseIds([]);
+    setBulkSelectedStudents([]);
+    setBulkResult(null);
+    try {
+      const [brs, sems] = await Promise.all([
+        fetchApi('/api/v1/branches').catch(() => []),
+        fetchApi('/api/v1/semesters').catch(() => []),
+      ]);
+      setBulkBranches(Array.isArray(brs) ? brs : []);
+      setBulkSemesters(Array.isArray(sems) ? sems : []);
+    } catch { /* org data unavailable */ }
+  };
+
+  // Every course of the selected branch+semester (all get enrolled into)
+  const bulkTargetCourses = courses.filter((c: any) =>
+    (!bulkBranchId || c.branch_id === bulkBranchId) &&
+    (!bulkSemesterId || c.semester_id === bulkSemesterId)
+  );
+  const bulkVisibleSemesters = bulkSemesters.filter((s: any) => !bulkBranchId || s.branch_id === bulkBranchId);
+
+  const toggleBulkStudent = (uid: string) => {
+    setBulkSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
+  };
+
+  const runBulkEnroll = async () => {
+    if (bulkSelectedStudents.length === 0) { alert('Select at least one student'); return; }
+    if (bulkTargetCourses.length === 0) { alert('No courses found for this branch + semester — create them first'); return; }
+    setBulkRunning(true);
+    setBulkResult(null);
+    try {
+      const res = await fetchApi('/api/v1/enrollments/bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_ids: bulkSelectedStudents,
+          course_ids: bulkTargetCourses.map((c: any) => c.id),
+        }),
+      });
+      setBulkResult(res);
+      loadCourses();
+    } catch (err: any) { alert(err.message || 'Bulk enroll failed'); } finally { setBulkRunning(false); }
+  };
+
   return (
     <div className="animate-fade-in">
       <Topbar title="Courses Management" />
@@ -158,7 +216,12 @@ export default function CoursesPage() {
             </select>
           )}
           {/* Only the college admin creates courses in their college (#fix) */}
-          {isCollegeAdmin && <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>}
+          {isCollegeAdmin && (
+            <>
+              <button className="btn-secondary" onClick={openBulkEnroll}>⚡ Bulk Enroll</button>
+              <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>
+            </>
+          )}
           {!isCollegeAdmin && (isAdmin || isTrainer) && (
             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Only college admins can create courses</span>
           )}
@@ -178,7 +241,7 @@ export default function CoursesPage() {
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Title</th>
               {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Dept / Branch / Sem / Year</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Subject / Section / Session / Yr</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -206,9 +269,18 @@ export default function CoursesPage() {
                     </span>
                   </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    {course.department_id || course.branch_id || course.semester_id || course.year
-                      ? [course.department_id && 'D', course.branch_id && 'B', course.semester_id && 'S'].filter(Boolean).join('·') + (course.year ? ` · Yr ${course.year}` : '')
-                      : '—'}
+                    {(() => {
+                      const parts: string[] = [];
+                      if (course.subject_code) parts.push(course.subject_code);
+                      else if (course.department_id || course.branch_id || course.semester_id) {
+                        parts.push([course.department_id && 'D', course.branch_id && 'B', course.semester_id && 'S'].filter(Boolean).join('·'));
+                      }
+                      if (course.section) parts.push(`Sec ${course.section}`);
+                      if (course.academic_session) parts.push(course.academic_session);
+                      if (course.year_of_study) parts.push(`Yr ${course.year_of_study}`);
+                      else if (course.year) parts.push(`Yr ${course.year}`);
+                      return parts.length > 0 ? parts.join(' · ') : '—';
+                    })()}
                   </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
                     <Link href={`/courses/${course.id}`} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', marginRight: '10px' }}>
@@ -238,6 +310,76 @@ export default function CoursesPage() {
             loadCourses();
           }} 
         />
+      )}
+
+      {/* Bulk Enroll modal (#bulk) — one action enrolls many students into every course of a branch+semester */}
+      {bulkOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
+          <div className="panel" style={{ width: '640px', maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>⚡ Bulk Enroll Students</h3>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setBulkOpen(false)}>✕ Close</button>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+              Pick a branch + semester, then select students — every student is enrolled into all{' '}
+              <strong>{bulkTargetCourses.length}</strong> course(s) of that semester in one click.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px' }}>Branch</label>
+                <select className="input-field" value={bulkBranchId} onChange={e => { setBulkBranchId(e.target.value); setBulkSemesterId(''); }}>
+                  <option value="">All branches</option>
+                  {bulkBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px' }}>Semester</label>
+                <select className="input-field" value={bulkSemesterId} onChange={e => setBulkSemesterId(e.target.value)}>
+                  <option value="">All semesters</option>
+                  {bulkVisibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option>
+                    : bulkVisibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {bulkTargetCourses.length > 0 && (
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                📚 Target courses: {bulkTargetCourses.map((c: any) => c.title).join(', ')}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={{ fontSize: '13px' }}>Select students ({bulkSelectedStudents.length} selected)</label>
+              <button className="btn-secondary" style={{ fontSize: '11px', padding: '2px 10px' }} onClick={() => setBulkSelectedStudents(bulkSelectedStudents.length === studentUsers.length ? [] : studentUsers.map((u: any) => u.id))}>
+                {bulkSelectedStudents.length === studentUsers.length ? 'Clear all' : 'Select all'}
+              </button>
+            </div>
+            <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', marginBottom: '16px' }}>
+              {studentUsers.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No students in your college yet — use Bulk Import Users first.</p>
+                : studentUsers.map((u: any) => (
+                  <label key={u.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '5px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={bulkSelectedStudents.includes(u.id)} onChange={() => toggleBulkStudent(u.id)} />
+                    <span style={{ fontSize: '13px' }}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</span>
+                  </label>
+                ))}
+            </div>
+
+            {bulkResult && (
+              <div className="panel" style={{ padding: '12px', marginBottom: '14px', background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)' }}>
+                ✅ <strong>{bulkResult.enrolled}</strong> new enrollment(s) created · <strong>{bulkResult.skipped}</strong> already enrolled
+                {bulkResult.failed > 0 && ` · ${bulkResult.failed} failed`}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setBulkOpen(false)}>Cancel</button>
+              <button className="btn-primary" disabled={bulkRunning || bulkSelectedStudents.length === 0} onClick={runBulkEnroll}>
+                {bulkRunning ? 'Enrolling...' : `Enroll ${bulkSelectedStudents.length} students into ${bulkTargetCourses.length} course(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Resources modal (#6) */}

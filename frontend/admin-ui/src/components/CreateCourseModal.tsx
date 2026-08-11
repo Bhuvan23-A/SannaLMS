@@ -6,19 +6,27 @@ import { useRole } from '@/hooks/useRole';
 // Course creation is a college-admin action: the tenant is applied from their
 // own account, and they pick the department → branch → semester + year the
 // course is offered to (real-LMS org targeting).
+//
+// Stage-1 college-accurate fields: subject code + credits (subject identity)
+// and section + academic session + year of study (cohort targeting). "Year" is
+// the YEAR OF STUDY (1..4), not a calendar year — that mismatch confused admins.
 export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const { role } = useRole();
   const isSuperAdmin = role === 'SUPER_ADMIN';
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [subjectCode, setSubjectCode] = useState('');
+  const [credits, setCredits] = useState('');
   const [departments, setDepartments] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
   const [departmentId, setDepartmentId] = useState('');
   const [branchId, setBranchId] = useState('');
   const [semesterId, setSemesterId] = useState('');
-  const [year, setYear] = useState('');
+  const [yearOfStudy, setYearOfStudy] = useState('');
+  const [section, setSection] = useState('');
+  const [academicSession, setAcademicSession] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +48,8 @@ export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () 
   // Cascade: branch list depends on department, semester list on branch
   const visibleBranches = branches.filter((b: any) => !departmentId || b.department_id === departmentId);
   const visibleSemesters = semesters.filter((s: any) => !branchId || s.branch_id === branchId);
-  const currentYear = new Date().getFullYear();
+  // Year of study (1..6 covers 3/4-year UG + 2-year PG), NOT a calendar year.
+  const studyYears = [1, 2, 3, 4, 5, 6];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +66,12 @@ export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () 
           department_id: departmentId || undefined,
           branch_id: branchId || undefined,
           semester_id: semesterId || undefined,
-          year: year || undefined,
+          // Stage-1 college-accurate fields
+          subject_code: subjectCode.trim() || undefined,
+          credits: credits ? Number(credits) : undefined,
+          section: section.trim() || undefined,
+          academic_session: academicSession.trim() || undefined,
+          year_of_study: yearOfStudy || undefined,
         }),
       });
       onSuccess();
@@ -76,7 +90,7 @@ export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () 
       zIndex: 1000,
       width: '100vw', height: '100vh'
     }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '460px', padding: '30px', maxHeight: '92vh', overflowY: 'auto' }}>
+      <div className="glass-panel animate-fade-in" style={{ width: '500px', padding: '30px', maxHeight: '92vh', overflowY: 'auto' }}>
         <h2 style={{ marginBottom: '20px' }}>Create Course</h2>
 
         {error && (
@@ -103,6 +117,20 @@ export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () 
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Subject Code</label>
+              <input
+                className="input-field" value={subjectCode} onChange={e => setSubjectCode(e.target.value)}
+                placeholder="e.g. CS201"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Credits</label>
+              <input
+                type="number" min={1} max={12} className="input-field" value={credits} onChange={e => setCredits(e.target.value)}
+                placeholder="e.g. 4"
+              />
+            </div>
+            <div>
               <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Department</label>
               <select className="input-field" value={departmentId} onChange={e => { setDepartmentId(e.target.value); setBranchId(''); setSemesterId(''); }}>
                 <option value="">Select…</option>
@@ -127,13 +155,32 @@ export default function CreateCourseModal({ onClose, onSuccess }: { onClose: () 
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Year</label>
-              <select className="input-field" value={year} onChange={e => setYear(e.target.value)}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Year of Study</label>
+              <select className="input-field" value={yearOfStudy} onChange={e => setYearOfStudy(e.target.value)}>
                 <option value="">Select…</option>
-                {[currentYear, currentYear + 1, currentYear + 2].map(y => <option key={y} value={String(y)}>{y}</option>)}
+                {studyYears.map(y => <option key={y} value={String(y)}>{y === 1 ? '1 (First year)' : `${y}${y === 2 ? ' (Second)' : y === 3 ? ' (Third)' : y === 4 ? ' (Final)' : ''}`}</option>)}
               </select>
             </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Section</label>
+              <input
+                className="input-field" value={section} onChange={e => setSection(e.target.value)}
+                placeholder="e.g. A (optional)"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Academic Session</label>
+              <input
+                className="input-field" value={academicSession} onChange={e => setAcademicSession(e.target.value)}
+                placeholder="e.g. 2026-27 (optional)"
+              />
+            </div>
           </div>
+
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+            ℹ️ <strong>Year of Study</strong> is which year the course is taught in (1 = first year), not a calendar year.
+            Subject Code, Credits, Section and Academic Session make courses distinguishable across branches and batches.
+          </p>
 
           {!isSuperAdmin && (
             <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>

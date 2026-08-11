@@ -60,7 +60,16 @@ model Course {
   department_id String?
   branch_id     String?
   semester_id   String?
-  year          String?
+  year          String? // DEPRECATED (stage-2 of college-accurate schema drops it)
+
+  // College-accurate fields (stage 1): subject identity + cohort targeting.
+  // stage 2 replaces these with real Subject / Section / AcademicSession tables;
+  // for now they are first-class columns so real colleges can capture them.
+  subject_code    String? // e.g. "CS201" — the catalog code of this subject
+  credits         Int?    // e.g. 4 — weight of this subject
+  section         String? // class section: "A", "B", "C" (empty = unsplit class)
+  academic_session String? // running academic year, e.g. "2026-27"
+  year_of_study   Int?    // 1..4 — the year of study this course targets
 
   // Mandatory Standard Fields
   tenant_id  String

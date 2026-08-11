@@ -56,7 +56,8 @@ export class CoursesController {
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
-  remove(@Param('id') id: string) {
-    return this.coursesService.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    const deletedBy = req.user?.id || req.user?.preferred_username || req.user?.username || null;
+    return this.coursesService.remove(id, deletedBy);
   }
 }

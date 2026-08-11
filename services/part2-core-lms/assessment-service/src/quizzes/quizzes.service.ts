@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -75,12 +75,51 @@ export class QuizzesService {
     }));
   }
 
-  // Submissions for a quiz — used by trainers/college admins to review student scores (#10)
+  // Submissions for a quiz — used by trainers/college admins to review student
+  // scores (#10). Includes the quiz's questions so the trainer can see exactly
+  // what each essay/coding answer was answering before grading it.
   async getQuizSubmissions(quizId: string) {
-    return this.prisma.quizSubmission.findMany({
+    const quizQuestions = await this.prisma.quizQuestion.findMany({
+      where: { quiz_id: quizId },
+      include: { question: true },
+      orderBy: { order: 'asc' }
+    });
+    const submissions = await this.prisma.quizSubmission.findMany({
       where: { quiz_id: quizId },
       orderBy: { submitted_at: 'desc' }
     });
+    return {
+      questions: quizQuestions.map((qq: any) => ({
+        question_id: qq.question_id,
+        type: qq.question?.type || 'MCQ',
+        title: qq.question?.title || '',
+        content: qq.question?.content || '',
+        marks: qq.question?.marks || 0,
+      })),
+      submissions: submissions.map((s: any) => ({
+        ...s,
+        answers: normalizeAnswers(s.answers),
+      })),
+    };
+  }
+
+  // Manual grading for essay/coding answers — trainers release a score + feedback
+  // so the gradebook can pick the submission up (is_graded flips to true).
+  async gradeQuizSubmission(submissionId: string, score: number, feedback: string) {
+    if (score === undefined || score === null || isNaN(Number(score))) {
+      throw new BadRequestException('A valid score is required');
+    }
+    try {
+      return await this.prisma.quizSubmission.update({
+        where: { id: submissionId },
+        data: { score: Number(score), feedback: feedback || null, is_graded: true }
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        throw new NotFoundException('Quiz submission not found');
+      }
+      throw err;
+    }
   }
 
   async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
@@ -152,4 +191,12 @@ function parseAssignedTo(value: any): { type?: string; user_ids?: string[] } | n
     try { return JSON.parse(value); } catch { return null; }
   }
   return value;
+}
+
+function normalizeAnswers(answers: any): Record<string, any> {
+  if (!answers) return {};
+  if (typeof answers === 'string') {
+    try { return JSON.parse(answers); } catch { return {}; }
+  }
+  return answers;
 }

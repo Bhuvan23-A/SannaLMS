@@ -17,8 +17,16 @@ export class CoursesService {
         branch_id: createCourseDto.branch_id || null,
         semester_id: createCourseDto.semester_id || null,
         // year is a String column — coerce numbers so API clients sending 2
-        // (instead of "2") don't hit an opaque Prisma 500.
+        // (instead of "2") don't hit an opaque Prisma 500. DEPRECATED: kept so
+        // old clients keep working; new clients send year_of_study instead.
         year: createCourseDto.year != null && createCourseDto.year !== '' ? String(createCourseDto.year) : null,
+        // Stage-1 college-accurate fields: subject identity + cohort targeting.
+        // year_of_study is a real 1..4 year of study (NOT a calendar year).
+        subject_code: createCourseDto.subject_code?.trim() || null,
+        credits: this.toInt(createCourseDto.credits),
+        section: createCourseDto.section?.trim() || null,
+        academic_session: createCourseDto.academic_session?.trim() || null,
+        year_of_study: this.toInt(createCourseDto.year_of_study),
       },
     });
   }
@@ -34,6 +42,11 @@ export class CoursesService {
         branch_id: data.branch_id ?? undefined,
         semester_id: data.semester_id ?? undefined,
         year: data.year != null && data.year !== '' ? String(data.year) : (data.year === '' ? null : undefined),
+        subject_code: data.subject_code !== undefined ? (data.subject_code?.trim() || null) : undefined,
+        credits: data.credits !== undefined ? this.toInt(data.credits) : undefined,
+        section: data.section !== undefined ? (data.section?.trim() || null) : undefined,
+        academic_session: data.academic_session !== undefined ? (data.academic_session?.trim() || null) : undefined,
+        year_of_study: data.year_of_study !== undefined ? this.toInt(data.year_of_study) : undefined,
       }
     });
 
@@ -90,7 +103,10 @@ export class CoursesService {
       });
       const ids = (rows as any[]).map((r) => r.course_id);
       return this.prisma.extendedClient.course.findMany({
-        where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' },
+        where: {
+          deleted_at: null,
+          ...(ids.length > 0 ? { id: { in: ids } } : { id: 'none' }),
+        },
       });
     } else if (isStudent) {
       // Real-LMS behavior: "My Courses" shows the ACTIVE semester's courses;
@@ -104,16 +120,19 @@ export class CoursesService {
       });
       const ids = (rows as any[]).map((r) => r.course_id);
       return this.prisma.extendedClient.course.findMany({
-        where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' },
+        where: {
+          deleted_at: null,
+          ...(ids.length > 0 ? { id: { in: ids } } : { id: 'none' }),
+        },
       });
     }
 
     if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
       return this.prisma.extendedClient.course.findMany({
-        where: { tenant_id: tenantId }
+        where: { tenant_id: tenantId, deleted_at: null }
       });
     }
-    return this.prisma.extendedClient.course.findMany();
+    return this.prisma.extendedClient.course.findMany({ where: { deleted_at: null } });
   }
 
   // Lightweight count mirroring the role scoping above (#perf).
@@ -145,27 +164,52 @@ export class CoursesService {
     }
 
     if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
-      return { count: await client.course.count({ where: { tenant_id: tenantId } }) };
+      return { count: await client.course.count({ where: { tenant_id: tenantId, deleted_at: null } }) };
     }
-    return { count: await client.course.count() };
+    return { count: await client.course.count({ where: { deleted_at: null } }) };
   }
 
   async findOne(id: string) {
     const course = await this.prisma.extendedClient.course.findUnique({
       where: { id }
     });
-    if (!course) throw new NotFoundException(`Course ${id} not found`);
+    // Soft-deleted courses behave as "not found" for every viewer — they're
+    // archived, not gone, so grades/enrollments history stays intact.
+    if (!course || course.deleted_at) throw new NotFoundException(`Course ${id} not found`);
     return course;
   }
 
-  async remove(id: string) {
-    return this.prisma.extendedClient.course.delete({ where: { id } });
+  /**
+   * Soft delete (#fix): a course in a real college can't be hard-deleted —
+   * enrollments, grades, version history and resources reference it. Deleting
+   * flips status to ARCHIVED + sets deleted_at so it disappears from lists but
+   * the historical record (grades, certificates) survives.
+   */
+  async remove(id: string, deletedBy?: string) {
+    const course = await this.prisma.extendedClient.course.findUnique({ where: { id } });
+    if (!course || course.deleted_at) throw new NotFoundException(`Course ${id} not found`);
+    return this.prisma.extendedClient.course.update({
+      where: { id },
+      data: {
+        deleted_at: new Date(),
+        deleted_by: deletedBy || course.deleted_by,
+        status: CourseStatus.ARCHIVED,
+      },
+    });
   }
 
   /**
    * Assign a trainer / teaching assistant to a course (college-admin action).
    * user_id is the Keycloak/LMS user id of the trainer.
    */
+  /** Coerce numeric fields (credits, year_of_study) — API clients often send
+   *  strings ("4") or empty values; Prisma would 500 on "4" for an Int. */
+  private toInt(value: any): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+  }
+
   async assignTrainer(courseId: string, userId: string, role: string, createdBy: string) {
     const course = await this.prisma.extendedClient.course.findUnique({ where: { id: courseId } });
     if (!course) throw new NotFoundException('Course not found');

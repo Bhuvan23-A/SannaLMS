@@ -25,7 +25,12 @@ export default function QuizzesPage() {
   // Submissions review (#10)
   const [submissionsQuizId, setSubmissionsQuizId] = useState<string | null>(null);
   const [submissionsData, setSubmissionsData] = useState<any[]>([]);
+  const [submissionsQuestions, setSubmissionsQuestions] = useState<any[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  // Manual grading of essay/coding answers (#grading): score + feedback per submission
+  const [quizGradeInputs, setQuizGradeInputs] = useState<Record<string, string>>({});
+  const [quizFeedbackInputs, setQuizFeedbackInputs] = useState<Record<string, string>>({});
+  const [gradingId, setGradingId] = useState<string | null>(null);
   // Inline quick-add question (so questions don't have to pre-exist in the bank)
   const [quickAdd, setQuickAdd] = useState(false);
   const [newQ, setNewQ] = useState({ title: '', content: '', marks: 1, answer_key: '' });
@@ -87,8 +92,25 @@ export default function QuizzesPage() {
     setSubmissionsLoading(true);
     try {
       const d = await fetchApi(`/api/v1/quizzes/${quizId}/submissions`);
-      setSubmissionsData(Array.isArray(d) ? d : []);
-    } catch { setSubmissionsData([]); } finally { setSubmissionsLoading(false); }
+      setSubmissionsData(Array.isArray(d?.submissions) ? d.submissions : Array.isArray(d) ? d : []);
+      setSubmissionsQuestions(Array.isArray(d?.questions) ? d.questions : []);
+    } catch { setSubmissionsData([]); setSubmissionsQuestions([]); } finally { setSubmissionsLoading(false); }
+  };
+
+  // Release a score + feedback for an essay/coding submission so the gradebook picks it up
+  const gradeQuizSubmission = async (submissionId: string, maxMarks: number) => {
+    const score = parseFloat(quizGradeInputs[submissionId]);
+    if (isNaN(score) || score < 0) { alert('Enter a valid score'); return; }
+    if (score > maxMarks) { alert(`Score cannot exceed ${maxMarks}`); return; }
+    setGradingId(submissionId);
+    try {
+      await fetchApi(`/api/v1/quizzes/submissions/${submissionId}/grade`, {
+        method: 'PUT',
+        body: JSON.stringify({ score, feedback: quizFeedbackInputs[submissionId] || '' })
+      });
+      alert('✅ Grade saved');
+      loadSubmissions(submissionsQuizId || '');
+    } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
   };
 
   const toggleStudent = (uid: string) => {
@@ -347,30 +369,83 @@ export default function QuizzesPage() {
                     <button className="btn-primary" onClick={() => { setActiveQuiz(q); setAnswers({}); }}>Take Quiz</button>
                   )}
                 </div>
-              </div>
-              {submissionsQuizId === q.id && (
+              </div>                  {submissionsQuizId === q.id && (
                 <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '14px' }}>
                   <h4 style={{ fontSize: '14px', marginBottom: '10px' }}>Student Submissions & Scores</h4>
                   {submissionsLoading ? <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
                     : submissionsData.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
                     : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {submissionsData.map((sub: any) => (
-                          <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
-                            <span style={{ fontSize: '13px' }}>
-                              <strong>{nameOf(sub.user_id)}</strong>
-                              {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
-                            </span>
-                            <span>
-                              {sub.score !== null && sub.score !== undefined
-                                ? <span className="badge badge-success">Score: {sub.score}</span>
-                                : <span className="badge badge-warning">Pending review</span>}
-                            </span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                              {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
-                            </span>
+                        {submissionsData.map((sub: any) => {
+                          const ans = (sub.answers && typeof sub.answers === 'object') ? sub.answers : {};
+                          const totalMarks = submissionsQuestions.reduce((s: number, qq: any) => s + (qq.marks || 0), 0);
+                          return (
+                          <div key={sub.id} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '13px' }}>
+                                <strong>{nameOf(sub.user_id)}</strong>
+                                {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
+                              </span>
+                              <span>
+                                {sub.score !== null && sub.score !== undefined
+                                  ? <span className="badge badge-success">Score: {sub.score} / {totalMarks}</span>
+                                  : <span className="badge badge-warning">Pending review</span>}
+                              </span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
+                              </span>
+                            </div>
+                            {/* The student's answers, next to the question they answered (#grading) */}
+                            {submissionsQuestions.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                                {submissionsQuestions.map((qq: any) => {
+                                  const answer = ans[qq.question_id];
+                                  if (answer === undefined || answer === null || answer === '') return null;
+                                  return (
+                                    <div key={qq.question_id} style={{ fontSize: '13px', background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: '6px' }}>
+                                      <div style={{ color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{qq.title}</strong>
+                                        {qq.type === 'ESSAY' || qq.type === 'CODING' ? ` (${qq.marks}M)` : ''}
+                                      </div>
+                                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                        {qq.type === 'MCQ'
+                                          ? (() => { const s = String(answer); const idx = s.match(/^\d+$/); return idx ? `Option ${s}` : s; })()
+                                          : String(answer)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {sub.score !== null && sub.score !== undefined ? (
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {sub.feedback ? `💬 Feedback: ${sub.feedback}` : 'No written feedback.'}
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <input
+                                  type="number"
+                                  className="input-field"
+                                  style={{ width: '90px', padding: '4px 8px' }}
+                                  placeholder={`0-${totalMarks}`}
+                                  value={quizGradeInputs[sub.id] || ''}
+                                  onChange={e => setQuizGradeInputs({ ...quizGradeInputs, [sub.id]: e.target.value })}
+                                />
+                                <input
+                                  className="input-field"
+                                  style={{ flex: 1, minWidth: '160px', padding: '4px 8px' }}
+                                  placeholder="Feedback for the student (optional)"
+                                  value={quizFeedbackInputs[sub.id] || ''}
+                                  onChange={e => setQuizFeedbackInputs({ ...quizFeedbackInputs, [sub.id]: e.target.value })}
+                                />
+                                <button className="btn-primary" style={{ fontSize: '12px', padding: '4px 12px' }} disabled={gradingId === sub.id} onClick={() => gradeQuizSubmission(sub.id, totalMarks)}>
+                                  {gradingId === sub.id ? 'Saving...' : 'Grade'}
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                 </div>

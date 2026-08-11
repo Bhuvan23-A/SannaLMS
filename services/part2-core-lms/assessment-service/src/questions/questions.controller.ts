@@ -13,6 +13,9 @@ export class QuestionsController {
   importPdf(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body('course_id') courseId: string,
+    @Body('department_id') departmentId: string,
+    @Body('branch_id') branchId: string,
+    @Body('semester_id') semesterId: string,
     @Req() req: Record<string, any>
   ) {
     if (!file) {
@@ -25,7 +28,12 @@ export class QuestionsController {
     }
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (req.body?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
-    return this.questionsService.importQuestionsFromPdf(file, courseId, String(tenantId));
+    return this.questionsService.importQuestionsFromPdf(
+      file,
+      courseId,
+      String(tenantId),
+      { department_id: departmentId, branch_id: branchId, semester_id: semesterId }
+    );
   }
 
   @Post()
@@ -60,13 +68,17 @@ export class QuestionsController {
 
   @Put(':id')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
-  update(@Param('id') id: string, @Body() body: Record<string, any>) {
-    return this.questionsService.updateQuestion(id, body);
+  update(@Param('id') id: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.questionsService.updateQuestion(id, body, String(tenantId));
   }
 
   @Delete(':id')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
-  remove(@Param('id') id: string) {
-    return this.questionsService.deleteQuestion(id);
+  remove(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (req.body?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.questionsService.deleteQuestion(id, String(tenantId));
   }
 }

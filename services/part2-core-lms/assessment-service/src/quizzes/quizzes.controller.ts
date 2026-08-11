@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, Query, Param } from '@nestjs/common';
+import { Controller, Post, Get, Put, Body, Req, Query, Param, BadRequestException } from '@nestjs/common';
 import { QuizzesService } from './quizzes.service';
 import { Roles } from '../roles.guard';
 
@@ -28,6 +28,17 @@ export class QuizzesController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   getSubmissions(@Param('id') id: string) {
     return this.quizzesService.getQuizSubmissions(id);
+  }
+
+  // Manually grade an essay/coding quiz submission — score + feedback are
+  // released to the student and picked up by the gradebook (#essay-grading).
+  @Put('submissions/:id/grade')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  grade(@Param('id') id: string, @Body() body: { score?: number; feedback?: string }) {
+    if (body.score === undefined || body.score === null) {
+      throw new BadRequestException('A valid score is required');
+    }
+    return this.quizzesService.gradeQuizSubmission(id, body.score, body.feedback || '');
   }
 
   @Post(':id/submit')

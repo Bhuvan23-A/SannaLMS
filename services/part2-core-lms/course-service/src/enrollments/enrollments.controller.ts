@@ -2,6 +2,14 @@ import { Controller, Get, Post, Body, Param, Req, Query } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { Roles } from '../roles.guard';
 
+interface BulkEnrollBody {
+  user_ids?: string[];
+  course_ids?: string[];
+  branch_id?: string;
+  semester_id?: string;
+  tenant_id?: string;
+}
+
 @Controller('api/v1/enrollments')
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
@@ -11,6 +19,17 @@ export class EnrollmentsController {
   enroll(@Body() body: any, @Req() req: any) {
     // tenant_id is derived from the caller's college when not sent by the client.
     return this.enrollmentsService.enroll(body, body.tenant_id || req.user?.tenantId || 'test-tenant');
+  }
+
+  // Bulk enroll (#bulk): enroll a list of students into a list of courses at
+  // once — resolves to every course of a branch/semester when branch_id +
+  // semester_id are given. Skips students/courses already enrolled.
+  @Post('bulk')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  bulkEnroll(@Body() body: BulkEnrollBody, @Req() req: any) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.enrollmentsService.bulkEnroll(body, String(tenantId));
   }
 
   // Platform/college-wide enrollment list — powers the dashboard & analytics

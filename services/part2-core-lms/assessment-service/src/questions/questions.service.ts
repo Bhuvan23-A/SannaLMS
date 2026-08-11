@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import pdfParse from 'pdf-parse-new';
 
@@ -29,10 +29,15 @@ export class QuestionsService {
     return this.prisma.question.create({ data: createData });
   }
 
-  async updateQuestion(id: string, data: Record<string, any>) {
+  async updateQuestion(id: string, data: Record<string, any>, tenantId?: string) {
     const existing = await this.prisma.question.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Question not found');
+    }
+    // Tenant isolation (#fix): non-super-admins may only touch questions in
+    // their own college — a trainer from college A can't edit college B's bank.
+    if (tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' && existing.tenant_id !== tenantId) {
+      throw new ForbiddenException('You can only edit questions in your own college');
     }
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
@@ -50,10 +55,14 @@ export class QuestionsService {
     return this.prisma.question.update({ where: { id }, data: updateData });
   }
 
-  async deleteQuestion(id: string) {
+  async deleteQuestion(id: string, tenantId?: string) {
     const existing = await this.prisma.question.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException('Question not found');
+    }
+    // Tenant isolation (#fix): same rule as update.
+    if (tenantId && tenantId !== 'master' && tenantId !== 'test-tenant' && existing.tenant_id !== tenantId) {
+      throw new ForbiddenException('You can only delete questions in your own college');
     }
     await this.prisma.question.delete({ where: { id } });
     return { deleted: true, id };
@@ -97,7 +106,12 @@ export class QuestionsService {
    *
    * Lines that don't fit MCQ format are imported as ESSAY questions.
    */
-  async importQuestionsFromPdf(file: Express.Multer.File, courseId?: string, tenantId?: string) {
+  async importQuestionsFromPdf(
+    file: Express.Multer.File,
+    courseId?: string,
+    tenantId?: string,
+    org?: { department_id?: string; branch_id?: string; semester_id?: string }
+  ) {
     const tenant = tenantId || 'test-tenant';
     const course = courseId || 'c-1';
 
@@ -109,6 +123,11 @@ export class QuestionsService {
       const questionData: any = {
         tenant_id: tenant,
         course_id: course,
+        // The bank is differentiated per college + org hierarchy — carry the
+        // department/branch/semester the PDF was imported under (#fix).
+        department_id: org?.department_id || null,
+        branch_id: org?.branch_id || null,
+        semester_id: org?.semester_id || null,
         type: q.type,
         title: q.title,
         content: q.content,

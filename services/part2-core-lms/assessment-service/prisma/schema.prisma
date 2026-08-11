@@ -79,6 +79,7 @@ model QuizSubmission {
   tenant_id     String
   answers       Json     // { questionId: answer }
   score         Float?
+  feedback      String?
   is_graded     Boolean  @default(false)
   submitted_at  DateTime @default(now())
 

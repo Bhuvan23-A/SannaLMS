@@ -82,6 +82,10 @@ export default function AssignmentsPage() {
     setSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
   };
 
+  // Feedback per submission (#grading) — the trainer's written remarks are
+  // stored on the submission and shown back to the student with their score.
+  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
+
   const gradeSubmission = async (submissionId: string, maxMarks: number) => {
     const score = parseFloat(gradeInputs[submissionId]);
     if (isNaN(score) || score < 0) { alert('Enter a valid score'); return; }
@@ -89,7 +93,7 @@ export default function AssignmentsPage() {
     try {
       await fetchApi(`/api/v1/assignments/submissions/${submissionId}/grade`, {
         method: 'PUT',
-        body: JSON.stringify({ score, feedback: '' })
+        body: JSON.stringify({ score, feedback: feedbackInputs[submissionId] || '' })
       });
       alert('✅ Grade saved');
       loadSubmissions(submissionsAssignmentId || submissionId);
@@ -254,18 +258,40 @@ export default function AssignmentsPage() {
                     : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {submissionsData.map((sub: any) => (
-                          <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '13px' }}>
-                              <strong>{nameOf(sub.user_id)}</strong>
-                              {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
-                            </span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                              {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
-                            </span>
+                          <div key={sub.id} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '13px' }}>
+                                <strong>{nameOf(sub.user_id)}</strong>
+                                {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
+                              </span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
+                              </span>
+                              {sub.score !== null && sub.score !== undefined ? (
+                                <span className="badge badge-success">Score: {sub.score} / {a.max_marks}</span>
+                              ) : null}
+                            </div>
+                            {/* The submitted work — trainers grade with full context (#grading) */}
+                            {sub.text_content && (
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted answer</div>
+                                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontSize: '13px', background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '6px', maxHeight: '220px', overflowY: 'auto' }}>{sub.text_content}</pre>
+                              </div>
+                            )}
+                            {sub.file_url && (
+                              <div style={{ marginBottom: '8px' }}>
+                                <a href={sub.file_url.startsWith('http') ? sub.file_url : undefined}
+                                   onClick={!sub.file_url.startsWith('http') ? (e) => { e.preventDefault(); alert(sub.file_url); } : undefined}
+                                   target="_blank" rel="noopener noreferrer"
+                                   style={{ fontSize: '12px', color: 'var(--primary-color)' }}>📎 Submitted file: {sub.file_url}</a>
+                              </div>
+                            )}
                             {sub.score !== null && sub.score !== undefined ? (
-                              <span className="badge badge-success">Score: {sub.score} / {a.max_marks}</span>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {sub.feedback ? `💬 Feedback: ${sub.feedback}` : 'No written feedback.'}
+                              </div>
                             ) : (
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <input
                                   type="number"
                                   className="input-field"
@@ -273,6 +299,13 @@ export default function AssignmentsPage() {
                                   placeholder={`0-${a.max_marks}`}
                                   value={gradeInputs[sub.id] || ''}
                                   onChange={e => setGradeInputs({ ...gradeInputs, [sub.id]: e.target.value })}
+                                />
+                                <input
+                                  className="input-field"
+                                  style={{ flex: 1, minWidth: '160px', padding: '4px 8px' }}
+                                  placeholder="Feedback for the student (optional)"
+                                  value={feedbackInputs[sub.id] || ''}
+                                  onChange={e => setFeedbackInputs({ ...feedbackInputs, [sub.id]: e.target.value })}
                                 />
                                 <button className="btn-primary" style={{ fontSize: '12px', padding: '4px 12px' }} onClick={() => gradeSubmission(sub.id, a.max_marks)}>
                                   Grade
