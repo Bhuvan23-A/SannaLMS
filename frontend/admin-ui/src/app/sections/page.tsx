@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import { useColleges } from '@/hooks/useColleges';
 
 export default function SectionsPage() {
   const [sections, setSections] = useState<any[]>([]);
@@ -12,6 +13,9 @@ export default function SectionsPage() {
   const [error, setError] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [sessionFilter, setSessionFilter] = useState('');
+  // Super admin sees every college's sections — filter by college (tenant).
+  const { isSuperAdmin, activeColleges, collegeNameByTenant } = useColleges();
+  const [collegeFilter, setCollegeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
   const { users, nameOf, emailOf } = useUserDirectory();
@@ -53,10 +57,10 @@ export default function SectionsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const branchName = (id: string) => branches.find((b: any) => b.id === id)?.name || '—';
-  const sessionName = (id: string) => sessions.find((s: any) => s.id === id)?.name || '—';
+  const branchName = (id: string) => visibleBranches.find((b: any) => b.id === id)?.name || '—';
+  const sessionName = (id: string) => visibleSessions.find((s: any) => s.id === id)?.name || '—';
   const sectionLabel = (s: any) =>
-    `${branchName(s.branch_id)} · ${sessionName(s.academic_session_id)} · Sem ${s.semester_number}${s.year_of_study ? ` · Yr ${s.year_of_study}` : ''}${s.name ? ` · Sec ${s.name}` : ''}`;
+    `${collegeName(s.tenant_id)}${branchName(s.branch_id)} · ${sessionName(s.academic_session_id)} · Sem ${s.semester_number}${s.year_of_study ? ` · Yr ${s.year_of_study}` : ''}${s.name ? ` · Sec ${s.name}` : ''}`;
 
   const createSection = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +181,16 @@ export default function SectionsPage() {
     }
   };
 
+  // College scoping for super admin: sections/sessions/branches are qualified
+  // by college so two "2026-27" sessions or same-named branches can be told apart.
+  const selectedCollege = activeColleges.find((c: any) => c.id === collegeFilter);
+  const inCollege = (item: any) => !isSuperAdmin || !selectedCollege || !item.tenant_id || item.tenant_id === selectedCollege.tenant_id;
+  const visibleBranches = branches.filter((b: any) => inCollege(b));
+  const visibleSessions = sessions.filter((s: any) => inCollege(s));
+  const collegeName = (tid?: string) => isSuperAdmin ? (collegeNameByTenant(tid) ? `${collegeNameByTenant(tid)} · ` : '') : '';
+
   const visibleSections = sections.filter((s: any) =>
+    (!collegeFilter || !s.tenant_id || s.tenant_id === selectedCollege?.tenant_id) &&
     (!branchFilter || s.branch_id === branchFilter) &&
     (!sessionFilter || s.academic_session_id === sessionFilter)
   );
@@ -189,13 +202,19 @@ export default function SectionsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>All Sections</h3>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <select className="input-field" style={{ maxWidth: '220px' }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select className="input-field" style={{ maxWidth: '220px' }} value={collegeFilter} onChange={e => { setCollegeFilter(e.target.value); setBranchFilter(''); setSessionFilter(''); }}>
+              <option value="">All colleges</option>
+              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
+          <select className="input-field" style={{ maxWidth: '240px' }} value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
             <option value="">All branches</option>
-            {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{collegeName(b.tenant_id)}{b.name}</option>)}
           </select>
-          <select className="input-field" style={{ maxWidth: '180px' }} value={sessionFilter} onChange={e => setSessionFilter(e.target.value)}>
+          <select className="input-field" style={{ maxWidth: '200px' }} value={sessionFilter} onChange={e => setSessionFilter(e.target.value)}>
             <option value="">All sessions</option>
-            {sessions.map((s: any) => <option key={s.id} value={s.id}>{s.name}{s.is_current ? ' (current)' : ''}</option>)}
+            {visibleSessions.map((s: any) => <option key={s.id} value={s.id}>{collegeName(s.tenant_id)}{s.name}{s.is_current ? ' (current)' : ''}</option>)}
           </select>
           <button className="btn-primary" onClick={() => setModalOpen(true)}>+ Add Section</button>
         </div>
@@ -265,16 +284,16 @@ export default function SectionsPage() {
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Branch / Program *</label>
                 <select required className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)}>
                   <option value="">Select…</option>
-                  {branches.length === 0 ? <option value="" disabled>No branches yet</option>
-                    : branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option>
+                    : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{collegeName(b.tenant_id)}{b.name}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Academic Session *</label>
                 <select required className="input-field" value={sessionId} onChange={e => setSessionId(e.target.value)}>
                   <option value="">Select…</option>
-                  {sessions.length === 0 ? <option value="" disabled>No sessions yet — add one first</option>
-                    : sessions.map((s: any) => <option key={s.id} value={s.id}>{s.name}{s.is_current ? ' (current)' : ''}</option>)}
+                  {visibleSessions.length === 0 ? <option value="" disabled>No sessions yet — add one first</option>
+                    : visibleSessions.map((s: any) => <option key={s.id} value={s.id}>{collegeName(s.tenant_id)}{s.name}{s.is_current ? ' (current)' : ''}</option>)}
                 </select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
