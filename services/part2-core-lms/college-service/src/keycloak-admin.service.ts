@@ -164,4 +164,28 @@ export class KeycloakAdminService {
       body: JSON.stringify([{ id: role.id, name: role.name }]),
     });
   }
+
+  /**
+   * Enable/disable a Keycloak user. Disabling revokes login access instantly
+   * (Keycloak rejects auth for disabled users, so it works even for tokens
+   * issued before the change). Used when a college is held / restored.
+   */
+  async setUserEnabled(userId: string, enabled: boolean): Promise<void> {
+    if (!userId) throw new Error('Empty user id for enable/disable');
+    await this.req(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  /**
+   * Permanently delete a Keycloak user — irreversible. Only used by the
+   * college hard-delete flow after all tenant data has been purged.
+   */
+  async deleteUser(userId: string): Promise<void> {
+    if (!userId) return;
+    await this.req(`/users/${userId}`, { method: 'DELETE' }).catch(() => {
+      // 204 is expected; tolerate missing user (already gone)
+    });
+  }
 }

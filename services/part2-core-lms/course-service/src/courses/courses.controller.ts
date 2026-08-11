@@ -29,14 +29,16 @@ export class CoursesController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT', 'GUEST_FACULTY')
-  findAll(@Req() req: any) {
+  findAll(@Req() req: any, @Query('include_completed') includeCompleted?: string) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     // Pass the viewer (role + user id) so trainers/students get role-scoped lists
     // (courses they teach / courses they are enrolled in) instead of the whole tenant.
+    // include_completed=1 keeps COMPLETED enrollments too (used by the grade card).
     return this.coursesService.findAll(tenantId, {
       roles: req.user?.roles || [],
       userId: req.user?.id || '',
+      includeCompleted: includeCompleted === '1' || includeCompleted === 'true',
     });
   }
 

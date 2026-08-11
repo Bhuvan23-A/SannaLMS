@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ForumsModule } from './forums/forums.module';
 import { ThreadsModule } from './threads/threads.module';
+import { AdminModule } from './admin/admin.module';
 import { ChatModule } from './chat/chat.module';
 import { ChatController } from './chat.controller';
 import { PrismaService } from './prisma.service';
@@ -17,7 +18,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     ForumsModule,
     ThreadsModule,
-    ChatModule
+    ChatModule,
+    AdminModule
   ],
   controllers: [AppController, ChatController],
   providers: [

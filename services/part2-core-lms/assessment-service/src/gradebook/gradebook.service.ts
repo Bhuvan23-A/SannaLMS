@@ -5,28 +5,41 @@ import { PrismaService } from '../prisma.service';
 export class GradebookService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Max marks for a quiz = the sum of its questions' marks (real max, not 100).
+   */
+  private async quizMaxMarks(quizId: string): Promise<number> {
+    const rows = await this.prisma.quizQuestion.findMany({
+      where: { quiz_id: quizId },
+      include: { question: true },
+    });
+    return rows.reduce((sum, qq: any) => sum + (qq.question?.marks || 0), 0) || 0;
+  }
+
   async calculateGrade(tenantId: string, courseId: string, userId: string) {
-    // 1. Fetch all quiz submissions
+    // 1. Fetch all quiz submissions (with their quiz so real max marks resolve)
     const quizzes = await this.prisma.quizSubmission.findMany({
-      where: { tenant_id: tenantId, user_id: userId, quiz: { course_id: courseId }, is_graded: true }
+      where: { tenant_id: tenantId, user_id: userId, quiz: { course_id: courseId }, is_graded: true },
+      include: { quiz: true },
     });
 
     // 2. Fetch all assignment submissions
     const assignments = await this.prisma.assignmentSubmission.findMany({
-      where: { tenant_id: tenantId, user_id: userId, assignment: { course_id: courseId }, is_graded: true }
+      where: { tenant_id: tenantId, user_id: userId, assignment: { course_id: courseId }, is_graded: true },
+      include: { assignment: true },
     });
 
     let totalScore = 0;
-    let maxScore = 0; // In a real app we'd fetch the max for each from the parent Quiz/Assignment
+    let maxScore = 0;
 
-    quizzes.forEach(q => {
+    for (const q of quizzes) {
       totalScore += (q.score || 0);
-      maxScore += 100; // Mock max
-    });
+      maxScore += await this.quizMaxMarks(q.quiz_id);
+    }
 
     assignments.forEach(a => {
       totalScore += (a.score || 0);
-      maxScore += 100; // Mock max
+      maxScore += (a.assignment?.max_marks || 100);
     });
 
     let grade = 'F';
@@ -59,6 +72,14 @@ export class GradebookService {
   async getGradebook(tenantId: string, courseId: string, userId: string) {
     return this.prisma.gradebook.findUnique({
       where: { course_id_user_id: { course_id: courseId, user_id: userId } }
+    });
+  }
+
+  /** All gradebook rows for one student (grade card source for students + admins). */
+  async getStudentGrades(tenantId: string, userId: string) {
+    return this.prisma.gradebook.findMany({
+      where: { tenant_id: tenantId, user_id: userId },
+      orderBy: { updated_at: 'desc' },
     });
   }
 

@@ -293,4 +293,47 @@ export class UsersService {
 
     return users;
   }
+
+  /**
+   * Enable or disable every Keycloak user of a tenant. Used when a college is
+   * held (block all logins) and restored (re-enable them). Runs per-user so a
+   * single failure never aborts the batch; the LMS user rows are found by the
+   * tenant_id stamped on the record (id mirrors the Keycloak user id).
+   */
+  async setTenantUsersEnabled(tenantId: string, enabled: boolean): Promise<{ updated: number; failed: number }> {
+    const users = await this.prisma.extendedClient.user.findMany({ where: { tenant_id: tenantId } });
+    let updated = 0;
+    let failed = 0;
+    for (const u of users) {
+      if (!u.id) continue;
+      try {
+        await this.keycloak.setUserEnabled(u.id, enabled);
+        updated++;
+      } catch {
+        failed++;
+      }
+    }
+    return { updated, failed };
+  }
+
+  /**
+   * Permanently delete every Keycloak user of a tenant (hard delete). The LMS
+   * user rows themselves are purged by CollegeService (they carry FK links);
+   * this only removes the identities from Keycloak.
+   */
+  async deleteTenantUsers(tenantId: string): Promise<{ deleted: number; failed: number }> {
+    const users = await this.prisma.extendedClient.user.findMany({ where: { tenant_id: tenantId } });
+    let deleted = 0;
+    let failed = 0;
+    for (const u of users) {
+      if (!u.id) continue;
+      try {
+        await this.keycloak.deleteUser(u.id);
+        deleted++;
+      } catch {
+        failed++;
+      }
+    }
+    return { deleted, failed };
+  }
 }

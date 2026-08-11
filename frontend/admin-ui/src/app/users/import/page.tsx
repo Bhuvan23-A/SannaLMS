@@ -28,9 +28,13 @@ export default function BulkImportPage() {
     (async () => {
       try {
         const data = await fetchApi('/api/v1/colleges');
-        if (Array.isArray(data) && data.length > 0) {
-          setColleges(data);
-          setCollegeId(data[0].id);
+        // Only active colleges can accept new users (held colleges are suspended).
+        const active = Array.isArray(data) ? data.filter((c: any) => c.status !== 'HELD') : [];
+        if (active.length > 0) {
+          setColleges(active);
+          setCollegeId(active[0].id);
+        } else {
+          setColleges([]);
         }
       } catch { /* colleges unavailable */ }
     })();

@@ -17,6 +17,10 @@ export default function SemestersPage() {
   const [editName, setEditName] = useState('');
   const [editBranchId, setEditBranchId] = useState('');
   const [saving, setSaving] = useState(false);
+  // Promotion state
+  const [promoteTarget, setPromoteTarget] = useState<{ from: any; to: any } | null>(null);
+  const [promotePreview, setPromotePreview] = useState<any>(null);
+  const [promoting, setPromoting] = useState(false);
 
   const loadSemesters = async () => {
     try {
@@ -71,6 +75,55 @@ export default function SemestersPage() {
   };
 
   const branchName = (id: string) => branches.find(b => b.id === id)?.name || id;
+
+  // Find the next semester within the same branch (Semester N → N+1).
+  const nextSemester = (s: any) => {
+    const branchSems = semesters.filter(x => x.branch_id === s.branch_id);
+    const num = (n: string) => { const m = /(\d+)/.exec(n); return m ? parseInt(m[1], 10) : 0; };
+    const sorted = [...branchSems].sort((a, b) => num(a.name) - num(b.name));
+    const idx = sorted.findIndex(x => x.id === s.id);
+    return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
+  };
+
+  const startPromote = async (s: any) => {
+    const next = nextSemester(s);
+    if (!next) {
+      alert(`${s.name} is the final semester of this branch — there is no next semester to promote to.`);
+      return;
+    }
+    setPromoteTarget({ from: s, to: next });
+    setPromotePreview(null);
+    try {
+      const d = await fetchApi(`/api/v1/promotions/preview?branch_id=${s.branch_id}&from_semester_id=${s.id}&to_semester_id=${next.id}`);
+      setPromotePreview(d);
+    } catch (err: any) {
+      alert('Preview failed: ' + (err.message || 'error'));
+      setPromoteTarget(null);
+    }
+  };
+
+  const confirmPromote = async () => {
+    if (!promoteTarget || !promotePreview) return;
+    setPromoting(true);
+    try {
+      const res = await fetchApi('/api/v1/promotions/promote', {
+        method: 'POST',
+        body: JSON.stringify({
+          branch_id: promoteTarget.from.branch_id,
+          from_semester_id: promoteTarget.from.id,
+          to_semester_id: promoteTarget.to.id,
+        }),
+      });
+      alert(`✅ Promoted ${res.student_count} students from ${promoteTarget.from.name} to ${promoteTarget.to.name} (${res.enrollments_created} new enrollments created).`);
+      setPromoteTarget(null);
+      setPromotePreview(null);
+      loadSemesters();
+    } catch (err: any) {
+      alert('Promotion failed: ' + (err.message || 'error'));
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   const filtered = semesters.filter(s => {
     if (branchFilter && s.branch_id !== branchFilter) return false;
@@ -148,8 +201,16 @@ export default function SemestersPage() {
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{semester.name}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(semester)}>✏️ Edit</button>
+                          <button
+                            className="btn-secondary"
+                            style={{ fontSize: '13px', padding: '5px 12px', color: '#00c864', borderColor: '#00c864' }}
+                            onClick={() => startPromote(semester)}
+                            title={nextSemester(semester) ? `Promote students to ${nextSemester(semester)?.name}` : 'Final semester — nothing to promote to'}
+                          >
+                            🎓 {nextSemester(semester) ? 'Promote' : 'Final'}
+                          </button>
                           <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSemester(semester)}>🗑 Delete</button>
                         </div>
                       </td>
@@ -170,6 +231,49 @@ export default function SemestersPage() {
             loadSemesters();
           }}
         />
+      )}
+
+      {promoteTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !promoting && setPromoteTarget(null)}>
+          <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '24px' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>🎓 Promote Students</h3>
+            {!promotePreview ? (
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>Checking students in {promoteTarget.from.name}...</p>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 16px', fontSize: '14px' }}>
+                  Promote <strong>{promotePreview.student_count}</strong> students from{' '}
+                  <strong>{promoteTarget.from.name}</strong> to <strong>{promoteTarget.to.name}</strong> ({branchName(promoteTarget.from.branch_id)})
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  <div className="panel" style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Source courses</div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{(promotePreview.from_courses || []).length}</div>
+                  </div>
+                  <div className="panel" style={{ textAlign: 'center', padding: '16px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Target courses</div>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{(promotePreview.to_courses || []).length}</div>
+                  </div>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+                  Students will be enrolled in all {promotePreview.to_courses?.length || 0} target-semester course(s). Their source-semester
+                  courses move to "Completed" (history is kept, they leave the active course list).
+                </p>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} disabled={promoting} onClick={() => setPromoteTarget(null)}>Cancel</button>
+                  <button
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '6px 14px' }}
+                    disabled={promoting || !promotePreview.student_count}
+                    onClick={confirmPromote}
+                  >
+                    {promoting ? 'Promoting...' : `Promote ${promotePreview.student_count || 0} students`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -58,6 +58,7 @@ services:
           - /api/v1/progress
           - /api/v1/prerequisites
           - /api/v1/course-trainers
+          - /api/v1/promotions
         strip_path: false
 
   - name: assessment-service-p2

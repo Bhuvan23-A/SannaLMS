@@ -364,3 +364,22 @@ model CourseVersionHistory {
 
   @@unique([course_id, version_number])
 }
+
+// ----------------------------------------------------------------------
+// SEMESTER PROMOTION
+// ----------------------------------------------------------------------
+
+// One row per student promoted from one semester to the next (audit trail).
+// branch_id / semester IDs reference the college-service org hierarchy.
+model Promotion {
+  id               String   @id @default(uuid())
+  tenant_id        String
+  branch_id        String
+  from_semester_id String
+  to_semester_id   String
+  student_id       String
+  promoted_by      String?
+  created_at       DateTime @default(now())
+
+  @@index([tenant_id, branch_id, from_semester_id])
+}

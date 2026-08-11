@@ -26,6 +26,7 @@ export default function CollegesPage() {
   const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState('');
   const [resetPasswordResult, setResetPasswordResult] = useState<any>(null);
+  const [busy, setBusy] = useState(''); // college id currently being held/restored/deleted
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 4000); };
 
@@ -72,14 +73,47 @@ export default function CollegesPage() {
     }
   };
 
-  const deleteCollege = async (college: any) => {
-    if (!window.confirm(`Delete "${college.name}"?\n\nThe college is removed from the platform and its admin loses access. This can be undone only by restoring from a backup.`)) return;
+  const holdCollege = async (college: any) => {
+    if (!window.confirm(`Hold "${college.name}"?\n\nThe college is hidden from the platform and ALL its users (admin, trainers, students) are blocked from logging in. No data is deleted — you can Restore it anytime.`)) return;
     try {
+      setBusy(college.id);
+      await fetchApi(`/api/v1/colleges/${college.id}/hold`, { method: 'POST' });
+      showFlash(`⏸ "${college.name}" held — all logins blocked, data kept`);
+      loadColleges();
+    } catch (err: any) {
+      alert(err.message || 'Failed to hold college');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const restoreCollege = async (college: any) => {
+    if (!window.confirm(`Restore "${college.name}"?\n\nThe college reappears on the platform and all its users can log in again.`)) return;
+    try {
+      setBusy(college.id);
+      await fetchApi(`/api/v1/colleges/${college.id}/restore`, { method: 'POST' });
+      showFlash(`✅ "${college.name}" restored`);
+      loadColleges();
+    } catch (err: any) {
+      alert(err.message || 'Failed to restore college');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const deleteCollegeForever = async (college: any) => {
+    if (!window.confirm(`⚠️ PERMANENTLY DELETE "${college.name}"?\n\nThis deletes the college, ALL its data (departments, branches, semesters, courses, students, grades, attendance, question banks, notifications) and permanently removes every user account.\n\nThis CANNOT be undone. Type the college name to confirm:\n\n"${college.name}"`)) return;
+    const typed = window.prompt(`Type "${college.name}" to confirm permanent deletion:`);
+    if (typed !== college.name) { alert('Deletion cancelled — name did not match.'); return; }
+    try {
+      setBusy(college.id);
       await fetchApi(`/api/v1/colleges/${college.id}`, { method: 'DELETE' });
-      showFlash(`🗑 "${college.name}" deleted`);
+      showFlash(`🗑 "${college.name}" permanently deleted`);
       loadColleges();
     } catch (err: any) {
       alert(err.message || 'Failed to delete college');
+    } finally {
+      setBusy('');
     }
   };
 
@@ -165,9 +199,18 @@ export default function CollegesPage() {
             ) : (
               colleges.map((college) => {
                 const admin = (college.users || []).find((ur: any) => ur.role === 'COLLEGE_ADMIN');
+                const held = college.status === 'HELD';
+                const isBusy = busy === college.id;
                 return (
-                <tr key={college.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{college.name}</td>
+                <tr key={college.id} style={{ transition: 'background 0.2s ease', opacity: held ? 0.65 : 1 }} className="table-row">
+                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                    {college.name}{" "}
+                    {held ? (
+                      <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>⏸ ON HOLD</span>
+                    ) : (
+                      <span style={{ background: 'rgba(0,200,100,0.12)', color: '#00c864', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>● ACTIVE</span>
+                    )}
+                  </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{college.subdomain}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                     {admin?.user?.email ? (
@@ -178,14 +221,30 @@ export default function CollegesPage() {
                   </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{college.created_by}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>✏️ Edit</button>
-                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>👤 Admin</button>
-                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>🔑 Reset Pwd</button>
-                    <button
-                      className="btn-secondary"
-                      style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
-                      onClick={() => deleteCollege(college)}
-                    >🗑 Delete</button>
+                    {held ? (
+                      <>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => restoreCollege(college)} disabled={isBusy}>✅ Restore</button>
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
+                          onClick={() => deleteCollegeForever(college)}
+                          disabled={isBusy}
+                        >🗑 Delete Forever</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>✏️ Edit</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>👤 Admin</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>🔑 Reset Pwd</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => holdCollege(college)} disabled={isBusy}>⏸ Hold</button>
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
+                          onClick={() => deleteCollegeForever(college)}
+                          disabled={isBusy}
+                        >🗑 Delete Forever</button>
+                      </>
+                    )}
                   </td>
                 </tr>
                 );

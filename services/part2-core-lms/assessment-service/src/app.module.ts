@@ -5,6 +5,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { QuizzesModule } from './quizzes/quizzes.module';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { GradebookModule } from './gradebook/gradebook.module';
+import { AdminModule } from './admin/admin.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './roles.guard';
 
@@ -13,7 +14,8 @@ import { RolesGuard } from './roles.guard';
     QuestionsModule,
     QuizzesModule,
     AssignmentsModule,
-    GradebookModule
+    GradebookModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [

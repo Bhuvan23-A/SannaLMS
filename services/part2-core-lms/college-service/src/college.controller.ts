@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { CollegeService } from './college.service';
 import { UsersService, DEFAULT_PASSWORD } from './users/users.service';
+import { TenantPurgeService } from './tenant-purge.service';
 import { Prisma } from '@prisma/client';
 import { RolesGuard, Roles } from './roles.guard';
 
@@ -10,6 +11,7 @@ export class CollegeController {
   constructor(
     private readonly collegeService: CollegeService,
     private readonly usersService: UsersService,
+    private readonly purgeService: TenantPurgeService,
   ) {}
 
   @Post()
@@ -46,7 +48,8 @@ export class CollegeController {
   async getColleges(@Req() req: any) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? undefined : (req.user?.tenantId || undefined);
-    return this.collegeService.getColleges(tenantId);
+    // Super admins see held colleges too (so they can restore / delete them).
+    return this.collegeService.getColleges(tenantId, isSuperAdmin);
   }
 
   @Get(':id')
@@ -61,16 +64,55 @@ export class CollegeController {
     return this.collegeService.updateCollege(id, body);
   }
 
+  /**
+   * HOLD — soft delete + block all logins. Data is kept; Restore brings it back.
+   */
+  @Post(':id/hold')
+  @Roles('SUPER_ADMIN')
+  async holdCollege(@Param('id') id: string) {
+    const college = await this.collegeService.getCollege(id, true);
+    await this.collegeService.holdCollege(id);
+    const users = await this.usersService.setTenantUsersEnabled(college.tenant_id || college.id, false);
+    return { held: true, id, users_disabled: users };
+  }
+
+  /**
+   * DELETE — permanent erasure. Revokes access, purges data from every service
+   * database, removes local rows, then deletes the Keycloak identities.
+   */
   @Delete(':id')
   @Roles('SUPER_ADMIN')
   async deleteCollege(@Param('id') id: string) {
-    return this.collegeService.deleteCollege(id);
+    const college = await this.collegeService.getCollege(id, true);
+    const tenantId = college.tenant_id || college.id;
+
+    // 1) Revoke access first so nobody can log in mid-purge.
+    const disabled = await this.usersService.setTenantUsersEnabled(tenantId, false);
+
+    // 2) Purge cross-service data (courses, assessments, attendance, ...).
+    const purged = await this.purgeService.purgeTenant(tenantId);
+
+    // 3) Permanently remove the Keycloak identities. This must run BEFORE the
+    // local user rows are purged — deleteTenantUsers finds users via the LMS
+    // user table, so purging local rows first would orphan the identities.
+    const keycloak = await this.usersService.deleteTenantUsers(tenantId);
+
+    // 4) Purge local college DB rows (org tree, users, roles, college).
+    const local = await this.collegeService.purgeCollegeData(id, tenantId);
+
+    return { deleted: true, id, tenant_id: tenantId, users_disabled: disabled, purged, local, keycloak };
   }
 
+  /**
+   * RESTORE — bring a held college back and re-enable its users' logins.
+   */
   @Post(':id/restore')
   @Roles('SUPER_ADMIN')
   async restoreCollege(@Param('id') id: string) {
-    return this.collegeService.restoreCollege(id);
+    const college = await this.collegeService.getCollege(id, true);
+    await this.collegeService.restoreCollege(id);
+    const users = await this.usersService.setTenantUsersEnabled(college.tenant_id || college.id, true);
+    return { restored: true, id, users_enabled: users };
   }
 
   // Hand over (or recover) college-admin access: resets the Keycloak password

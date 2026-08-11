@@ -69,7 +69,7 @@ export class CoursesService {
     return updated;
   }
 
-  async findAll(tenantId?: string, viewer?: { role?: string; roles?: string[]; userId?: string }) {
+  async findAll(tenantId?: string, viewer?: { role?: string; roles?: string[]; userId?: string; includeCompleted?: boolean }) {
     const roles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
     // Role precedence matters: every Keycloak user carries the realm-default
     // 'student' role, so admins/trainers must be checked BEFORE the student
@@ -93,8 +93,13 @@ export class CoursesService {
         where: ids.length > 0 ? { id: { in: ids } } : { id: 'none' },
       });
     } else if (isStudent) {
+      // Real-LMS behavior: "My Courses" shows the ACTIVE semester's courses;
+      // promoted/past (COMPLETED) courses only appear when includeCompleted is
+      // set (grade card) so they don't clutter the active list.
       const rows = await this.prisma.extendedClient.enrollment.findMany({
-        where: { user_id: viewer.userId },
+        where: viewer.includeCompleted
+          ? { user_id: viewer.userId, status: { in: ['ACTIVE', 'COMPLETED'] } }
+          : { user_id: viewer.userId, status: 'ACTIVE' },
         select: { course_id: true },
       });
       const ids = (rows as any[]).map((r) => r.course_id);

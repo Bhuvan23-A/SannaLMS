@@ -14,6 +14,23 @@ export class GradebookController {
     return this.gradebookService.calculateGrade(String(tenantId), courseId, userId);
   }
 
+  @Get('my')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT', 'GUEST_FACULTY')
+  getMyGrades(@Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    const userId: string = req.user?.id || (req.headers['x-mock-user-id'] as string) || '';
+    return this.gradebookService.getStudentGrades(String(tenantId), userId);
+  }
+
+  @Get('student/:userId')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  getStudentGrades(@Param('userId') userId: string, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    return this.gradebookService.getStudentGrades(String(tenantId), userId);
+  }
+
   @Get(':courseId/student/:userId')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'STUDENT')
   getStudentGrade(@Param('courseId') courseId: string, @Param('userId') userId: string, @Req() req: Record<string, any>) {
