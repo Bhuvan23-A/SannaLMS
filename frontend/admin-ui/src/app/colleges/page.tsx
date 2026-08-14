@@ -269,10 +269,10 @@ export default function CollegesPage() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
           zIndex: 1000
         }}>
-          <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a' }}>
+          <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0 }}>👤 College Admin Access</h2>
               <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
@@ -315,10 +315,10 @@ export default function CollegesPage() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
           zIndex: 1000
         }}>
-          <div className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a' }}>
+          <div className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0 }}>🔑 Reset Admin Password</h2>
               <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
@@ -353,14 +353,14 @@ export default function CollegesPage() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
           zIndex: 1000
         }}>
           <form onSubmit={saveEdit} className="panel" style={{
             width: '440px', maxWidth: '92vw', padding: '28px',
             border: '1px solid rgba(59, 130, 246, 0.4)',
             boxShadow: '0 0 40px rgba(59, 130, 246, 0.2), 0 24px 60px rgba(0,0,0,0.6)',
-            background: '#0f172a'
+            background: '#0f172a', margin: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0 }}>✏️ Edit College</h2>

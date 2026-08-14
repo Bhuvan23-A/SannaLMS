@@ -273,8 +273,8 @@ export default function SectionsPage() {
 
       {/* Create section modal */}
       {modalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <form onSubmit={createSection} className="glass-panel animate-fade-in" style={{ width: '460px', padding: '30px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px', zIndex: 1000 }}>
+          <form onSubmit={createSection} className="glass-panel animate-fade-in" style={{ width: '460px', padding: '30px', margin: 'auto' }}>
             <h2 style={{ marginBottom: '20px' }}>Add Section</h2>
             {formError && (
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{formError}</div>

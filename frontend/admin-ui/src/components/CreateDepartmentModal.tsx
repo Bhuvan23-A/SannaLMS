@@ -50,11 +50,11 @@ export default function CreateDepartmentModal({ onClose, onSuccess }: { onClose:
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
       zIndex: 1000,
       width: '100vw', height: '100vh'
     }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '400px', padding: '30px' }}>
+      <div className="glass-panel animate-fade-in" style={{ width: '400px', padding: '30px', margin: 'auto' }}>
         <h2 style={{ marginBottom: '20px' }}>Add Department</h2>
 
         {error && (
