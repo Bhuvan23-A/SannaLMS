@@ -454,7 +454,7 @@ export default function CoursesPage() {
       {/* Add Student modal (#5) */}
       {studentCourse && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <form onSubmit={addStudent} className="panel" style={{ width: '420px', maxWidth: '92vw' }}>
+          <form onSubmit={addStudent} className="panel" style={{ width: '420px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: '8px' }}>➕ Add Student</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{studentCourse.title}</strong></p>
             <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
@@ -476,7 +476,7 @@ export default function CoursesPage() {
       {/* Assign Trainer modal (#fix) — college admin assigns trainer/TA to a course */}
       {trainerCourse && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <form onSubmit={assignTrainer} className="panel" style={{ width: '440px', maxWidth: '92vw' }}>
+          <form onSubmit={assignTrainer} className="panel" style={{ width: '440px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: '8px' }}>👨‍🏫 Assign Trainer</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{trainerCourse.title}</strong></p>
             <label style={{ display: 'block', marginBottom: '5px' }}>Trainer / TA</label>

@@ -152,7 +152,7 @@ export default function AttendancePage() {
       {/* QR Modal */}
       {qrModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="panel" style={{ width: '400px', textAlign: 'center' }}>
+          <div className="panel" style={{ width: '400px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', textAlign: 'center' }}>
             <h3 style={{ marginBottom: '20px' }}>Enter QR Code</h3>
             <input className="input-field" placeholder="Paste QR token here..." value={qrInput} onChange={e => setQrInput(e.target.value)} style={{ marginBottom: '15px' }} />
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>

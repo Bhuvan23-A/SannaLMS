@@ -31,6 +31,21 @@ body {
 }
 
 /* Glassmorphism Utilities */
+/* `.panel` is used by 20+ pages for modals, cards and dialogs but was never
+   defined — every element with className="panel" rendered as an unstyled,
+   invisible box (no background/border/padding). Same card look as
+   glass-panel so modals are clearly visible on the dark theme (#fix). */
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  padding: 24px;
+  color: var(--text-primary);
+}
+
 .glass-panel {
   background: var(--panel-bg);
   backdrop-filter: var(--glass-blur);

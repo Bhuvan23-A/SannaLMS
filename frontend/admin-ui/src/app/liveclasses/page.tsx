@@ -100,7 +100,7 @@ export default function LiveClassesPage() {
       {/* Jitsi Join Modal */}
       {joiningClass && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="panel" style={{ width: '500px', textAlign: 'center' }}>
+          <div className="panel" style={{ width: '500px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', textAlign: 'center' }}>
             <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎥</div>
             <h2 style={{ marginBottom: '10px' }}>Ready to Join!</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '5px' }}>Room Name:</p>

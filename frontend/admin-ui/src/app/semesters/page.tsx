@@ -310,7 +310,7 @@ export default function SemestersPage() {
 
       {promoteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !promoting && setPromoteTarget(null)}>
-          <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '24px' }} onClick={e => e.stopPropagation()}>
+          <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '24px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>🎓 Promote Students</h3>
             {!promotePreview ? (
               <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>Checking students in {promoteTarget.from.name}...</p>
