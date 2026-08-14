@@ -13,6 +13,7 @@
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
+  "accessTokenLifespan": 28800,
   "clients": [
     {
       "clientId": "sannalms-client",
@@ -58,7 +59,8 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
-      "fullScopeAllowed": true
+      "fullScopeAllowed": true,
+      "secret": "sannalms-api-svc-local"
     }
   ],
   "roles": {
