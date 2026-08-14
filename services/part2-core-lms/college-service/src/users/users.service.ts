@@ -62,6 +62,17 @@ export class UsersService {
     const defaultPassword = body.default_password || DEFAULT_PASSWORD;
     const collegeId = body.college_id || '';
 
+    // #fix — derive the tenant from the SELECTED college, never from a hardcoded
+    // fallback. The CSV rows carry department/branch/year but no tenant_id column,
+    // so before this every imported user silently landed in `test-college` and was
+    // invisible to the real college (broken logins, rosters and enrollments).
+    let collegeTenant: string | null = null;
+    if (collegeId) {
+      const college = await this.prisma.extendedClient.college.findUnique({ where: { id: collegeId } });
+      collegeTenant = college?.tenant_id || null;
+    }
+    const tenantFor = (u: ImportUser) => collegeTenant || u.tenant_id || 'test-college';
+
     const results: any[] = [];
     for (const u of users) {
       try {
@@ -77,7 +88,7 @@ export class UsersService {
           lastName: u.last_name || '',
           credentials: [{ type: 'password', value: u.password || defaultPassword, temporary: requireChange }],
           attributes: {
-            tenant_id: [u.tenant_id || 'test-college'],
+            tenant_id: [tenantFor(u)],
             ...(u.department ? { department: [u.department] } : {}),
             ...(u.branch ? { branch: [u.branch] } : {}),
             ...(u.year !== undefined && u.year !== '' ? { year: [String(u.year)] } : {}),
@@ -104,7 +115,7 @@ export class UsersService {
             password: '',
             first_name: u.first_name || '',
             last_name: u.last_name || '',
-            tenant_id: u.tenant_id || 'test-college',
+            tenant_id: tenantFor(u),
           },
           update: {},
         });
@@ -117,7 +128,7 @@ export class UsersService {
                 user_id: user.id,
                 college_id: collegeId,
                 role: lmsRoleFor(u.role) as any,
-                tenant_id: u.tenant_id || 'test-college',
+                tenant_id: tenantFor(u),
               },
             })
             .catch(() => { /* duplicate (user_id, college_id, role) already exists */ });
