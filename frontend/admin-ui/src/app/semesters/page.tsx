@@ -22,6 +22,7 @@ export default function SemestersPage() {
   // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editNumber, setEditNumber] = useState('');
   const [editBranchId, setEditBranchId] = useState('');
   const [saving, setSaving] = useState(false);
   // Promotion state
@@ -52,6 +53,7 @@ export default function SemestersPage() {
   const startEdit = (s: any) => {
     setEditingId(s.id);
     setEditName(s.name);
+    setEditNumber(String(s.semester_number ?? (() => { const m = /(\d+)/.exec(s.name || ''); return m ? m[1] : ''; })()));
     setEditBranchId(s.branch_id || '');
   };
 
@@ -61,7 +63,11 @@ export default function SemestersPage() {
     try {
       await fetchApi(`/api/v1/semesters/${editingId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ name: editName, branch_id: editBranchId || undefined }),
+        body: JSON.stringify({
+          name: editName,
+          semester_number: editNumber !== '' ? Number(editNumber) : undefined,
+          branch_id: editBranchId || undefined,
+        }),
       });
       setEditingId(null);
       loadSemesters();
@@ -233,8 +239,15 @@ export default function SemestersPage() {
                   {editingId === semester.id ? (
                     <>
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                        <input type="number" min={1} max={12} className="input-field" value={editNumber} onChange={e => setEditNumber(e.target.value)} style={{ width: '80px' }} />
+                      </td>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                        <input type="number" min={1} max={12} className="input-field" value={editNumber} onChange={e => setEditNumber(e.target.value)} style={{ width: '80px' }} />
+                      </td>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <input className="input-field" value={editName} onChange={e => setEditName(e.target.value)} style={{ width: '100%' }} />
                       </td>
+                      {isSuperAdmin && <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <select className="input-field" value={editBranchId} onChange={e => setEditBranchId(e.target.value)} style={{ width: '100%' }}>
                           <option value="">Select branch</option>

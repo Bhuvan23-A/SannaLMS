@@ -24,7 +24,7 @@ export class SemesterController {
 
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
-  async updateSemester(@Param('id') id: string, @Body() updateDto: { name?: string; branch_id?: string }) {
+  async updateSemester(@Param('id') id: string, @Body() updateDto: { name?: string; branch_id?: string; semester_number?: number }) {
     return this.semesterService.updateSemester(id, updateDto);
   }
 
