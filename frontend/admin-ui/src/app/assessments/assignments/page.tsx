@@ -204,7 +204,7 @@ export default function AssignmentsPage() {
 
       {submitForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px', zIndex: 100 }}>
-          <form onSubmit={submitAssignment} className="panel" style={{ width: '500px', maxWidth: '90vw', margin: 'auto' }}>
+          <form onSubmit={submitAssignment} className="panel" style={{ width: '500px', maxWidth: '90vw', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: '20px' }}>Submit Assignment</h3>
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px' }}>File URL (Google Drive, GitHub, etc.)</label>

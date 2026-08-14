@@ -143,7 +143,7 @@ export default function CalendarPage() {
       {/* Add Event Modal */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px', zIndex: 1000 }}>
-          <div className="panel" style={{ width: '100%', maxWidth: '500px', margin: 'auto' }}>
+          <div className="panel" style={{ width: '100%', maxWidth: '500px', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <h3 style={{ marginBottom: '20px' }}>Schedule New Event</h3>
             <form onSubmit={createEvent} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>

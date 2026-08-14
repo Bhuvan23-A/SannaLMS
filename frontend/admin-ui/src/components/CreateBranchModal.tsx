@@ -58,7 +58,7 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
       zIndex: 1000,
       width: '100vw', height: '100vh'
     }}>
-      <div className="glass-panel animate-fade-in" style={{ width: '400px', padding: '30px', margin: 'auto' }}>
+      <div className="glass-panel animate-fade-in" style={{ width: '400px', padding: '30px', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
         <h2 style={{ marginBottom: '20px' }}>Add Branch</h2>
 
         {error && (

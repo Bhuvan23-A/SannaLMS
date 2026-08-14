@@ -48,10 +48,10 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
         zIndex: 1000, overflowY: 'auto', padding: '20px'
       }}>
         <div className="panel" style={{
-          width: '480px', maxWidth: '92vw', padding: '30px',
+          width: '560px', maxWidth: '92vw', padding: '26px',
           border: '1px solid rgba(59, 130, 246, 0.4)',
           boxShadow: '0 0 40px rgba(59, 130, 246, 0.25), 0 24px 60px rgba(0,0,0,0.6)',
-          background: '#0f172a', margin: 'auto'
+          background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto'
         }}>
           <div style={{ fontSize: '44px', textAlign: 'center', marginBottom: '12px' }}>✅</div>
           <h2 style={{ textAlign: 'center', marginBottom: '6px' }}>College Created!</h2>
@@ -107,10 +107,10 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
       zIndex: 1000, overflowY: 'auto', padding: '20px'
     }}>
       <div className="panel" style={{
-        width: '480px', maxWidth: '92vw', padding: '30px',
+        width: '560px', maxWidth: '92vw', padding: '26px',
         border: '1px solid rgba(59, 130, 246, 0.4)',
         boxShadow: '0 0 40px rgba(59, 130, 246, 0.2), 0 24px 60px rgba(0,0,0,0.6)',
-        background: '#0f172a', margin: 'auto'
+        background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
           <h2 style={{ margin: 0 }}>🏛️ Create College</h2>
@@ -120,7 +120,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
             aria-label="Close"
           >✕</button>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
           Registers the college as a separate tenant. If you supply an admin email, the college admin account is created automatically.
         </p>
 
@@ -130,42 +130,44 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College Name</label>
-            <input
-              required className="input-field" value={name} onChange={e => setName(e.target.value)}
-              placeholder="e.g. Stanford University"
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Domain</label>
-            <input
-              required className="input-field" value={domain} onChange={e => setDomain(e.target.value)}
-              placeholder="e.g. stanford.edu"
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Tenant ID (Unique)</label>
-            <input
-              required className="input-field" value={tenantId} onChange={e => setTenantId(e.target.value)}
-              placeholder="e.g. stanford"
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College Admin Email</label>
-            <input className="input-field" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="e.g. admin@stanford.edu" />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College Name</label>
+              <input
+                required className="input-field" value={name} onChange={e => setName(e.target.value)}
+                placeholder="e.g. Stanford"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Domain</label>
+              <input
+                required className="input-field" value={domain} onChange={e => setDomain(e.target.value)}
+                placeholder="e.g. stanford.edu"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Tenant ID (Unique)</label>
+              <input
+                required className="input-field" value={tenantId} onChange={e => setTenantId(e.target.value)}
+                placeholder="e.g. stanford"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College Admin Email</label>
+              <input className="input-field" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="e.g. admin@stanford.edu" />
+            </div>
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College Admin Name (optional)</label>
             <input className="input-field" value={adminName} onChange={e => setAdminName(e.target.value)} placeholder="e.g. Dr. R. Sharma" />
           </div>
 
-          <div style={{ marginTop: '5px', padding: '12px', background: 'rgba(59,130,246,0.15)', borderRadius: '8px', border: '1px dashed rgba(59,130,246,0.3)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <div style={{ marginTop: '2px', padding: '10px', background: 'rgba(59,130,246,0.15)', borderRadius: '8px', border: '1px dashed rgba(59,130,246,0.3)', fontSize: '12px', color: 'var(--text-secondary)' }}>
             💡 <strong>College Admin:</strong> If you provide an admin email, we create the college admin automatically in Keycloak (role: tenantadmin) with the <code>tenant_id</code> attribute. Their temporary login is <strong>username = admin email</strong> and <strong>password = <code>Test@1234</code></strong> (shown once after creation) — no manual setup needed.
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Creating...' : 'Create College'}
