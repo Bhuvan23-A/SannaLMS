@@ -17,12 +17,13 @@ export class BranchService {
     });
   }
 
-  async updateBranch(id: string, data: { name?: string; department_id?: string }) {
+  async updateBranch(id: string, data: { name?: string; department_id?: string; total_semesters?: number }) {
     return this.prisma.extendedClient.branch.update({
       where: { id },
       data: {
         name: data.name,
         department_id: data.department_id,
+        total_semesters: data.total_semesters !== undefined ? Number(data.total_semesters) : undefined,
       },
     });
   }

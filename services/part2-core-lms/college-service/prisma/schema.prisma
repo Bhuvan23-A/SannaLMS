@@ -73,7 +73,13 @@ model Branch {
   id            String    @id @default(uuid())
   name          String
   department_id String
-  
+
+  // Program duration — how many semesters the degree track runs (B.Tech = 8,
+  // BBA = 6, MBA = 4, ...). Drives the timeline: a semester is only "Final"
+  // when its number equals this, so Sem 3 of an 8-semester program is never
+  // mistaken for the end of the program (#fix).
+  total_semesters Int @default(8)
+
   // Mandatory Standard Fields
   tenant_id  String
   version    Int       @default(1)

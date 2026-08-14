@@ -7,6 +7,7 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
   const [departments, setDepartments] = useState<any[]>([]);
   const [heldCollegeIds, setHeldCollegeIds] = useState<Set<string>>(new Set());
   const [departmentId, setDepartmentId] = useState('');
+  const [totalSemesters, setTotalSemesters] = useState('8');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +41,7 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
           name,
           department_id: departmentId,
           tenant_id: selectedDepartment?.tenant_id || 'test-college',
+          total_semesters: totalSemesters ? Number(totalSemesters) : 8,
         }),
       });
       onSuccess();
@@ -85,6 +87,14 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
             {departments.length > visibleDepartments.length && (
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Departments in held colleges are hidden.</p>
             )}
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Total Semesters (program length)</label>
+            <input
+              type="number" min={1} max={12} className="input-field" value={totalSemesters} onChange={e => setTotalSemesters(e.target.value)}
+              placeholder="e.g. 8 (B.Tech), 6 (BBA), 4 (MBA)"
+            />
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>The program timeline runs Sem 1 – Sem {totalSemesters || 'N'} for this branch. The last semester alone is marked Final.</p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>

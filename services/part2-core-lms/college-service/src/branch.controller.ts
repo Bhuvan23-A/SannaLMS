@@ -24,7 +24,7 @@ export class BranchController {
 
   @Patch(':id')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
-  async updateBranch(@Param('id') id: string, @Body() updateDto: { name?: string; department_id?: string }) {
+  async updateBranch(@Param('id') id: string, @Body() updateDto: { name?: string; department_id?: string; total_semesters?: number }) {
     return this.branchService.updateBranch(id, updateDto);
   }
 

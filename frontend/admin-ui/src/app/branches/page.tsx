@@ -21,6 +21,7 @@ export default function BranchesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editDepartmentId, setEditDepartmentId] = useState('');
+  const [editTotalSemesters, setEditTotalSemesters] = useState('8');
   const [saving, setSaving] = useState(false);
 
   const loadBranches = async () => {
@@ -46,6 +47,7 @@ export default function BranchesPage() {
     setEditingId(b.id);
     setEditName(b.name);
     setEditDepartmentId(b.department_id || '');
+    setEditTotalSemesters(String(b.total_semesters ?? 8));
   };
 
   const saveEdit = async () => {
@@ -54,7 +56,7 @@ export default function BranchesPage() {
     try {
       await fetchApi(`/api/v1/branches/${editingId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ name: editName, department_id: editDepartmentId || undefined }),
+        body: JSON.stringify({ name: editName, department_id: editDepartmentId || undefined, total_semesters: editTotalSemesters ? Number(editTotalSemesters) : undefined }),
       });
       setEditingId(null);
       loadBranches();
@@ -154,7 +156,9 @@ export default function BranchesPage() {
                           {visibleDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </td>
-                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branch.semesters?.length || 0}</td>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                        <input type="number" min={1} max={12} className="input-field" value={editTotalSemesters} onChange={e => setEditTotalSemesters(e.target.value)} style={{ width: '80px' }} />
+                      </td>
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-primary" style={{ fontSize: '13px', padding: '5px 12px' }} disabled={saving} onClick={saveEdit}>
@@ -171,6 +175,7 @@ export default function BranchesPage() {
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{deptName(branch.department_id)}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <span className="badge badge-info">{branch.semesters?.length || 0}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '6px' }}>/ {branch.total_semesters ?? 8}</span>
                       </td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>

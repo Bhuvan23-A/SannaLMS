@@ -24,6 +24,34 @@ export class SectionService {
         ? Math.trunc(Number(data.year_of_study))
         : Math.ceil(semesterNumber / 2);
 
+    const sectionName = (data.name || '').trim();
+
+    // Duplicate / restore handling (#fix): the unique key on
+    // (tenant, branch, session, semester, name) still counts soft-deleted
+    // rows, so re-adding a deleted section used to blow up with a raw 500
+    // (P2002). If a row exists — deleted or not — restore it when it was
+    // deleted, or tell the admin clearly that it already exists.
+    const existing = await this.prisma.extendedClient.section.findFirst({
+      where: {
+        tenant_id: tenantId,
+        branch_id: data.branch_id,
+        academic_session_id: data.academic_session_id,
+        semester_number: semesterNumber,
+        name: sectionName,
+      },
+    });
+    if (existing) {
+      if (existing.deleted_at) {
+        return this.prisma.extendedClient.section.update({
+          where: { id: existing.id },
+          data: { deleted_at: null, deleted_by: null },
+        });
+      }
+      throw new BadRequestException(
+        `Section "${sectionName || 'default'}" already exists for this branch, session and semester.`
+      ); // 400 — the UI shows this message instead of "Internal server error"
+    }
+
     return this.prisma.extendedClient.section.create({
       data: {
         tenant_id: tenantId,
@@ -31,7 +59,7 @@ export class SectionService {
         academic_session_id: data.academic_session_id,
         year_of_study: yearOfStudy,
         semester_number: semesterNumber,
-        name: (data.name || '').trim(),
+        name: sectionName,
         created_by: data.created_by || null,
       },
     });

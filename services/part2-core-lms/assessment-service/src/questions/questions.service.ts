@@ -124,7 +124,28 @@ export class QuestionsService {
     const questions = this.extractQuestionsFromText(parsed.text || '');
 
     const created: any[] = [];
+    let skipped = 0;
     for (const q of questions) {
+      // Dedup (#fix): never import the same question twice. Two questions are
+      // considered identical when they share the tenant, the same scoping
+      // (subject, or course when no subject is selected), and the same title
+      // text — re-importing a PDF must not double the bank.
+      const dedupeScope = org?.subject_id
+        ? { subject_id: org.subject_id }
+        : { course_id: course };
+      const existing = await this.prisma.question.findFirst({
+        where: {
+          tenant_id: tenant,
+          title: q.title,
+          ...dedupeScope,
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        skipped++;
+        continue;
+      }
+
       const questionData: any = {
         tenant_id: tenant,
         course_id: course,
@@ -147,12 +168,23 @@ export class QuestionsService {
       created.push(question);
     }
 
+    const imported = created.length;
+    let message: string;
+    if (imported === 0 && skipped === 0) {
+      message = 'No questions detected in the PDF. Ensure each question starts with a number (e.g. "1.") and options start with a) b) c) d).';
+    } else {
+      message = `Imported ${imported} question${imported !== 1 ? 's' : ''} from PDF.`;
+      if (skipped > 0) {
+        message += ` ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped (already in the bank).`;
+      }
+    }
+
     return {
-      imported: created.length,
-      message: created.length
-        ? `Imported ${created.length} question${created.length > 1 ? 's' : ''} from PDF.`
-        : 'No questions detected in the PDF. Ensure each question starts with a number (e.g. "1.") and options start with a) b) c) d).',
-      questions: created
+      imported,
+      skipped,
+      total: questions.length,
+      message,
+      questions: created,
     };
   }
 

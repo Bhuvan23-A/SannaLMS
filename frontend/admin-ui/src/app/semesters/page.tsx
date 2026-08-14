@@ -93,11 +93,27 @@ export default function SemestersPage() {
     return true;
   });
 
-  // Find the next semester within the same branch (Semester N → N+1).
+  // Semester position in the program timeline (Semester N → N+1). Uses the
+  // stored semester_number when present, else parses the name.
+  const semNumber = (s: any): number => {
+    if (s.semester_number != null) return Number(s.semester_number);
+    const m = /(\d+)/.exec(s.name || '');
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  // Program length lives on the branch (B.Tech = 8, BBA = 6, MBA = 4, ...).
+  // Semesters include their branch, so we always know the true end of the
+  // program — a semester is only "Final" at that point, never merely because
+  // it's the last one created so far (#fix).
+  const branchTotal = (s: any): number => s.branch?.total_semesters ?? 8;
+  const isFinalSemester = (s: any) => semNumber(s) >= branchTotal(s);
+
+  // Find the next EXISTING semester within the same branch (Semester N → N+1).
+  // If the program still has semesters left but the row hasn't been created
+  // yet, this returns null and the UI says "add the next semester first"
+  // instead of calling the current one Final.
   const nextSemester = (s: any) => {
     const branchSems = semesters.filter(x => x.branch_id === s.branch_id);
-    const num = (n: string) => { const m = /(\d+)/.exec(n); return m ? parseInt(m[1], 10) : 0; };
-    const sorted = [...branchSems].sort((a, b) => num(a.name) - num(b.name));
+    const sorted = [...branchSems].sort((a, b) => semNumber(a) - semNumber(b));
     const idx = sorted.findIndex(x => x.id === s.id);
     return idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
   };
@@ -105,7 +121,11 @@ export default function SemestersPage() {
   const startPromote = async (s: any) => {
     const next = nextSemester(s);
     if (!next) {
-      alert(`${s.name} is the final semester of this branch — there is no next semester to promote to.`);
+      if (isFinalSemester(s)) {
+        alert(`${s.name} is the final semester of the ${branchTotal(s)}-semester program — there is no next semester to promote to.`);
+      } else {
+        alert(`Create Semester ${semNumber(s) + 1} for this branch first, then promote students from ${s.name}.`);
+      }
       return;
     }
     setPromoteTarget({ from: s, to: next });
@@ -232,7 +252,9 @@ export default function SemestersPage() {
                     </>
                   ) : (
                     <>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace' }}>{semester.semester_number ?? (() => { const m = /(\d+)/.exec(semester.name); return m ? m[1] : '—'; })()}</td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace' }}>
+                        {semNumber(semester)} / {branchTotal(semester)}
+                      </td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{semester.name}</td>
                       {isSuperAdmin && <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>
@@ -241,11 +263,15 @@ export default function SemestersPage() {
                           <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(semester)}>✏️ Edit</button>
                           <button
                             className="btn-secondary"
-                            style={{ fontSize: '13px', padding: '5px 12px', color: '#00c864', borderColor: '#00c864' }}
+                            style={{ fontSize: '13px', padding: '5px 12px', color: isFinalSemester(semester) ? 'var(--text-secondary)' : '#00c864', borderColor: isFinalSemester(semester) ? 'rgba(255,255,255,0.2)' : '#00c864' }}
                             onClick={() => startPromote(semester)}
-                            title={nextSemester(semester) ? `Promote students to ${nextSemester(semester)?.name}` : 'Final semester — nothing to promote to'}
+                            title={nextSemester(semester)
+                              ? `Promote students to ${nextSemester(semester)?.name}`
+                              : isFinalSemester(semester)
+                                ? `Final semester of the ${branchTotal(semester)}-semester program`
+                                : `Add Semester ${semNumber(semester) + 1} first to enable promotion`}
                           >
-                            🎓 {nextSemester(semester) ? 'Promote' : 'Final'}
+                            🎓 {isFinalSemester(semester) ? 'Final' : 'Promote'}
                           </button>
                           <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSemester(semester)}>🗑 Delete</button>
                         </div>
