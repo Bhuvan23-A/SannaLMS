@@ -44,8 +44,21 @@ if [ -d "frontend/saas-web-app" ]; then
     cd ../..
 fi
 
+# Fail loudly if the frontend build produced no index.html — a missing build
+# silently turns the site into nginx's cryptic 403/500 after deploy.
+if [ ! -f "frontend/saas-web-app/dist/index.html" ]; then
+    echo "[ERROR] Frontend build missing frontend/saas-web-app/dist/index.html — aborting deployment."
+    exit 1
+fi
+
 echo "[INFO] Pulling and building Docker infrastructure containers..."
 docker-compose up -d --build
+
+# Re-bind nginx to the freshly built dist/ directory. If dist/ was replaced
+# (rm -rf + recreate) while the container was running, the bind mount keeps
+# pointing at the old empty directory and the site 403s until the container
+# is recreated.
+docker-compose up -d --no-deps --force-recreate nginx
 
 echo "[INFO] Checking container status..."
 docker-compose ps

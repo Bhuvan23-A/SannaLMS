@@ -22,3 +22,25 @@ jobs:
         run: |
           cd services/part2-core-lms/chat-service
           npm install
+
+  # Build the student portal so a missing/broken frontend build is caught in
+  # CI instead of silently 403ing in production (empty dist/ mount).
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Build student portal (saas-web-app)
+        run: |
+          cd frontend/saas-web-app
+          npm ci
+          npm run build
+
+      - name: Verify build output exists
+        run: test -f frontend/saas-web-app/dist/index.html

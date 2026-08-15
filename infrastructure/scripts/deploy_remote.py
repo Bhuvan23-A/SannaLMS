@@ -105,6 +105,15 @@ def deploy():
     stdout.read() # Wait for extraction to complete
     print("[INFO] Extraction complete.")
 
+    # 5.5 Fail loudly if the frontend build is missing — a missing dist/
+    # silently turns the site into nginx's cryptic 403/500 after deploy.
+    print("[INFO] Verifying frontend build output (dist/index.html)...")
+    stdin, stdout, stderr = ssh.exec_command(f"test -f {REMOTE_DIR}/frontend/saas-web-app/dist/index.html")
+    if stdout.channel.recv_exit_status() != 0:
+        print("[ERROR] Frontend build missing: frontend/saas-web-app/dist/index.html not found. Aborting deployment.")
+        ssh.close()
+        return
+
     # 6. Execute docker compose build and run
     print("[INFO] Spawning docker containers on server...")
     docker_cmd = f"cd {REMOTE_DIR} && {compose_cmd} down && {compose_cmd} up -d --build"
