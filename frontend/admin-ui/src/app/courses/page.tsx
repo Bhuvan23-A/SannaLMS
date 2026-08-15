@@ -29,19 +29,30 @@ export default function CoursesPage() {
   const [sections, setSections] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  // Org filters (#fix): department -> branch -> semester cascade so the college
+  // admin can quickly narrow the course list instead of scrolling 100+ rows.
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
+  const [deptFilter, setDeptFilter] = useState('');
+  const [branchFilter, setBranchFilter] = useState('');
+  const [semesterFilter, setSemesterFilter] = useState('');
 
   useEffect(() => {
     (async () => {
-      const [subs, secs, brs, sess] = await Promise.all([
+      const [subs, secs, brs, sess, deps, sems] = await Promise.all([
         fetchApi('/api/v1/subjects').catch(() => []),
         fetchApi('/api/v1/sections').catch(() => []),
         fetchApi('/api/v1/branches').catch(() => []),
         fetchApi('/api/v1/academic-sessions').catch(() => []),
+        fetchApi('/api/v1/departments').catch(() => []),
+        fetchApi('/api/v1/semesters').catch(() => []),
       ]);
       setSubjects(Array.isArray(subs) ? subs : []);
       setSections(Array.isArray(secs) ? secs : []);
       setBranches(Array.isArray(brs) ? brs : []);
       setSessions(Array.isArray(sess) ? sess : []);
+      setDepartments(Array.isArray(deps) ? deps : []);
+      setSemesters(Array.isArray(sems) ? sems : []);
     })();
   }, []);
   // Course resources (#6) + add student (#5)
@@ -194,6 +205,10 @@ export default function CoursesPage() {
   const subjectById = Object.fromEntries(subjects.map((s: any) => [s.id, s]));
   const branchName = (id: string) => branches.find((b: any) => b.id === id)?.name;
   const sessionName = (id: string) => sessions.find((s: any) => s.id === id)?.name;
+  // Cascading org filters: picking a department narrows the branches, picking a
+  // branch narrows the semesters (semesters carry their branch's program).
+  const visibleBranches = branches.filter((b: any) => !deptFilter || b.department_id === deptFilter);
+  const visibleSemesters = semesters.filter((s: any) => !branchFilter || s.branch_id === branchFilter);
   const sectionLabel = (secId: string) => {
     const s = sections.find((x: any) => x.id === secId);
     if (!s) return null;
@@ -268,17 +283,31 @@ export default function CoursesPage() {
 
   return (
     <div className="animate-fade-in">
-      <Topbar title="Courses Management" />
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0 }}>All Courses</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          {isSuperAdmin && activeColleges.length > 0 && (
-            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
-              <option value="">All colleges</option>
-              {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+      <Topbar title="Courses Management" />        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0 }}>All Courses</h3>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {isSuperAdmin && activeColleges.length > 0 && (
+              <select className="input-field" style={{ maxWidth: '200px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
+                <option value="">All colleges</option>
+                {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+            {/* Org filters (#fix): narrow the course list by department/branch/semester */}
+            <select className="input-field" style={{ maxWidth: '190px' }} value={deptFilter} onChange={e => { setDeptFilter(e.target.value); setBranchFilter(''); setSemesterFilter(''); }}>
+              <option value="">All departments</option>
+              {departments.length === 0 ? <option value="" disabled>No departments yet</option>
+                : departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-          )}
+            <select className="input-field" style={{ maxWidth: '190px' }} value={branchFilter} onChange={e => { setBranchFilter(e.target.value); setSemesterFilter(''); }}>
+              <option value="">All branches</option>
+              {visibleBranches.length === 0 ? <option value="" disabled>No branches</option>
+                : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <select className="input-field" style={{ maxWidth: '170px' }} value={semesterFilter} onChange={e => setSemesterFilter(e.target.value)}>
+              <option value="">All semesters</option>
+              {visibleSemesters.length === 0 ? <option value="" disabled>No semesters</option>
+                : visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           {/* Only the college admin creates courses in their college (#fix) */}
           {isCollegeAdmin && (
             <>
@@ -313,12 +342,20 @@ export default function CoursesPage() {
             {loading ? (
               <tr><td colSpan={isSuperAdmin ? 5 : 4} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
             ) : courses.length === 0 ? (
-              <tr><td colSpan={isSuperAdmin ? 5 : 4} style={{ padding: '20px', textAlign: 'center' }}>No courses found.</td></tr>
+              <tr><td colSpan={isSuperAdmin ? 5 : 4} style={{ padding: '20px', textAlign: 'center' }}>No courses found — use + Create Course to add one, or check the filters above.</td></tr>
             ) : (
               courses.filter((course: any) => {
-                if (!collegeFilter) return true;
-                const col = activeColleges.find((x: any) => x.id === collegeFilter);
-                return col ? course.tenant_id === col.tenant_id : true;
+                if (collegeFilter) {
+                  const col = activeColleges.find((x: any) => x.id === collegeFilter);
+                  if (!col || course.tenant_id !== col.tenant_id) return false;
+                }
+                if (deptFilter && course.department_id !== deptFilter) return false;
+                if (branchFilter && course.branch_id !== branchFilter) return false;
+                if (semesterFilter) {
+                  const sem = semesters.find((s: any) => s.id === semesterFilter);
+                  if (!sem || Number(course.semester_number) !== Number(sem.semester_number)) return false;
+                }
+                return true;
               }).map((course) => (
                 <tr key={course.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{course.title}</td>

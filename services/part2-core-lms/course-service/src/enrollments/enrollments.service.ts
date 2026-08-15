@@ -33,6 +33,14 @@ export class EnrollmentsService {
       effectiveTenant = course?.tenant_id || 'test-tenant';
     }
 
+    // Idempotent (#fix): a student can be in many courses (one row per course),
+    // but only ONE enrollment per (user, course) — the unique key would otherwise
+    // turn a double-add into a raw 500. Return the existing row instead.
+    const existing = await this.prisma.extendedClient.enrollment.findUnique({
+      where: { user_id_course_id: { user_id: data.user_id, course_id: data.course_id } },
+    });
+    if (existing) return existing;
+
     return this.prisma.extendedClient.enrollment.create({
       data: {
         user_id: data.user_id,
