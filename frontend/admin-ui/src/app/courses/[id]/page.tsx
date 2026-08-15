@@ -71,6 +71,17 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => { loadCourse(); }, [courseId]);
 
+  // Publish / unpublish the course (#fix): PUBLISHED makes it visible to
+  // enrolled students, DRAFT hides it again. Only admins may publish.
+  const togglePublish = async () => {
+    if (!course) return;
+    const next = course.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    try {
+      await fetchApi(`/api/v1/courses/${courseId}`, { method: 'PUT', body: JSON.stringify({ status: next }) });
+      loadCourse();
+    } catch (err: any) { alert(err.message || 'Failed to update status'); }
+  };
+
   const addModule = async () => {
     if (!newModule.trim()) return;
     // Offering-level builder also feeds the subject syllabus (phase 5): pass
@@ -191,6 +202,15 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
           </h1>
           <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary-color)' }}>{courseId}</span>
           {course && <span className={`badge badge-${course.status === 'PUBLISHED' ? 'success' : 'warning'}`} style={{ marginLeft: '12px' }}>{course.status}</span>}
+          {course && isAdmin && (
+            <button
+              className="btn-primary"
+              style={{ marginLeft: '12px', padding: '6px 14px', fontSize: '13px' }}
+              onClick={togglePublish}
+            >
+              {course.status === 'PUBLISHED' ? '↩ Unpublish' : '🚀 Publish'}
+            </button>
+          )}
           {course?.subject && (
             <span className="badge badge-info" style={{ marginLeft: '12px', background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
               📚 {course.subject.code} · {course.subject.name}

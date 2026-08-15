@@ -250,6 +250,15 @@ export default function CoursesPage() {
     }
   };
 
+  // Publish / unpublish a course (#fix): PUBLISHED is visible to students.
+  const toggleCoursePublish = async (course: any) => {
+    const next = course.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    try {
+      await fetchApi(`/api/v1/courses/${course.id}`, { method: 'PUT', body: JSON.stringify({ status: next }) });
+      loadCourses();
+    } catch (err: any) { alert(err.message || 'Failed to update status'); }
+  };
+
   useEffect(() => {
     loadCourses();
   }, []);
@@ -425,7 +434,14 @@ export default function CoursesPage() {
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>➕ Add Student</button>
                       </>
                     )}
-                    {isAdmin && <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>}
+                    {isAdmin && (
+                      <>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => toggleCoursePublish(course)}>
+                          {course.status === 'PUBLISHED' ? '↩ Unpublish' : '🚀 Publish'}
+                        </button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))

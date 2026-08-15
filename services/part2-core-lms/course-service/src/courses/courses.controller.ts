@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Req, Delete, Query } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { Roles } from '../roles.guard';
 
@@ -52,6 +52,14 @@ export class CoursesController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT', 'GUEST_FACULTY')
   findOne(@Param('id') id: string) {
     return this.coursesService.findOne(id);
+  }
+
+  // Update a course — most importantly its status (DRAFT -> PUBLISHED so
+  // students can see it, and back to DRAFT to unpublish) (#fix).
+  @Put(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  update(@Param('id') id: string, @Body() body: any) {
+    return this.coursesService.update(id, body);
   }
 
   @Delete(':id')

@@ -90,6 +90,11 @@ export class CoursesService {
   }
 
   async update(id: string, data: any) {
+    // Validate status up front so a bad value returns a clear 400 instead of a
+    // raw Prisma enum error (500) (#fix).
+    if (data.status !== undefined && data.status !== null && !['DRAFT', 'IN_REVIEW', 'PUBLISHED', 'ARCHIVED'].includes(String(data.status))) {
+      throw new BadRequestException('Invalid status — must be DRAFT, IN_REVIEW, PUBLISHED or ARCHIVED');
+    }
     const updated = await this.prisma.extendedClient.course.update({
       where: { id },
       data: {
@@ -129,10 +134,18 @@ export class CoursesService {
       if (courseFullState) {
         // @ts-ignore - Prisma strict typing issue for JSON
         const snapshotData: any = courseFullState;
+        // version_number is unique per course — use the NEXT number, otherwise
+        // re-publishing (unpublish -> publish) hits the unique key with the
+        // same version and 500s (#fix).
+        const latest = await this.prisma.extendedClient.courseVersionHistory.findFirst({
+          where: { course_id: id },
+          orderBy: { version_number: 'desc' },
+          select: { version_number: true },
+        });
         await this.prisma.extendedClient.courseVersionHistory.create({
           data: {
             course_id: id,
-            version_number: courseFullState.version,
+            version_number: (latest?.version_number ?? 0) + 1,
             snapshot_data: snapshotData,
             tenant_id: courseFullState.tenant_id,
           }
