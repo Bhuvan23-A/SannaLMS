@@ -21,7 +21,8 @@ export class QuestionsService {
       title: titleStr,
       content: contentStr,
       marks: data.marks || 1,
-      answer_key: data.answer_key || data.answerKey || (data.correctOption !== undefined ? String(data.correctOption) : null)
+      answer_key: data.answer_key || data.answerKey || (data.correctOption !== undefined ? String(data.correctOption) : null),
+      image_url: data.image_url || data.imageUrl || null
     };
     if (data.options) {
       // Prisma Json fields reject null — only set options when provided
@@ -51,6 +52,7 @@ export class QuestionsService {
     if (data.department_id !== undefined) updateData.department_id = data.department_id;
     if (data.branch_id !== undefined) updateData.branch_id = data.branch_id;
     if (data.semester_id !== undefined) updateData.semester_id = data.semester_id;
+    if (data.image_url !== undefined) updateData.image_url = data.image_url || null;
     if (data.options !== undefined) {
       updateData.options = typeof data.options === 'string' ? data.options : JSON.stringify(data.options);
     }

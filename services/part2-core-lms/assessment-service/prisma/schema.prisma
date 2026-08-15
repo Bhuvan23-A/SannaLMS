@@ -26,6 +26,7 @@ model Question {
   marks         Int      @default(1)
   options       Json?    // For MCQs: [{id: 1, text: "A", isCorrect: true}]
   answer_key    String?  // Expected string/code
+  image_url     String?  // Optional picture (diagram/chart/formula) for the question
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   

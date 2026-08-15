@@ -95,6 +95,7 @@ export class QuizzesService {
         title: qq.question?.title || '',
         content: qq.question?.content || '',
         marks: qq.question?.marks || 0,
+        image_url: qq.question?.image_url || null,
       })),
       submissions: submissions.map((s: any) => ({
         ...s,

@@ -26,7 +26,7 @@ export default function QuestionsPage() {
   const [branchId, setBranchId] = useState('');
   const [semId, setSemId] = useState('');
 
-  const [form, setForm] = useState({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '' });
+  const [form, setForm] = useState({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '', image_url: '' });
   const [options, setOptions] = useState([
     { id: 1, text: '', isCorrect: false },
     { id: 2, text: '', isCorrect: false },
@@ -141,7 +141,7 @@ export default function QuestionsPage() {
 
   const resetForm = () => {
     setEditingId(null);
-    setForm({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '' });
+    setForm({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '', image_url: '' });
     setOptions([
       { id: 1, text: '', isCorrect: false },
       { id: 2, text: '', isCorrect: false },
@@ -158,7 +158,7 @@ export default function QuestionsPage() {
       { id: 4, text: '', isCorrect: false },
     ];
     setEditingId(q.id);
-    setForm({ type: q.type || 'MCQ', title: q.title || '', content: q.content || '', marks: q.marks || 1, answer_key: q.answer_key || '' });
+    setForm({ type: q.type || 'MCQ', title: q.title || '', content: q.content || '', marks: q.marks || 1, answer_key: q.answer_key || '', image_url: q.image_url || '' });
     setOptions(qOptions.map((o: any, i: number) => ({ id: i + 1, text: o.text || '', isCorrect: !!o.isCorrect })));
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -314,6 +314,16 @@ export default function QuestionsPage() {
             <label style={{ display: 'block', marginBottom: '5px' }}>Content / Instructions</label>
             <textarea className="input-field" rows={3} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} />
           </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Image URL (optional — diagram, chart or formula picture)</label>
+            <input className="input-field" placeholder="https://... (paste a hosted image link)" value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} />
+            {form.image_url && (
+              <div style={{ marginTop: '8px' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.image_url} alt="Question image preview" style={{ maxWidth: '260px', maxHeight: '160px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+              </div>
+            )}
+          </div>
           <div style={{ marginBottom: '15px', fontSize: '13px', color: 'var(--text-secondary)' }}>
             📍 Will be saved under: <strong>{selectedSubject ? `${selectedSubject.code ? selectedSubject.code + ' · ' : ''}${selectedSubject.name}` : (courses.find((c: any) => c.id === courseId)?.title || 'subject')}</strong>
             {isSuperAdmin && selectedCollege && <> · <strong>{selectedCollege.name}</strong></>}
@@ -370,6 +380,12 @@ export default function QuestionsPage() {
                       )}
                     </div>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{q.content}</p>
+                    {q.image_url && (
+                      <div style={{ marginTop: '8px' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={q.image_url} alt="Question diagram" style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                      </div>
+                    )}
                     {q.options && (
                       <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {(q.options as any[]).map((o: any) => (

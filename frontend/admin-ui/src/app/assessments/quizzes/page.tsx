@@ -33,9 +33,10 @@ export default function QuizzesPage() {
   const [gradingId, setGradingId] = useState<string | null>(null);
   // Inline quick-add question (so questions don't have to pre-exist in the bank)
   const [quickAdd, setQuickAdd] = useState(false);
-  const [newQ, setNewQ] = useState({ title: '', content: '', marks: 1, answer_key: '' });
+  const [newQ, setNewQ] = useState({ title: '', content: '', marks: 1, answer_key: '', image_url: '' });
   const [newQOptions, setNewQOptions] = useState(['', '', '', '']);
   const [newQCorrect, setNewQCorrect] = useState(0);
+  const [addingQ, setAddingQ] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState<any>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<any>(null);
@@ -138,32 +139,50 @@ export default function QuizzesPage() {
     }));
   };
 
-  // Create a question inline and add it to the quiz's question list
+  // Remove a question from the quiz being built (#fix: there was no way to
+  // undo a mistaken add — checkboxes hid it, so this makes it obvious).
+  const removeFromQuiz = (qid: string) => {
+    setForm(f => ({ ...f, question_ids: f.question_ids.filter(x => x !== qid) }));
+  };
+
+  // Create a question inline and add it to the quiz's question list.
+  // (#fix) Double-clicking "Add to Quiz" used to create duplicate questions:
+  // the button is now disabled while saving, and if a question with the same
+  // title already exists in the bank it is reused instead of re-created.
   const addQuestionInline = async () => {
+    if (addingQ) return;
+    if (!newQ.title.trim()) { alert('Enter a question title'); return; }
+    setAddingQ(true);
     try {
-      const options = newQOptions.map((text, i) => ({ id: i + 1, text, isCorrect: i === newQCorrect }));
-      const res = await fetchApi('/api/v1/questions', {
-        method: 'POST',
-        body: JSON.stringify({
-          course_id: courseId,
-          type: 'MCQ',
-          title: newQ.title,
-          content: newQ.content || newQ.title,
-          marks: newQ.marks,
-          options,
-          answer_key: String(newQCorrect + 1)
-        })
-      });
-      const qid = res?.id;
-      if (qid) {
-        setForm(f => ({ ...f, question_ids: f.question_ids.includes(qid) ? f.question_ids : [...f.question_ids, qid] }));
-        setQuestions(prev => [...prev, res]);
+      const existing = questions.find((q: any) => q.title?.trim().toLowerCase() === newQ.title.trim().toLowerCase());
+      if (existing) {
+        setForm(f => ({ ...f, question_ids: f.question_ids.includes(existing.id) ? f.question_ids : [...f.question_ids, existing.id] }));
+      } else {
+        const options = newQOptions.map((text, i) => ({ id: i + 1, text, isCorrect: i === newQCorrect }));
+        const res = await fetchApi('/api/v1/questions', {
+          method: 'POST',
+          body: JSON.stringify({
+            course_id: courseId,
+            type: 'MCQ',
+            title: newQ.title,
+            content: newQ.content || newQ.title,
+            marks: newQ.marks,
+            options,
+            answer_key: String(newQCorrect + 1),
+            image_url: newQ.image_url || undefined,
+          })
+        });
+        const qid = res?.id;
+        if (qid) {
+          setForm(f => ({ ...f, question_ids: f.question_ids.includes(qid) ? f.question_ids : [...f.question_ids, qid] }));
+          setQuestions(prev => [...prev, res]);
+        }
       }
       setQuickAdd(false);
-      setNewQ({ title: '', content: '', marks: 1, answer_key: '' });
+      setNewQ({ title: '', content: '', marks: 1, answer_key: '', image_url: '' });
       setNewQOptions(['', '', '', '']);
       setNewQCorrect(0);
-    } catch { alert('Failed to create question'); }
+    } catch { alert('Failed to create question'); } finally { setAddingQ(false); }
   };
 
   // Delete a quiz (#fix): a wrongly-created quiz can be removed; submissions
@@ -212,6 +231,12 @@ export default function QuizzesPage() {
             <div className="panel" key={qq.question_id} style={{ marginBottom: '16px' }}>
               <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>Q{i + 1}: {q?.title}</p>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '14px' }}>{q?.content}</p>
+              {q?.image_url && (
+                <div style={{ marginBottom: '15px' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={q.image_url} alt="Question diagram" style={{ maxWidth: '100%', maxHeight: '260px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                </div>
+              )}
               {q?.type === 'MCQ' && q?.options && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {(q.options as any[]).map((opt: any) => (
@@ -326,6 +351,8 @@ export default function QuizzesPage() {
                   value={newQ.title} onChange={e => setNewQ({ ...newQ, title: e.target.value })} />
                 <input className="input-field" placeholder="Content / instructions (optional)" style={{ marginBottom: '8px' }}
                   value={newQ.content} onChange={e => setNewQ({ ...newQ, content: e.target.value })} />
+                <input className="input-field" placeholder="Image URL (optional — diagram, chart or formula picture)" style={{ marginBottom: '8px' }}
+                  value={newQ.image_url} onChange={e => setNewQ({ ...newQ, image_url: e.target.value })} />
                 {newQOptions.map((opt, i) => (
                   <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'center' }}>
                     <input type="radio" name="newq-correct" checked={newQCorrect === i}
@@ -335,7 +362,9 @@ export default function QuizzesPage() {
                   </div>
                 ))}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                  <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={addQuestionInline}>Add to Quiz</button>
+                  <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} disabled={addingQ} onClick={addQuestionInline}>
+                    {addingQ ? 'Adding...' : 'Add to Quiz'}
+                  </button>
                 </div>
               </div>
             )}
@@ -344,10 +373,35 @@ export default function QuizzesPage() {
               : questions.map(q => (
                 <label key={q.id} style={{ display: 'flex', gap: '10px', padding: '10px', marginBottom: '8px', background: form.question_ids.includes(q.id) ? 'rgba(0,168,255,0.1)' : 'rgba(0,0,0,0.2)', borderRadius: '8px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={form.question_ids.includes(q.id)} onChange={() => toggleQuestion(q.id)} />
-                  <span><strong>{q.title}</strong> <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : 'badge-warning'}`}>{q.type}</span> ({q.marks}M)</span>
+                  <span>
+                    <strong>{q.title}</strong> <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : 'badge-warning'}`}>{q.type}</span> ({q.marks}M)
+                    {q.image_url && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '12px' }}>🖼️ has image</span>}
+                  </span>
                 </label>
               ))}
           </div>
+
+          {/* Selected questions with an explicit Remove (#fix) — a mistaken
+              add can be undone right here, not just by unchecking. */}
+          {form.question_ids.length > 0 && (
+            <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Added to quiz ({form.question_ids.length}) — click ✕ to remove:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {form.question_ids.map(qid => {
+                  const q = questions.find((x: any) => x.id === qid);
+                  return (
+                    <div key={qid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'rgba(0,168,255,0.12)', borderRadius: '6px', fontSize: '13px' }}>
+                      <span style={{ minWidth: 0 }}>
+                        <strong>{q?.title || qid}</strong>
+                        {q && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>({q.marks}M · {q.type})</span>}
+                      </span>
+                      <button type="button" className="btn-secondary" style={{ padding: '2px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)', flexShrink: 0 }} onClick={() => removeFromQuiz(qid)}>✕ Remove</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn-primary">Create Quiz</button>
             <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
