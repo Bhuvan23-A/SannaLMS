@@ -2280,7 +2280,10 @@ export const Dashboard: React.FC = () => {
                       onClick={() => openForum(f)}
                       style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1.25rem', transition: 'all 0.15s' }}
                     >
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>{f.title}</h3>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>
+                        {f.title}
+                        {f.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>}
+                      </h3>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{f.description}</p>
                     </div>
                   ))}
@@ -2288,10 +2291,15 @@ export const Dashboard: React.FC = () => {
               )
             ) : (
               <>
-                <form onSubmit={createForumThread} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <input className="input-field" placeholder="Thread title" value={threadTitle} onChange={e => setThreadTitle(e.target.value)} style={{ flex: 1, minWidth: '160px' }} required />
-                  <input className="input-field" placeholder="What's on your mind?" value={threadContent} onChange={e => setThreadContent(e.target.value)} style={{ flex: 2, minWidth: '220px' }} required />
-                  <button type="submit" className="btn-primary" disabled={threadPosting} style={{ padding: '8px 18px' }}>{threadPosting ? 'Posting...' : 'Post Thread'}</button>
+                {selectedForum.is_locked && (
+                  <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#fbbf24' }}>
+                    🔒 <strong>This forum is closed.</strong> No new threads or replies can be posted.
+                  </div>
+                )}
+                <form onSubmit={createForumThread} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center', opacity: selectedForum.is_locked ? 0.5 : 1, pointerEvents: selectedForum.is_locked ? 'none' : 'auto' }}>
+                  <input className="input-field" placeholder="Thread title" value={threadTitle} onChange={e => setThreadTitle(e.target.value)} style={{ flex: 1, minWidth: '160px' }} required disabled={selectedForum.is_locked} />
+                  <input className="input-field" placeholder="What's on your mind?" value={threadContent} onChange={e => setThreadContent(e.target.value)} style={{ flex: 2, minWidth: '220px' }} required disabled={selectedForum.is_locked} />
+                  <button type="submit" className="btn-primary" disabled={threadPosting || selectedForum.is_locked} style={{ padding: '8px 18px' }}>{threadPosting ? 'Posting...' : 'Post Thread'}</button>
                 </form>
 
                 {forumsLoading ? (
@@ -2323,16 +2331,17 @@ export const Dashboard: React.FC = () => {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem', opacity: selectedForum.is_locked ? 0.5 : 1, pointerEvents: selectedForum.is_locked ? 'none' : 'auto' }}>
                       <input
                         className="input-field"
                         style={{ flex: 1 }}
-                        placeholder="Write a reply..."
+                        placeholder={selectedForum.is_locked ? 'Forum is closed' : 'Write a reply...'}
                         value={replyTexts[t.id] || ''}
                         onChange={e => setReplyTexts({ ...replyTexts, [t.id]: e.target.value })}
                         onKeyDown={e => e.key === 'Enter' && postForumReply(t.id)}
+                        disabled={selectedForum.is_locked}
                       />
-                      <button className="btn-primary" style={{ padding: '0 1rem' }} disabled={replyingTo === t.id} onClick={() => postForumReply(t.id)}>
+                      <button className="btn-primary" style={{ padding: '0 1rem' }} disabled={replyingTo === t.id || selectedForum.is_locked} onClick={() => postForumReply(t.id)}>
                         {replyingTo === t.id ? 'Posting...' : 'Reply'}
                       </button>
                     </div>

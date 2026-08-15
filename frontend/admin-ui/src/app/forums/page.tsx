@@ -54,6 +54,20 @@ export default function ForumsPage() {
     }
   };
 
+  // Close / reopen a forum (#fix): a closed forum blocks new threads + replies
+  // everywhere (backend-enforced), so it can be put on hold without deleting.
+  const toggleLock = async (f: any) => {
+    try {
+      await fetchApi(`/api/v1/forums/${f.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_locked: !f.is_locked }),
+      });
+      loadForums();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update forum');
+    }
+  };
+
   if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading forums...</div>;
 
   return (
@@ -84,21 +98,33 @@ export default function ForumsPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {forums.length === 0 ? <p>No forums available.</p> : forums.map(f => (
-          <Link href={`/forums/${f.id}`} key={f.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="panel" style={{ transition: 'transform 0.2s', cursor: 'pointer' }} 
-                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-              <h2 style={{ fontSize: '20px', color: 'var(--primary-color)', marginBottom: '5px' }}>
-                {f.title}
-                {role === 'SUPER_ADMIN' && f.target_tenants && f.target_tenants.length > 0 && (
-                  <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(0,200,255,0.1)', color: 'var(--primary-color)' }}>
-                    {f.target_tenants.includes('__ALL__') ? 'All Colleges' : `${f.target_tenants.length} college${f.target_tenants.length > 1 ? 's' : ''}`}
-                  </span>
-                )}
-              </h2>
-              <p style={{ color: 'var(--text-secondary)' }}>{f.description}</p>
+          <div key={f.id} className="panel" style={{ transition: 'transform 0.2s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+              <Link href={`/forums/${f.id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, cursor: 'pointer' }}>
+                <h2 style={{ fontSize: '20px', color: 'var(--primary-color)', marginBottom: '5px' }}>
+                  {f.title}
+                  {f.is_locked && (
+                    <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>
+                  )}
+                  {role === 'SUPER_ADMIN' && f.target_tenants && f.target_tenants.length > 0 && (
+                    <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(0,200,255,0.1)', color: 'var(--primary-color)' }}>
+                      {f.target_tenants.includes('__ALL__') ? 'All Colleges' : `${f.target_tenants.length} college${f.target_tenants.length > 1 ? 's' : ''}`}
+                    </span>
+                  )}
+                </h2>
+                <p style={{ color: 'var(--text-secondary)' }}>{f.description}</p>
+              </Link>
+              {(isAdmin || isTrainer) && (
+                <button
+                  className="btn-secondary"
+                  style={{ flexShrink: 0, fontSize: '12px', padding: '5px 12px', color: f.is_locked ? '#00c864' : '#fbbf24', borderColor: f.is_locked ? '#00c864' : '#fbbf24' }}
+                  onClick={() => toggleLock(f)}
+                >
+                  {f.is_locked ? '🔓 Reopen' : '🔒 Close'}
+                </button>
+              )}
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>

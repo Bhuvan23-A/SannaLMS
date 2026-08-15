@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -6,6 +6,10 @@ export class ThreadsService {
   constructor(private prisma: PrismaService) {}
 
   async createThread(data: Record<string, any>, userId: string, tenantId: string) {
+    const forum = await this.prisma.forum.findUnique({ where: { id: data.forum_id } });
+    if (forum?.is_locked) {
+      throw new ForbiddenException('This forum is closed — new threads are disabled.');
+    }
     return this.prisma.thread.create({
       data: {
         forum_id: data.forum_id,
@@ -33,6 +37,14 @@ export class ThreadsService {
   }
 
   async createPost(threadId: string, data: Record<string, any>, userId: string, tenantId: string) {
+    const thread = await this.prisma.thread.findUnique({
+      where: { id: threadId },
+      include: { forum: true },
+    });
+    if (!thread) throw new NotFoundException('Thread not found');
+    if (thread.forum?.is_locked) {
+      throw new ForbiddenException('This forum is closed — replies are disabled.');
+    }
     return this.prisma.post.create({
       data: {
         thread_id: threadId,

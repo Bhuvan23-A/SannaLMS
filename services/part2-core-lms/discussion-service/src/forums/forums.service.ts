@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -22,6 +22,29 @@ export class ForumsService {
         description: data.description,
         target_tenants: targetTenants,
       }
+    });
+  }
+
+  async getForum(id: string) {
+    return this.prisma.forum.findUnique({ where: { id } });
+  }
+
+  // Close/reopen a forum. Scoped: super admin may manage any forum; everyone
+  // else only forums owned by or targeted at their own college (#fix).
+  async updateForum(id: string, data: Record<string, any>, tenantId: string, isSuperAdmin: boolean) {
+    const forum = await this.prisma.forum.findUnique({ where: { id } });
+    if (!forum) throw new NotFoundException('Forum not found');
+    const canManage = isSuperAdmin || forum.tenant_id === tenantId || (forum.target_tenants || []).includes(tenantId);
+    if (!canManage) {
+      throw new ForbiddenException('You can only manage forums of your own college');
+    }
+    return this.prisma.forum.update({
+      where: { id },
+      data: {
+        ...(data.is_locked !== undefined ? { is_locked: !!data.is_locked } : {}),
+        ...(data.title ? { title: data.title } : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+      },
     });
   }
 
