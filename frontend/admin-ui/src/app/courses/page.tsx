@@ -54,6 +54,12 @@ export default function CoursesPage() {
   const [studentCourse, setStudentCourse] = useState<any>(null);
   const [studentUserId, setStudentUserId] = useState('');
   const [studentAdding, setStudentAdding] = useState(false);
+  // Enrolled students shown inside the Add Student modal (#fix): mistakes like
+  // adding a student to the wrong course are fixed right there, without leaving
+  // the page (Remove calls DELETE /enrollments/course/:id/user/:userId).
+  const [studentEnrollments, setStudentEnrollments] = useState<any[]>([]);
+  const [studentMsg, setStudentMsg] = useState('');
+  const [studentRemoving, setStudentRemoving] = useState<string | null>(null);
   // Assign trainers (#fix): college admin picks a trainer user + role per course
   const [trainerCourse, setTrainerCourse] = useState<any>(null);
   const [trainerUserId, setTrainerUserId] = useState('');
@@ -123,16 +129,40 @@ export default function CoursesPage() {
     } catch (err: any) { alert(err.message || 'Failed to delete resource'); }
   };
 
+  const openAddStudent = async (course: any) => {
+    setStudentCourse(course);
+    setStudentUserId('');
+    setStudentMsg('');
+    setStudentEnrollments([]);
+    try {
+      const d = await fetchApi(`/api/v1/enrollments/course/${course.id}`).catch(() => []);
+      setStudentEnrollments(Array.isArray(d) ? d : []);
+    } catch { setStudentEnrollments([]); }
+  };
+
   const addStudent = async (e: any) => {
     e.preventDefault();
-    if (!studentCourse || !studentUserId.trim()) { alert('Enter a student user ID'); return; }
+    if (!studentCourse || !studentUserId.trim()) { alert('Select a student'); return; }
     try {
       setStudentAdding(true);
       await fetchApi('/api/v1/enrollments', { method: 'POST', body: JSON.stringify({ user_id: studentUserId.trim(), course_id: studentCourse.id }) });
       setStudentUserId('');
-      setStudentCourse(null);
-      alert('✅ Student added to course');
+      setStudentMsg('✅ Student added to course');
+      const d = await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}`).catch(() => []);
+      setStudentEnrollments(Array.isArray(d) ? d : []);
     } catch (err: any) { alert(err.message || 'Failed to add student'); } finally { setStudentAdding(false); }
+  };
+
+  const removeEnrolledStudent = async (en: any) => {
+    if (!studentCourse) return;
+    if (!confirm(`Remove ${nameOf(en.user_id)} from this course?`)) return;
+    try {
+      setStudentRemoving(en.user_id);
+      await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}/user/${en.user_id}`, { method: 'DELETE' });
+      setStudentMsg('🗑️ Student removed from course');
+      const d = await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}`).catch(() => []);
+      setStudentEnrollments(Array.isArray(d) ? d : []);
+    } catch (err: any) { alert(err.message || 'Failed to remove student'); } finally { setStudentRemoving(null); }
   };
 
   const openAssignTrainer = async (course: any) => {
@@ -202,10 +232,15 @@ export default function CoursesPage() {
     } catch { /* org data unavailable */ }
   };
 
-  // Every course of the selected branch+semester (all get enrolled into)
+  // Every course of the selected branch + semester (all get enrolled into).
+  // Courses store the semester NUMBER (denormalized from their section), not
+  // the semester record id — match the selected semester record's number
+  // against course.semester_number (#fix: previously matched semester_id which
+  // is always null on courses, so Bulk Enroll always showed "0 courses").
+  const selectedBulkSemester = bulkSemesters.find((s: any) => s.id === bulkSemesterId);
   const bulkTargetCourses = courses.filter((c: any) =>
     (!bulkBranchId || c.branch_id === bulkBranchId) &&
-    (!bulkSemesterId || c.semester_id === bulkSemesterId)
+    (!selectedBulkSemester || Number(c.semester_number) === Number(selectedBulkSemester.semester_number))
   );
   const bulkVisibleSemesters = bulkSemesters.filter((s: any) => !bulkBranchId || s.branch_id === bulkBranchId);
 
@@ -325,7 +360,7 @@ export default function CoursesPage() {
                       <>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>📎 Resources</button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignTrainer(course)}>👨‍🏫 Assign Trainer</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => setStudentCourse(course)}>➕ Add Student</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>➕ Add Student</button>
                       </>
                     )}
                     {isAdmin && <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>}
@@ -451,23 +486,61 @@ export default function CoursesPage() {
         </div>
       )}
 
-      {/* Add Student modal (#5) */}
+      {/* Add Student modal (#5, #fix): also lists enrolled students with a
+          Remove button so a student added to the wrong course is fixed in place */}
       {studentCourse && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <form onSubmit={addStudent} className="panel" style={{ width: '420px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '8px' }}>➕ Add Student</h3>
+          <form onSubmit={addStudent} className="panel" style={{ width: '460px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ margin: 0 }}>➕ Add Student</h3>
+              <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setStudentCourse(null)}>✕ Close</button>
+            </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{studentCourse.title}</strong></p>
+            {studentMsg && (
+              <div style={{ padding: '8px 12px', marginBottom: '12px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '8px', fontSize: '13px' }}>{studentMsg}</div>
+            )}
             <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
             <select required className="input-field" style={{ marginBottom: '16px' }} value={studentUserId} onChange={e => setStudentUserId(e.target.value)}>
               <option value="">Select student…</option>
               {studentUsers.length === 0 ? <option value="" disabled>No students in your college yet — use Bulk Import Users first</option>
-                : studentUsers.map((u: any) => (
-                  <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</option>
-                ))}
+                : studentUsers.map((u: any) => {
+                    const already = studentEnrollments.some((en: any) => en.user_id === u.id);
+                    return (
+                      <option key={u.id} value={u.id} disabled={already}>
+                        {[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}{already ? ' (enrolled)' : ''}
+                      </option>
+                    );
+                  })}
             </select>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" className="btn-primary" disabled={studentAdding}>{studentAdding ? 'Adding...' : 'Add Student'}</button>
-              <button type="button" className="btn-secondary" onClick={() => setStudentCourse(null)}>Cancel</button>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <button type="submit" className="btn-primary" disabled={studentAdding || !studentUserId}>{studentAdding ? 'Adding...' : 'Add Student'}</button>
+            </div>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Enrolled students ({studentEnrollments.length})</div>
+              {studentEnrollments.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No students enrolled yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {studentEnrollments.map((en: any) => (
+                    <div key={en.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', fontSize: '12px' }}>
+                      <span style={{ minWidth: 0 }}>
+                        <strong>{nameOf(en.user_id)}</strong>
+                        {emailOf(en.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>{emailOf(en.user_id)}</span>}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                        disabled={studentRemoving === en.user_id}
+                        onClick={() => removeEnrolledStudent(en)}
+                      >
+                        {studentRemoving === en.user_id ? 'Removing...' : 'Remove'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </form>
         </div>

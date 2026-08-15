@@ -50,7 +50,7 @@ export class EnrollmentsService {
    * offerings and each student is also added to the section roster (roster +
    * auto-enrolled, real-college "admit to the class"). Existing rows are kept.
    */
-  async bulkEnroll(body: { user_ids?: string[]; course_ids?: string[]; branch_id?: string; semester_id?: string; section_id?: string }, tenantId: string) {
+  async bulkEnroll(body: { user_ids?: string[]; course_ids?: string[]; branch_id?: string; semester_id?: string; semester_number?: number; section_id?: string }, tenantId: string) {
     const user_ids = Array.isArray(body.user_ids) ? body.user_ids.filter(Boolean) : [];
     if (user_ids.length === 0) {
       throw new BadRequestException('Provide at least one user_id to enroll');
@@ -68,12 +68,15 @@ export class EnrollmentsService {
       course_ids = courses.map((c: any) => c.id);
     }
     // Resolve courses from branch + semester when no explicit course list given.
-    if (course_ids.length === 0 && body.branch_id && body.semester_id) {
+    // Courses store the semester NUMBER (denormalized from their section), not
+    // the semester record id, so match by semester_number when that's sent
+    // (#fix: matching semester_id alone always matched zero courses).
+    if (course_ids.length === 0 && body.branch_id && (body.semester_id || body.semester_number)) {
       const courses = await this.prisma.extendedClient.course.findMany({
         where: {
           tenant_id: tenantId,
           branch_id: body.branch_id,
-          semester_id: body.semester_id,
+          ...(body.semester_id ? { semester_id: body.semester_id } : { semester_number: Number(body.semester_number) }),
           deleted_at: null,
         },
         select: { id: true },
