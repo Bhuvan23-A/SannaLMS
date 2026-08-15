@@ -60,8 +60,15 @@ mount with `docker inspect sannalms-nginx`).
 5. **Run DB migrations** if the schema changed (see below).
 6. **Rebuild + restart** affected containers:
    `cd /root/SannaLMS && docker-compose build <svc> && docker-compose up -d <svc>`
-7. **Health check (post-deploy)** + `expect_healthy()`.
-8. Verify the specific feature live via the API, then commit + push.
+7. **Reload Kong after any container recreate** — recreating a service can
+   give it a new Docker network IP, and Kong caches the upstream hostname
+   resolution, so the gateway returns **502 `Connection refused`** to the old
+   IP until the DNS cache expires. Always run:
+   `docker exec sannalms-kong kong reload`
+   (confirmed required Aug 2026: college-service moved from `.17` to `.20`
+   and the API gateway 502'd until the reload).
+8. **Health check (post-deploy)** + `expect_healthy()`.
+9. Verify the specific feature live via the API, then commit + push.
 
 ## DB migrations on production
 

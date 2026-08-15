@@ -97,6 +97,15 @@ export class RolesGuard implements CanActivate {
       }
     }
 
+    // Write the normalized role set back so controllers can rely on canonical
+    // names (e.g. `includes('superadmin')`) regardless of whether the caller
+    // came in via a JWT (realm roles) or the mock header (raw, e.g.
+    // 'SUPER_ADMIN'). Without this, a mock super-admin call is treated as a
+    // non-admin scoped to tenant 'test-college' and sees zero users (#fix).
+    if (request.user) {
+      request.user.roles = [...userRoles];
+    }
+
     const hasRole = requiredRoles.some((role) => userRoles.has(role));
     return hasRole;
   }
