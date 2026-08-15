@@ -726,7 +726,12 @@ export const Dashboard: React.FC = () => {
     try {
       const fd = new FormData();
       fd.append('file', f);
-      const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd);
+      // The apiClient defaults to Content-Type: application/json, which would
+      // mangle the multipart body (no boundary) and make the server see "no
+      // file". Override it so axios sets the proper multipart boundary.
+      const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       const rel = up.data?.url;
       const fileUrl = rel ? `${window.location.origin}${rel}` : '';
       // Preserve the existing written answer (if any) so only the attachment changes
@@ -785,7 +790,11 @@ export const Dashboard: React.FC = () => {
       if (pickedFile) {
         const fd = new FormData();
         fd.append('file', pickedFile);
-        const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd);
+        // Override the global JSON Content-Type so the multipart body is sent
+        // with a proper boundary (see note above).
+        const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         const rel = up.data?.url;
         if (rel) fileUrl = `${window.location.origin}${rel}`;
       }
