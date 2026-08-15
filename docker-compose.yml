@@ -347,6 +347,10 @@ services:
     environment:
       - PORT=3002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_assessment?schema=public
+    # Share the course-service uploads volume so assignment files (written under
+    # /app/uploads/assignments/) are served by the same /uploads/ nginx route.
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - postgres
 

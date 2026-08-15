@@ -700,13 +700,10 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const [studentNameInput, setStudentNameInput] = useState<string>(() => (keycloak.tokenParsed?.preferred_username as string) || 'demo');
-  const [uploadedFileName, setUploadedFileName] = useState<string>('sort_algorithm.py');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [pickedFileInfo, setPickedFileInfo] = useState('');
-  const [uploadedCodeContent, setUploadedCodeContent] = useState<string>(
-    `def perform_sort(numbers):\n    length = len(numbers)\n    for x in range(length):\n        for y in range(0, length-x-1):\n            if numbers[y] > numbers[y+1]:\n                numbers[y], numbers[y+1] = numbers[y+1], numbers[y]\n    return numbers`
-  );
+  const [uploadedCodeContent, setUploadedCodeContent] = useState<string>('');
 
   // Real file upload from PC / mobile (text files are loaded into the editor for editing)
   const TEXT_EXTENSIONS = ['py','js','ts','jsx','tsx','java','cpp','c','cc','h','hpp','cs','go','rb','php','txt','md','json','html','css','sql','sh','yml','yaml','xml','ini','cfg','log','csv'];
@@ -732,24 +729,38 @@ export const Dashboard: React.FC = () => {
     }
   };
   const handleSubmitAssignment = async () => {
-    if (!uploadedFileName.trim()) {
-      alert('Please choose a file from your device (or enter a file name) before submitting your assignment.');
-      return;
-    }
     // Submit against the real assignment (created by the trainer) so it lands in the gradebook
     const assignmentId = selectedAssignmentId || assignmentList[0]?.id;
     if (!assignmentId) {
       alert('⚠️ No assignment selected. Please pick an assignment from the list first.');
       return;
     }
+    const code = uploadedCodeContent.trim();
+    if (!code && !pickedFile) {
+      alert('⚠️ Add your answer as code/text OR attach a file (or both) before submitting.');
+      return;
+    }
     try {
+      // Upload the picked file first — the trainer must be able to open it.
+      let fileUrl = '';
+      if (pickedFile) {
+        const fd = new FormData();
+        fd.append('file', pickedFile);
+        const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd);
+        const rel = up.data?.url;
+        if (rel) fileUrl = `${window.location.origin}${rel}`;
+      }
       await apiClient.post(`/assignments/${assignmentId}/submit`, {
-        text_content: uploadedCodeContent,
-        file_url: uploadedFileName,
+        text_content: code || null,
+        file_url: fileUrl || null,
       });
       fetchMySubmission(assignmentId);
       // The server records the submission; the trainer reviews it and releases a
       // score + feedback. No fake "plagiarism verdict" on submit.
+      setPickedFile(null);
+      setPickedFileInfo('');
+      setUploadedCodeContent('');
+      setUploadedFileName('');
       alert('✅ Assignment submitted successfully! Your trainer will review and grade it.');
     } catch (err: any) {
       alert(`⚠️ Submission failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
@@ -1884,34 +1895,13 @@ export const Dashboard: React.FC = () => {
                     >
                       <Upload size={15} /> Choose File
                     </button>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{pickedFileInfo || 'No file chosen yet — or paste code below and type a file name.'}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{pickedFileInfo || 'No file chosen yet — type your answer below and/or attach a file.'}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   {/* Left Form */}
                   <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Student Name</label>
-                        <input
-                          type="text"
-                          value={studentNameInput}
-                          onChange={e => setStudentNameInput(e.target.value)}
-                          style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>File Name</label>
-                        <input
-                          type="text"
-                          value={uploadedFileName}
-                          onChange={e => setUploadedFileName(e.target.value)}
-                          style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
-                        />
-                      </div>
-                    </div>
-
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Assignment Code Content</label>
                       <textarea
@@ -1926,7 +1916,7 @@ export const Dashboard: React.FC = () => {
                       onClick={handleSubmitAssignment}
                       style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.65rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
-                      <Upload size={16} /> Submit to MinIO S3
+                      <Upload size={16} /> Submit Assignment
                     </button>
                   </div>
 
@@ -1940,7 +1930,7 @@ export const Dashboard: React.FC = () => {
                         </div>
                         {mySubmission.submission.file_url && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                            File: <span style={{ color: 'var(--accent-cyan)' }}>{mySubmission.submission.file_url}</span>
+                            File: <a href={mySubmission.submission.file_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>{mySubmission.submission.file_url}</a>
                           </div>
                         )}
                         {mySubmission.submission.is_graded ? (

@@ -1,10 +1,47 @@
-import { Controller, Post, Get, Delete, Body, Req, Query, Param, Put } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Req, Query, Param, Put, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { AssignmentsService } from './assignments.service';
 import { Roles } from '../roles.guard';
 
 @Controller('api/v1/assignments')
 export class AssignmentsController {
   constructor(private readonly assignmentsService: AssignmentsService) {}
+
+  // Student uploads their assignment file BEFORE submitting. The file lands in
+  // the shared uploads volume under /uploads/assignments/{tenant}/{assignment}/,
+  // and the returned URL is stored as the submission's file_url so the trainer
+  // can actually open the attachment.
+  @Post('upload')
+  @Roles('STUDENT')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (req: any, _file, cb) => {
+        const tenantId = req.user?.tenantId || 'test-tenant';
+        const assignmentId = req.query.assignment_id || 'unknown';
+        const dir = join(process.cwd(), 'uploads', 'assignments', String(tenantId), String(assignmentId));
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+      },
+      filename: (_req, file, cb) => {
+        const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        cb(null, `${Date.now()}_${safe}`);
+      },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  }))
+  uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Record<string, any>) {
+    if (!file) throw new BadRequestException('No file uploaded — use multipart field "file".');
+    const tenantId = req.user?.tenantId || 'test-tenant';
+    const assignmentId = req.query.assignment_id || 'unknown';
+    return {
+      url: `/uploads/assignments/${tenantId}/${assignmentId}/${file.filename}`,
+      size: file.size,
+      originalName: file.originalname,
+    };
+  }
 
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')

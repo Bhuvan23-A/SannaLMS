@@ -300,8 +300,8 @@ export default function AssignmentsPage() {
                             )}
                             {sub.file_url && (
                               <div style={{ marginBottom: '8px' }}>
-                                <a href={sub.file_url.startsWith('http') ? sub.file_url : undefined}
-                                   onClick={!sub.file_url.startsWith('http') ? (e) => { e.preventDefault(); alert(sub.file_url); } : undefined}
+                                <a href={sub.file_url.startsWith('http') ? sub.file_url : (sub.file_url.startsWith('/') ? `https://admin.sannalms.sannainnovations.com${sub.file_url}` : undefined)}
+                                   onClick={!sub.file_url.startsWith('http') && !sub.file_url.startsWith('/') ? (e) => { e.preventDefault(); alert(sub.file_url); } : undefined}
                                    target="_blank" rel="noopener noreferrer"
                                    style={{ fontSize: '12px', color: 'var(--primary-color)' }}>📎 Submitted file: {sub.file_url}</a>
                               </div>
