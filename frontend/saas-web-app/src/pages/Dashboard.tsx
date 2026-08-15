@@ -6,7 +6,7 @@ import {
   LogOut, User, Activity, BookOpen, Terminal, CheckSquare, 
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
-  FileText, Calendar, Upload, Bell, GraduationCap
+  FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -704,6 +704,45 @@ export const Dashboard: React.FC = () => {
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [pickedFileInfo, setPickedFileInfo] = useState('');
   const [uploadedCodeContent, setUploadedCodeContent] = useState<string>('');
+  const [replacingFile, setReplacingFile] = useState(false);
+
+  // Re-upload a corrected attachment on an existing submission — replaces the
+  // file in place (backend upserts the same row and resets the grade for
+  // re-review), so the student never needs a whole new submission.
+  const handleReplaceFile = async (e: any) => {
+    const f = e.target?.files?.[0] as File | undefined;
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) {
+      alert('File is larger than the 10 MB limit. Please choose a smaller file.');
+      e.target.value = '';
+      return;
+    }
+    const assignmentId = selectedAssignmentId || assignmentList[0]?.id;
+    if (!assignmentId) {
+      alert('⚠️ No assignment selected.');
+      return;
+    }
+    setReplacingFile(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', f);
+      const up = await apiClient.post(`/assignments/upload?assignment_id=${assignmentId}`, fd);
+      const rel = up.data?.url;
+      const fileUrl = rel ? `${window.location.origin}${rel}` : '';
+      // Preserve the existing written answer (if any) so only the attachment changes
+      await apiClient.post(`/assignments/${assignmentId}/submit`, {
+        text_content: mySubmission?.submission?.text_content || null,
+        file_url: fileUrl || null,
+      });
+      await fetchMySubmission(assignmentId);
+      alert('✅ File replaced! Your trainer will re-review the updated submission.');
+    } catch (err: any) {
+      alert(`⚠️ Replace failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
+    } finally {
+      setReplacingFile(false);
+      e.target.value = '';
+    }
+  };
 
   // Real file upload from PC / mobile (text files are loaded into the editor for editing)
   const TEXT_EXTENSIONS = ['py','js','ts','jsx','tsx','java','cpp','c','cc','h','hpp','cs','go','rb','php','txt','md','json','html','css','sql','sh','yml','yaml','xml','ini','cfg','log','csv'];
@@ -1935,6 +1974,17 @@ export const Dashboard: React.FC = () => {
                             ) : (
                               <span style={{ color: 'var(--text-secondary)' }}>📎 {mySubmission.submission.file_url} (file not attached — older submission)</span>
                             )}
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <input type="file" id="assignment-replace-input" style={{ display: 'none' }} onChange={handleReplaceFile} />
+                              <button
+                                onClick={() => document.getElementById('assignment-replace-input')?.click()}
+                                disabled={replacingFile}
+                                style={{ border: '1px solid rgba(251,191,36,0.4)', background: 'rgba(251,191,36,0.1)', color: '#fbbf24', padding: '0.4rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                              >
+                                <RefreshCw size={13} /> {replacingFile ? 'Replacing…' : 'Replace File'}
+                              </button>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>Upload a corrected file — it replaces this attachment (grade resets for re-review).</span>
+                            </div>
                           </div>
                         )}
                         {mySubmission.submission.is_graded ? (
