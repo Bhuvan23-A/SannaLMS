@@ -18,6 +18,9 @@ export default function QuizzesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
+  // Super admins browse per college — pass the selected college's tenant_id
+  // so the API returns that college's quizzes (not the empty master).
+  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, question_ids: [] as string[] });
   // Assign-to targeting (#11): whole course or specific enrolled students
@@ -58,14 +61,20 @@ export default function QuizzesPage() {
     })();
   }, []);
 
-  useEffect(() => { if (courseId) loadData(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [courseId]);
+  useEffect(() => {
+    // Reload when the course changes (and for super admins, when the selected
+    // college changes — different college = different tenant = different list).
+    if (courseId || isSuperAdmin) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, collegeId, isSuperAdmin]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
       const [qData, qnData] = await Promise.all([
-        fetchApi(`/api/v1/quizzes?course_id=${courseId}`),
-        (isAdmin || isTrainer) ? fetchApi(`/api/v1/questions?course_id=${courseId}`) : Promise.resolve([])
+        fetchApi(`/api/v1/quizzes?course_id=${courseId}${tenantQ}`),
+        (isAdmin || isTrainer) ? fetchApi(`/api/v1/questions?course_id=${courseId}${tenantQ}`) : Promise.resolve([])
       ]);
       setQuizzes(qData || []);
       setQuestions(qnData || []);

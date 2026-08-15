@@ -18,6 +18,9 @@ export default function AssignmentsPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
+  // Super admins browse per college — pass the selected college's tenant_id
+  // so the API returns that college's assignments (not the empty master).
+  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', due_date: '', max_marks: 100 });
   // Assign-to targeting (#12): whole course or specific enrolled students
@@ -47,10 +50,20 @@ export default function AssignmentsPage() {
     })();
   }, []);
 
-  useEffect(() => { if (courseId) loadAssignments(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [courseId]);
+  useEffect(() => {
+    // Reload when the course changes (and for super admins, when the selected
+    // college changes — different college = different tenant = different list).
+    if (courseId || isSuperAdmin) loadAssignments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, collegeId, isSuperAdmin]);
 
   const loadAssignments = async () => {
-    try { setLoading(true); const d = await fetchApi(`/api/v1/assignments?course_id=${courseId}`); setAssignments(d || []); }
+    try {
+      setLoading(true);
+      const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
+      const d = await fetchApi(`/api/v1/assignments?course_id=${courseId}${tenantQ}`);
+      setAssignments(d || []);
+    }
     catch { } finally { setLoading(false); }
   };
 

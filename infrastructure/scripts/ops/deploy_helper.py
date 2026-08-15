@@ -4,19 +4,23 @@ SannaLMS deploy helper — the ONE safe way to push code to the production serve
 
 Why this exists
 ---------------
-A previous deploy script refreshed the student frontend with `rm -rf dist && mkdir -p
-dist` while the nginx container was running. Docker bind-mounts keep pointing at the
-ORIGINAL directory inode, so the running container was left bound to the deleted
-(now-empty) folder and served 503/ERR_INVALID_RESPONSE until the container was
-recreated. rsync syncs INTO the existing folder without recreating it, so the bind
-mount survives every deploy.
+Two production outages taught us the rules:
 
-Rules enforced here:
-  1. NEVER `rm -rf` a bind-mounted directory. Use sync_dist() which rsyncs contents
-     in place (rsync --delete only removes files INSIDE the destination, never the
-     destination directory itself).
-  2. ALWAYS run health_checks() BEFORE and AFTER a deploy. A regression that turns
-     the site into a 503/blank page is caught the moment it happens.
+1. NEVER delete/recreate a bind-mounted folder during a deploy. `rm -rf dist &&
+   mkdir -p dist` while the nginx container is running breaks the Docker bind
+   mount: the container keeps pointing at the ORIGINAL (now-deleted, empty)
+   directory inode and serves 503 / ERR_INVALID_RESPONSE until the container
+   is recreated. sync_dist() uploads files IN PLACE via SFTP — it never
+   touches the directory itself, only the files inside it.
+
+2. ALWAYS run health_check() before and after every deploy. A regression that
+   turns the site into a 503/blank page is caught the moment it happens.
+
+IMPORTANT GOTCHA (fixed): sync_dist() must upload via SFTP from THIS machine.
+Running rsync on the SERVER with a local (Windows) source path silently fails
+because the source doesn't exist there — and since the old files remain, every
+check still passes while the new build is never actually deployed. Uploading
+via SFTP guarantees the new files land.
 
 Usage
 -----
@@ -24,14 +28,14 @@ Usage
 
     ssh = ssh_connect()
     run(ssh, "cd /root/SannaLMS && docker-compose build admin-ui", timeout=900)
-    sync_dist(ssh, "frontend/saas-web-app/dist", "/root/SannaLMS/frontend/saas-web-app/dist")
+    sync_dist(ssh, "frontend/saas-web-app/dist",
+              "/root/SannaLMS/frontend/saas-web-app/dist")
     run(ssh, "cd /root/SannaLMS && docker-compose up -d admin-ui", timeout=300)
     ssh.close()
 """
 
 import os
-import sys
-import time
+import stat
 
 HOST = "103.160.144.225"
 USER = "root"
@@ -41,10 +45,10 @@ REMOTE_DIR = "/root/SannaLMS"
 # URLs probed before/after every deploy — a status code change from 200 to
 # anything else (or a 000 timeout) after a deploy means something regressed.
 HEALTH_URLS = {
-    "student portal": f"https://sannalms.sannainnovations.com/",
-    "admin portal": f"https://admin.sannalms.sannainnovations.com/",
-    "api gateway": f"https://sannalms.sannainnovations.com/api/v1/courses",
-    "nginx uploads": f"https://sannalms.sannainnovations.com/uploads/healthz",
+    "student portal": "https://sannalms.sannainnovations.com/",
+    "admin portal": "https://admin.sannalms.sannainnovations.com/",
+    "api gateway": "https://sannalms.sannainnovations.com/api/v1/courses",
+    "nginx uploads": "https://sannalms.sannainnovations.com/uploads/healthz",
 }
 
 
@@ -73,27 +77,85 @@ def run(ssh, cmd, timeout=600):
 
 def sync_dist(ssh, local_dist, remote_dist, sftp=None):
     """
-    Safely sync a frontend build into a bind-mounted folder.
+    Safely push a frontend build into a bind-mounted folder, IN PLACE.
 
-    rsync writes INTO the destination in place — it never deletes/recreates the
-    destination directory, so a running container's bind mount stays valid. The
-    --delete flag only removes stale files inside the folder, never the folder
-    itself.
+    Uploads every file via SFTP (files are replaced individually — the folder
+    itself and its inode are never touched, so a running container's bind
+    mount stays valid). Then deletes files that exist remotely but not in the
+    new build (stale hashed bundles) — again file-by-file, never the folder.
+
+    Returns the set of uploaded file paths so callers can verify afterwards.
     """
     local_dist = os.path.abspath(local_dist)
-    if not os.path.isfile(os.path.join(local_dist, "index.html")):
-        raise SystemExit(f"[ERROR] Build missing: {local_dist}/index.html not found. Build first.")
+    index = os.path.join(local_dist, "index.html")
+    if not os.path.isfile(index):
+        raise SystemExit(f"[ERROR] Build missing: {index} not found. Build first.")
     print(f"\n[sync] {local_dist} -> {remote_dist}")
-    # rsync -a --delete: archive mode, remove stale files, never delete the
-    # destination folder itself — the running container's bind mount survives.
-    _, out, err = ssh.exec_command(
-        f"rsync -a --delete --exclude='.*' {local_dist}/ {remote_dist}/ 2>&1", timeout=600)
+
+    if sftp is None:
+        sftp = ssh.open_sftp()
+
+    # mkdir -p is safe: it's a no-op on an existing directory (inode untouched).
+    _, out, _ = ssh.exec_command(f"mkdir -p {remote_dist}", timeout=60)
     out.read()
-    e = err.read().decode("utf-8", "replace")
-    if e and "rsync:" in e.lower():
-        print("rsync reported errors:", e[-500:])
+
+    # Collect local files (clean relative paths — no leading "./" — so they
+    # match the remote walk exactly; a mismatch would delete top-level files
+    # like index.html as "stale").
+    local_files = set()
+    for root, dirs, files in os.walk(local_dist):
+        rel = os.path.relpath(root, local_dist)
+        for f in files:
+            rel_path = os.path.join(rel, f).replace("\\", "/")
+            if rel_path.startswith("./"):
+                rel_path = rel_path[2:]
+            local_files.add(rel_path)
+
+    # Upload each file in place.
+    uploaded = set()
+    for rel in sorted(local_files):
+        local_path = os.path.join(local_dist, rel.replace("/", os.sep))
+        remote_path = os.path.join(remote_dist, rel).replace("\\", "/")
+        sftp.put(local_path, remote_path)
+        uploaded.add(rel)
+    print(f"  uploaded {len(uploaded)} files")
+
+    # Delete stale remote files that are no longer in the new build — done via
+    # SFTP file-by-file (never `find -delete`, which matched basenames and wiped
+    # the whole folder including index.html). Only files are removed; empty
+    # directories are left alone so the bind mount inode is never touched.
+    def list_remote_files(sftp, base, prefix=""):
+        result = []
+        try:
+            entries = sftp.listdir_attr(base)
+        except IOError:
+            return result
+        for e in entries:
+            rel = f"{prefix}/{e.filename}" if prefix else e.filename
+            is_dir = e.st_mode is not None and stat.S_ISDIR(e.st_mode)
+            if is_dir:
+                result.extend(list_remote_files(sftp, f"{base}/{e.filename}", rel))
+            else:
+                result.append(rel)
+        return result
+
+    try:
+        remote_files = list_remote_files(sftp, remote_dist)
+    except Exception:
+        remote_files = []
+    stale = [r for r in remote_files if r not in local_files]
+    for rel in stale:
+        try:
+            sftp.remove(os.path.join(remote_dist, rel).replace("\\", "/"))
+        except IOError:
+            pass
+    if stale:
+        print(f"  removed {len(stale)} stale files")
+
+    # Verify the new index.html actually landed (the earlier bug deleted it).
     _, out, _ = ssh.exec_command(f"test -f {remote_dist}/index.html && echo DIST_OK", timeout=60)
     print(" ", out.read().decode().strip())
+    return uploaded
 
 
 def health_check(ssh, label="pre-deploy"):
@@ -131,7 +193,7 @@ if __name__ == "__main__":
     ssh = ssh_connect()
     try:
         health_check(ssh, label="smoke")
-        print("\nDeploy helper OK — use sync_dist() (not rm -rf) and always run "
+        print("\nDeploy helper OK — use sync_dist() (in-place SFTP) and always run "
               "health_check() before/after deploying.")
     finally:
         ssh.close()
