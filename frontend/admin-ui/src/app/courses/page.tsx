@@ -427,9 +427,11 @@ export default function CoursesPage() {
                     <Link href={`/courses/${course.id}`} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', marginRight: '10px' }}>
                       {(isAdmin || isTrainer) ? 'Manage' : 'View'}
                     </Link>
+                    {(isAdmin || isTrainer) && (
+                      <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>📎 Resources</button>
+                    )}
                     {(isCollegeAdmin) && (
                       <>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>📎 Resources</button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignTrainer(course)}>👨‍🏫 Assign Trainer</button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>➕ Add Student</button>
                       </>
