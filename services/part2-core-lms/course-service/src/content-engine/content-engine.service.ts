@@ -29,6 +29,7 @@ export class ContentEngineService {
         type: data.type as any,
         status: (data.initialStatus || 'UPLOADING') as any,
         physical_path: data.physicalPath,
+        original_name: data.originalName,
         file_size: data.fileSize,
         tenant_id: data.tenantId,
       },

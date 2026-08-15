@@ -28,8 +28,15 @@ export class TopicsService {
   }
 
   findAll(lessonId: string) {
+    // Include the asset so the course builder can show which topic already has
+    // an uploaded file (name, type, status) instead of hiding it (#fix).
     return this.prisma.extendedClient.topic.findMany({
-      where: { lesson_id: lessonId, deleted_at: null }
+      where: { lesson_id: lessonId, deleted_at: null },
+      include: {
+        asset: {
+          select: { type: true, status: true, physical_path: true, original_name: true, file_size: true },
+        },
+      },
     });
   }
 

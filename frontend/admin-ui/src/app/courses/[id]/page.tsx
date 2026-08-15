@@ -12,7 +12,7 @@ interface Topic {
   title: string;
   sequence_no: number;
   content?: string;
-  asset?: { type: string; status: string; physical_path?: string };
+  asset?: { type: string; status: string; physical_path?: string; original_name?: string; file_size?: number };
 }
 
 interface Lesson {
@@ -42,6 +42,10 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
   const [uploadingTopic, setUploadingTopic] = useState<string | null>(null);
   const [newModule, setNewModule] = useState('');
   const [course, setCourse] = useState<any>(null);
+
+  // Container stores absolute paths like /app/uploads/... → public /uploads/...
+  const publicAssetUrl = (asset: Topic['asset']) =>
+    asset?.physical_path ? String(asset.physical_path).replace(/^\/app/, '') : '';
 
   const loadCourse = async () => {
     try {
@@ -319,13 +323,28 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
 
                         {lesson.expanded && lesson.topics.map(topic => (
                           <div key={topic.id} style={{ marginLeft: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', marginBottom: '6px' }}>
-                            <div>
-                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '8px' }}>#{topic.sequence_no}</span>
-                              <span style={{ fontSize: '13px' }}>{topic.title}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '4px' }}>#{topic.sequence_no}</span>
+                                <span style={{ fontSize: '13px' }}>{topic.title}</span>
+                                {topic.asset && (
+                                  <span className={`badge badge-${topic.asset.status === 'READY' ? 'success' : 'warning'}`} style={{ fontSize: '10px' }}>
+                                    {topic.asset.status}
+                                  </span>
+                                )}
+                              </div>
                               {topic.asset && (
-                                <span className={`badge badge-${topic.asset.status === 'READY' ? 'success' : 'warning'}`} style={{ marginLeft: '8px', fontSize: '10px' }}>
-                                  {topic.asset.type} · {topic.asset.status}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    📄 {topic.asset.original_name || topic.asset.type}
+                                  </span>
+                                  {topic.asset.file_size ? <span>· {Math.round(topic.asset.file_size / 1024)} KB</span> : null}
+                                  {topic.asset.status === 'READY' && publicAssetUrl(topic.asset) && (
+                                    <a href={publicAssetUrl(topic.asset)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color)', textDecoration: 'underline', flexShrink: 0 }}>
+                                      Open ↗
+                                    </a>
+                                  )}
+                                </div>
                               )}
                             </div>
                             {(isTrainer || isAdmin) && (
