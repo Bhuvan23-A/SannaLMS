@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Req, Query } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { Roles } from '../roles.guard';
 
@@ -61,5 +61,13 @@ export class EnrollmentsController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   findByCourse(@Param('courseId') courseId: string) {
     return this.enrollmentsService.findByCourse(courseId);
+  }
+
+  // Unenroll a student from a course (#fix) — lets admins correct mistaken
+  // enrollments (e.g. a student added to the wrong course by accident).
+  @Delete('course/:courseId/user/:userId')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  removeByCourseAndUser(@Param('courseId') courseId: string, @Param('userId') userId: string) {
+    return this.enrollmentsService.removeByCourseAndUser(courseId, userId);
   }
 }

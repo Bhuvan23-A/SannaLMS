@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -153,5 +153,18 @@ export class EnrollmentsService {
       include: { course: { select: { id: true, title: true } } },
       orderBy: { created_at: 'asc' }
     });
+  }
+
+  // Remove a single enrollment (real-LMS "unenroll"): lets college admins
+  // correct mistaken enrollments, e.g. a student added to the wrong course.
+  // The compound unique (user_id, course_id) makes the delete safe and atomic.
+  async removeByCourseAndUser(courseId: string, userId: string) {
+    const where = { user_id_course_id: { user_id: userId, course_id: courseId } };
+    const existing = await this.prisma.extendedClient.enrollment.findUnique({ where });
+    if (!existing) {
+      throw new NotFoundException('Enrollment not found for this student and course');
+    }
+    await this.prisma.extendedClient.enrollment.delete({ where });
+    return { removed: true, user_id: userId, course_id: courseId };
   }
 }

@@ -40,6 +40,18 @@ export default function CourseEnrollmentsTab({ courseId }: { courseId: string })
     }
   };
 
+  // Unenroll a student (#fix): corrects mistaken enrollments (e.g. a student
+  // added to the wrong course). Works for both manual and section enrollments.
+  const removeStudent = async (en: any) => {
+    if (!confirm(`Remove ${nameOf(en.user_id)} from this course?`)) return;
+    try {
+      await fetchApi(`/api/v1/enrollments/course/${courseId}/user/${en.user_id}`, { method: 'DELETE' });
+      loadRoster();
+    } catch (err: any) {
+      alert(`Failed to remove: ${err?.message || err}`);
+    }
+  };
+
   return (
     <div>
       <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Course Enrollments</h2>
@@ -68,13 +80,14 @@ export default function CourseEnrollmentsTab({ courseId }: { courseId: string })
             <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Student</th>
             <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
             <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Enrolled At</th>
+            <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+            <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
           ) : enrollments.length === 0 ? (
-            <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>No students enrolled yet.</td></tr>
+            <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>No students enrolled yet.</td></tr>
           ) : (
             enrollments.map((en) => (
               <tr key={en.id} className="table-row">
@@ -87,6 +100,15 @@ export default function CourseEnrollmentsTab({ courseId }: { courseId: string })
                 </td>
                 <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
                   {en.enrolled_at ? new Date(en.enrolled_at).toLocaleDateString() : '—'}
+                </td>
+                <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
+                  <button
+                    className="btn-secondary"
+                    style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                    onClick={() => removeStudent(en)}
+                  >
+                    Remove
+                  </button>
                 </td>
               </tr>
             ))
