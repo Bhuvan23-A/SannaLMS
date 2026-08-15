@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Req } from '@nestjs/common';
 import { ModulesService } from './modules.service';
 import { Roles } from '../roles.guard';
 
@@ -18,5 +18,20 @@ export class ModulesController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'STUDENT')
   findAll(@Param('courseId') courseId: string) {
     return this.modulesService.findAll(courseId);
+  }
+
+  // Rename / reorder a module (the course builder already calls this for
+  // drag-and-drop reordering — it was silently 404ing before) (#fix).
+  @Put(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  update(@Param('id') id: string, @Body() body: { title?: string; sequence_no?: number }) {
+    return this.modulesService.update(id, body);
+  }
+
+  // Soft-delete a module (its lessons/topics stay in the DB for audit).
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  remove(@Param('id') id: string) {
+    return this.modulesService.remove(id);
   }
 }

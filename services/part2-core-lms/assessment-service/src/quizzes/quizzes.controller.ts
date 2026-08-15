@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Body, Req, Query, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Req, Query, Param, BadRequestException } from '@nestjs/common';
 import { QuizzesService } from './quizzes.service';
 import { Roles } from '../roles.guard';
 
@@ -48,5 +48,13 @@ export class QuizzesController {
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     const userId = req.user?.id || 'u-1';
     return this.quizzesService.submitQuiz(id, body.answers, String(userId), String(tenantId));
+  }
+
+  // Delete a quiz — removes its question links and submissions (cascade), so
+  // a trainer who created the wrong quiz can remove it (#fix).
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  remove(@Param('id') id: string) {
+    return this.quizzesService.deleteQuiz(id);
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -20,5 +20,23 @@ export class PrerequisitesService {
         tenant_id: effectiveTenant,
       }
     });
+  }
+
+  async findByCourse(courseId: string) {
+    return this.prisma.extendedClient.coursePrerequisite.findMany({
+      where: { course_id: courseId },
+    });
+  }
+
+  // Remove a prerequisite link (fix a mistaken one) — idempotent, clean 404
+  // when the link doesn't exist instead of a raw 500.
+  async remove(courseId: string, requiredCourseId: string) {
+    const where = { course_id_required_course_id: { course_id: courseId, required_course_id: requiredCourseId } };
+    const existing = await this.prisma.extendedClient.coursePrerequisite.findUnique({ where });
+    if (!existing) {
+      throw new NotFoundException('Prerequisite link not found');
+    }
+    await this.prisma.extendedClient.coursePrerequisite.delete({ where });
+    return { removed: true, course_id: courseId, required_course_id: requiredCourseId };
   }
 }

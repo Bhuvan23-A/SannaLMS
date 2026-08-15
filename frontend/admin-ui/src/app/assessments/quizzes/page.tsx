@@ -166,6 +166,16 @@ export default function QuizzesPage() {
     } catch { alert('Failed to create question'); }
   };
 
+  // Delete a quiz (#fix): a wrongly-created quiz can be removed; submissions
+  // and question links cascade with it.
+  const deleteQuiz = async (quizId: string) => {
+    if (!confirm('Delete this quiz? Its submissions will be removed too.')) return;
+    try {
+      await fetchApi(`/api/v1/quizzes/${quizId}`, { method: 'DELETE' });
+      loadData();
+    } catch { alert('Failed to delete quiz'); }
+  };
+
   const submitQuiz = async () => {
     if (!activeQuiz) return;
     try {
@@ -364,6 +374,9 @@ export default function QuizzesPage() {
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(q.id)}>
                       {submissionsQuizId === q.id ? 'Hide Submissions' : '📊 View Submissions'}
                     </button>
+                  )}
+                  {(isAdmin || isTrainer) && (
+                    <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteQuiz(q.id)}>Delete</button>
                   )}
                   {role === 'STUDENT' && (
                     <button className="btn-primary" onClick={() => { setActiveQuiz(q); setAnswers({}); }}>Take Quiz</button>

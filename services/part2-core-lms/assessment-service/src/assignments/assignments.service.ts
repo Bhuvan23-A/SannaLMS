@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -101,6 +101,20 @@ export class AssignmentsService {
       where: { id: submissionId },
       data: { score, feedback, is_graded: true }
     });
+  }
+
+  // Delete an assignment — its submissions cascade with it (onDelete: Cascade),
+  // so a wrongly-created assignment is removed cleanly (#fix).
+  async deleteAssignment(assignmentId: string) {
+    try {
+      await this.prisma.assignment.delete({ where: { id: assignmentId } });
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        throw new NotFoundException('Assignment not found');
+      }
+      throw err;
+    }
+    return { removed: true, id: assignmentId };
   }
 }
 

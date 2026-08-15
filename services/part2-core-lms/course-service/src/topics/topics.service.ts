@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -19,7 +19,18 @@ export class TopicsService {
 
   findAll(lessonId: string) {
     return this.prisma.extendedClient.topic.findMany({
-      where: { lesson_id: lessonId }
+      where: { lesson_id: lessonId, deleted_at: null }
+    });
+  }
+
+  // Soft-delete a topic (its asset/progress stay for audit; reads filter
+  // deleted_at so it disappears from the builder immediately).
+  async remove(id: string) {
+    const existing = await this.prisma.extendedClient.topic.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Topic ${id} not found`);
+    return this.prisma.extendedClient.topic.update({
+      where: { id },
+      data: { deleted_at: new Date() },
     });
   }
 }

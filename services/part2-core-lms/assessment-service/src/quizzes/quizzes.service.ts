@@ -122,6 +122,20 @@ export class QuizzesService {
     }
   }
 
+  // Delete a quiz — quizQuestion links and quiz submissions cascade with it
+  // (onDelete: Cascade), so a wrongly-created quiz is removed cleanly (#fix).
+  async deleteQuiz(quizId: string) {
+    try {
+      await this.prisma.quiz.delete({ where: { id: quizId } });
+    } catch (err: any) {
+      if (err?.code === 'P2025') {
+        throw new NotFoundException('Quiz not found');
+      }
+      throw err;
+    }
+    return { removed: true, id: quizId };
+  }
+
   async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
     // 1. Get Quiz and Questions
     const quizQuestions = await this.prisma.quizQuestion.findMany({

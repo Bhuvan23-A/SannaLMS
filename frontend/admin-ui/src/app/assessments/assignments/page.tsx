@@ -116,6 +116,16 @@ export default function AssignmentsPage() {
     } catch { alert('Failed to create assignment'); }
   };
 
+  // Delete an assignment (#fix): a wrongly-created assignment can be removed;
+  // its submissions cascade with it.
+  const deleteAssignment = async (assignmentId: string) => {
+    if (!confirm('Delete this assignment? Its submissions will be removed too.')) return;
+    try {
+      await fetchApi(`/api/v1/assignments/${assignmentId}`, { method: 'DELETE' });
+      loadAssignments();
+    } catch { alert('Failed to delete assignment'); }
+  };
+
   const submitAssignment = async (e: any) => {
     e.preventDefault();
     if (!submitForm) return;
@@ -244,6 +254,9 @@ export default function AssignmentsPage() {
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(a.id)}>
                       {submissionsAssignmentId === a.id ? 'Hide Submissions' : '📊 View Submissions'}
                     </button>
+                  )}
+                  {(isAdmin || isTrainer) && (
+                    <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteAssignment(a.id)}>Delete</button>
                   )}
                   {role === 'STUDENT' && (
                     <button className="btn-primary" onClick={() => setSubmitForm({ id: a.id, text_content: '', file_url: '' })}>Submit Work</button>

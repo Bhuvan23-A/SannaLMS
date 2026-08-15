@@ -98,6 +98,31 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
     loadCourse();
   };
 
+  // Delete module/lesson/topic (basic human-error correction) (#fix).
+  const deleteModule = async (modId: string) => {
+    if (!confirm('Delete this module and hide its lessons?')) return;
+    try {
+      await fetchApi(`/api/v1/modules/${modId}`, { method: 'DELETE' });
+      loadCourse();
+    } catch (err: any) { alert(err.message || 'Failed to delete module'); }
+  };
+
+  const deleteLesson = async (lessonId: string) => {
+    if (!confirm('Delete this lesson and hide its topics?')) return;
+    try {
+      await fetchApi(`/api/v1/lessons/${lessonId}`, { method: 'DELETE' });
+      loadCourse();
+    } catch (err: any) { alert(err.message || 'Failed to delete lesson'); }
+  };
+
+  const deleteTopic = async (topicId: string) => {
+    if (!confirm('Delete this topic?')) return;
+    try {
+      await fetchApi(`/api/v1/topics/${topicId}`, { method: 'DELETE' });
+      loadCourse();
+    } catch (err: any) { alert(err.message || 'Failed to delete topic'); }
+  };
+
   const uploadFile = async (topicId: string, file: File, courseId: string) => {
     setUploadingTopic(topicId);
     try {
@@ -239,6 +264,9 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                         {(isTrainer || isAdmin) && (
                           <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px' }} onClick={() => addLesson(mod.id, modIdx)}>+ Lesson</button>
                         )}
+                        {(isTrainer || isAdmin) && (
+                          <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteModule(mod.id)}>Delete</button>
+                        )}
                         <button onClick={() => setModules(prev => prev.map(m => m.id === mod.id ? { ...m, expanded: !m.expanded } : m))}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '18px' }}>
                           {mod.expanded ? '▲' : '▼'}
@@ -258,6 +286,9 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{lesson.topics.length} topics</span>
                             {(isTrainer || isAdmin) && (
                               <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px' }} onClick={() => addTopic(lesson.id)}>+ Topic</button>
+                            )}
+                            {(isTrainer || isAdmin) && (
+                              <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteLesson(lesson.id)}>Delete</button>
                             )}
                             <button onClick={() => setModules(prev => prev.map(m => m.id === mod.id ? { ...m, lessons: m.lessons.map(l => l.id === lesson.id ? { ...l, expanded: !l.expanded } : l) } : m))}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
@@ -288,6 +319,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                                     {uploadingTopic === topic.id ? '⏳ Uploading...' : '📤 Upload'}
                                   </span>
                                 </label>
+                                <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteTopic(topic.id)}>Delete</button>
                               </div>
                             )}
                           </div>

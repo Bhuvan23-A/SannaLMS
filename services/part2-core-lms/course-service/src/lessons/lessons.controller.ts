@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Req } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { Roles } from '../roles.guard';
 
@@ -18,5 +18,12 @@ export class LessonsController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'STUDENT')
   findAll(@Param('moduleId') moduleId: string) {
     return this.lessonsService.findAll(moduleId);
+  }
+
+  // Soft-delete a lesson (its topics stay in the DB for audit).
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  remove(@Param('id') id: string) {
+    return this.lessonsService.remove(id);
   }
 }

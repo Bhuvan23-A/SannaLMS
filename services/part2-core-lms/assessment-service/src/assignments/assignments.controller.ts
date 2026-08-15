@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, Query, Param, Put } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Req, Query, Param, Put } from '@nestjs/common';
 import { AssignmentsService } from './assignments.service';
 import { Roles } from '../roles.guard';
 
@@ -51,5 +51,13 @@ export class AssignmentsController {
   @Roles('PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
   grade(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.assignmentsService.gradeAssignment(id, body.score, body.feedback);
+  }
+
+  // Delete an assignment — removes its submissions (cascade), so a trainer
+  // who created the wrong assignment can remove it (#fix).
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  remove(@Param('id') id: string) {
+    return this.assignmentsService.deleteAssignment(id);
   }
 }

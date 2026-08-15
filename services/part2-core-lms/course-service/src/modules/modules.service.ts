@@ -66,4 +66,29 @@ export class ModulesService {
     }
     return merged;
   }
+
+  // Rename / reorder a module — the course builder drag-and-drop calls this
+  // (it was silently 404ing because the route didn't exist) (#fix).
+  async update(id: string, data: { title?: string; sequence_no?: number }) {
+    const existing = await this.prisma.extendedClient.module.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Module ${id} not found`);
+    return this.prisma.extendedClient.module.update({
+      where: { id },
+      data: {
+        ...(data.title !== undefined ? { title: data.title } : {}),
+        ...(data.sequence_no !== undefined ? { sequence_no: data.sequence_no } : {}),
+      },
+    });
+  }
+
+  // Soft-delete a module (lessons/topics stay for audit; read paths filter
+  // deleted_at so it disappears from the builder immediately).
+  async remove(id: string) {
+    const existing = await this.prisma.extendedClient.module.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Module ${id} not found`);
+    return this.prisma.extendedClient.module.update({
+      where: { id },
+      data: { deleted_at: new Date() },
+    });
+  }
 }

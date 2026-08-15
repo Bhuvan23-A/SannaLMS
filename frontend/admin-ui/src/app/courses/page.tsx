@@ -78,6 +78,11 @@ export default function CoursesPage() {
   const [trainerAdding, setTrainerAdding] = useState(false);
   const [trainersList, setTrainersList] = useState<any[]>([]);
   const [trainersLoading, setTrainersLoading] = useState(false);
+  // Per-row trainer role edit + remove (#fix): a TA accidentally assigned as
+  // PRIMARY_TRAINER can be corrected right in the modal.
+  const [trainerRoleDrafts, setTrainerRoleDrafts] = useState<Record<string, string>>({});
+  const [trainerSavingId, setTrainerSavingId] = useState<string | null>(null);
+  const [trainerRemovingId, setTrainerRemovingId] = useState<string | null>(null);
   // Bulk enroll (#bulk): enroll many students into every course of a
   // branch+semester in one action instead of per-course clicks.
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -200,6 +205,26 @@ export default function CoursesPage() {
       openAssignTrainer(trainerCourse);
       alert('✅ Trainer assigned to course');
     } catch (err: any) { alert(err.message || 'Failed to assign trainer'); } finally { setTrainerAdding(false); }
+  };
+
+  const saveTrainerRole = async (t: any) => {
+    const newRole = trainerRoleDrafts[t.id] || t.role;
+    setTrainerSavingId(t.id);
+    try {
+      await fetchApi(`/api/v1/course-trainers/${t.id}`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
+      setTrainerRoleDrafts(prev => { const n = { ...prev }; delete n[t.id]; return n; });
+      openAssignTrainer(trainerCourse);
+    } catch (err: any) { alert(err.message || 'Failed to update role'); } finally { setTrainerSavingId(null); }
+  };
+
+  const removeTrainerRow = async (t: any) => {
+    if (!trainerCourse) return;
+    if (!confirm(`Remove ${nameOf(t.user_id)} from this course?`)) return;
+    setTrainerRemovingId(t.id);
+    try {
+      await fetchApi(`/api/v1/course-trainers/${t.id}`, { method: 'DELETE' });
+      openAssignTrainer(trainerCourse);
+    } catch (err: any) { alert(err.message || 'Failed to remove trainer'); } finally { setTrainerRemovingId(null); }
   };
 
   const subjectById = Object.fromEntries(subjects.map((s: any) => [s.id, s]));
@@ -612,12 +637,43 @@ export default function CoursesPage() {
               {trainersLoading ? <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Loading...</p>
                 : trainersList.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No trainers assigned yet.</p>
                 : trainersList.map((t: any) => (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '6px', fontSize: '12px' }}>
-                    <span>
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', padding: '8px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '6px', fontSize: '12px' }}>
+                    <span style={{ minWidth: 0 }}>
                       <strong>{nameOf(t.user_id)}</strong>
                       {emailOf(t.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>{emailOf(t.user_id)}</span>}
                     </span>
-                    <span className="badge badge-info">{t.role}</span>
+                    <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                      <select
+                        className="input-field"
+                        style={{ width: 'auto', minWidth: '150px', padding: '4px 8px' }}
+                        value={trainerRoleDrafts[t.id] ?? t.role}
+                        onChange={e => setTrainerRoleDrafts({ ...trainerRoleDrafts, [t.id]: e.target.value })}
+                      >
+                        <option value="PRIMARY_TRAINER">Primary Trainer</option>
+                        <option value="TEACHING_ASSISTANT">Teaching Assistant</option>
+                        <option value="GUEST_FACULTY">Guest Faculty</option>
+                      </select>
+                      {trainerRoleDrafts[t.id] !== undefined && trainerRoleDrafts[t.id] !== t.role && (
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          style={{ padding: '3px 10px', fontSize: '11px' }}
+                          disabled={trainerSavingId === t.id}
+                          onClick={() => saveTrainerRole(t)}
+                        >
+                          {trainerSavingId === t.id ? 'Saving...' : 'Save'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                        disabled={trainerRemovingId === t.id}
+                        onClick={() => removeTrainerRow(t)}
+                      >
+                        {trainerRemovingId === t.id ? 'Removing...' : 'Remove'}
+                      </button>
+                    </span>
                   </div>
                 ))}
             </div>

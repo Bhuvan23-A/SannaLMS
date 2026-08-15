@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Req } from '@nestjs/common';
 import { TopicsService } from './topics.service';
 import { Roles } from '../roles.guard';
 
@@ -18,5 +18,12 @@ export class TopicsController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'STUDENT')
   findAll(@Param('lessonId') lessonId: string) {
     return this.topicsService.findAll(lessonId);
+  }
+
+  // Soft-delete a topic (its asset/progress stay in the DB for audit).
+  @Delete(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  remove(@Param('id') id: string) {
+    return this.topicsService.remove(id);
   }
 }
