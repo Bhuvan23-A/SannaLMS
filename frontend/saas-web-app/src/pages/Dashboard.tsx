@@ -1022,7 +1022,8 @@ export const Dashboard: React.FC = () => {
     } catch (err: any) { alert(err?.response?.data?.message || 'Failed to post thread'); } finally { setThreadPosting(false); }
   };
 
-  // --- CHAT (#fix): group chat rooms for the student's college ---
+  // --- CHAT (#fix): group chat rooms + direct messages for the student ---
+  const [chatView, setChatView] = useState<'rooms' | 'dm'>('rooms');
   const [chatRooms, setChatRooms] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [roomMessages, setRoomMessages] = useState<any[]>([]);
@@ -1030,6 +1031,40 @@ export const Dashboard: React.FC = () => {
   const [chatMsg, setChatMsg] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+  // Direct messages (a full UUID is required — the old free-text box let
+  // people paste partial IDs and messages went nowhere) (#fix).
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const [dmTarget, setDmTarget] = useState('');
+  const [dmConvo, setDmConvo] = useState<any[]>([]);
+  const [dmMsg, setDmMsg] = useState('');
+  const [dmLoading, setDmLoading] = useState(false);
+  const [dmError, setDmError] = useState('');
+  const dmMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  const loadDmConversation = async () => {
+    if (!UUID_RE.test(dmTarget.trim())) { setDmError('That does not look like a valid user ID (must be a full UUID). Ask the other person for their ID.'); setDmConvo([]); return; }
+    setDmError('');
+    setDmLoading(true);
+    try {
+      const r = await apiClient.get(`/chat/dm/${dmTarget.trim()}`);
+      const data = Array.isArray(r.data) ? r.data : [];
+      setDmConvo(data);
+      // Auto-mark incoming DMs as read so the sender sees ✓✓ (#fix).
+      data.filter((m: any) => m.from_user === dmTarget.trim() && m.to_user === studentUserId && !m.is_read)
+        .forEach((m: any) => apiClient.put(`/chat/dm/${m.id}/read`).catch(() => {}));
+      setTimeout(() => dmMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch { setDmConvo([]); } finally { setDmLoading(false); }
+  };
+
+  const sendDm = async () => {
+    if (!dmMsg.trim() || !UUID_RE.test(dmTarget.trim())) { setDmError('Enter a valid user ID first.'); return; }
+    setDmError('');
+    try {
+      await apiClient.post('/chat/dm', { to_user: dmTarget.trim(), content: dmMsg.trim() });
+      setDmMsg('');
+      await loadDmConversation();
+    } catch (err: any) { setDmError(err?.response?.data?.message || 'Failed to send message'); }
+  };
 
   const fetchChatRooms = async () => {
     setChatLoading(true);
@@ -1065,14 +1100,20 @@ export const Dashboard: React.FC = () => {
     } catch (err: any) { alert(err?.response?.data?.message || 'Failed to send message'); } finally { setChatSending(false); }
   };
 
-  // Live updates: poll the open chat room every 5s so new messages appear
-  // without a manual reload (#live).
+  // Live updates: poll the open chat room and the DM conversation every 5s so
+  // new messages appear without a manual reload (#live).
   useEffect(() => {
     if (activeTab !== 'chat' || !selectedRoom) return;
     const t = setInterval(loadRoomMessages, 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedRoom]);
+  useEffect(() => {
+    if (activeTab !== 'chat' || chatView !== 'dm' || !UUID_RE.test(dmTarget.trim())) return;
+    const t = setInterval(loadDmConversation, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, chatView, dmTarget]);
 
   // --- MY GRADES (#fix) ---
   const [myGrades, setMyGrades] = useState<any[]>([]);
@@ -2357,17 +2398,63 @@ export const Dashboard: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '75vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
-                {selectedRoom ? `#${selectedRoom.name}` : 'Group Chat'}
+                {chatView === 'dm' ? 'Direct Messages' : (selectedRoom ? `#${selectedRoom.name}` : 'Group Chat')}
               </h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {selectedRoom && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button className={chatView === 'rooms' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => setChatView('rooms')}>Group Chat</button>
+                <button className={chatView === 'dm' ? 'btn-primary' : 'btn-secondary'} style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => setChatView('dm')}>Direct Messages</button>
+                {chatView === 'rooms' && selectedRoom && (
                   <button onClick={() => setSelectedRoom(null)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>← Rooms</button>
                 )}
-                <button onClick={selectedRoom ? loadRoomMessages : fetchChatRooms} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{chatLoading ? 'Loading...' : 'Refresh'}</button>
+                {chatView === 'rooms' && (
+                  <button onClick={selectedRoom ? loadRoomMessages : fetchChatRooms} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{chatLoading ? 'Loading...' : 'Refresh'}</button>
+                )}
               </div>
             </div>
 
-            {!selectedRoom ? (
+            {chatView === 'dm' ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <input
+                    className="input-field"
+                    style={{ flex: 1, minWidth: '220px' }}
+                    placeholder="Paste the other user's ID (full UUID)"
+                    value={dmTarget}
+                    onChange={e => setDmTarget(e.target.value)}
+                  />
+                  <button className="btn-secondary" style={{ padding: '0 1rem' }} onClick={loadDmConversation}>{dmLoading ? 'Loading...' : 'Load Conversation'}</button>
+                </div>
+                {dmError && <p style={{ fontSize: '0.8rem', color: '#f87171', margin: '0 0 0.5rem' }}>⚠ {dmError}</p>}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
+                  {dmConvo.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>
+                      {UUID_RE.test(dmTarget.trim()) ? 'No messages yet in this conversation.' : 'Enter a valid user ID and press Load Conversation.'}
+                    </p>
+                  ) : dmConvo.map(m => (
+                    <div key={m.id} style={{ display: 'flex', justifyContent: m.from_user === studentUserId ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ maxWidth: '65%', padding: '0.6rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.9rem', background: m.from_user === studentUserId ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)' }}>
+                        <div>{m.content}</div>
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '0.25rem' }}>
+                          {m.from_user === studentUserId ? 'You' : 'Peer'} · {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''} {m.from_user === studentUserId ? (m.is_read ? '✓✓' : '✓') : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={dmMessagesEndRef} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    className="input-field"
+                    style={{ flex: 1 }}
+                    placeholder="Write a message..."
+                    value={dmMsg}
+                    onChange={e => setDmMsg(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendDm()}
+                  />
+                  <button className="btn-primary" onClick={sendDm} disabled={!dmMsg.trim()} style={{ padding: '0 1.2rem' }}><Send size={18} /></button>
+                </div>
+              </div>
+            ) : !selectedRoom ? (
               chatLoading ? (
                 <p style={{ color: 'var(--text-secondary)' }}>Loading rooms...</p>
               ) : chatRooms.length === 0 ? (
@@ -2383,7 +2470,10 @@ export const Dashboard: React.FC = () => {
                       onClick={() => openRoom(room)}
                       style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1.25rem', transition: 'all 0.15s' }}
                     >
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>#{room.name}</h3>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>
+                        #{room.name}
+                        {room.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>}
+                      </h3>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
                         {room._count?.members ?? 0} members · {room._count?.messages ?? 0} messages
                       </p>
@@ -2408,16 +2498,17 @@ export const Dashboard: React.FC = () => {
                   ))}
                   <div ref={chatMessagesEndRef} />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', opacity: selectedRoom.is_locked ? 0.5 : 1, pointerEvents: selectedRoom.is_locked ? 'none' : 'auto' }}>
                   <input
                     className="input-field"
                     style={{ flex: 1 }}
-                    placeholder="Type a message..."
+                    placeholder={selectedRoom.is_locked ? 'Room is closed — read only' : 'Type a message...'}
                     value={chatMsg}
                     onChange={e => setChatMsg(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                    disabled={selectedRoom.is_locked}
                   />
-                  <button className="btn-primary" onClick={sendChatMessage} disabled={chatSending || !chatMsg.trim()} style={{ padding: '0 1.2rem' }}>
+                  <button className="btn-primary" onClick={sendChatMessage} disabled={chatSending || !chatMsg.trim() || selectedRoom.is_locked} style={{ padding: '0 1.2rem' }}>
                     {chatSending ? 'Sending...' : <Send size={18} />}
                   </button>
                 </div>

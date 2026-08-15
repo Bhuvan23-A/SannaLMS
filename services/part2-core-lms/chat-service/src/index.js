@@ -82,6 +82,7 @@ function uid(prefix) {
 //   - every college when target_tenants contains '__ALL__'.
 // Legacy rooms without tenant_id stay visible to everyone (pre-scoping data).
 function roomVisibleToUser(room, tenantId, isSuperAdmin) {
+  if (room.deleted_at) return false; // soft-deleted rooms are hidden everywhere
   if (isSuperAdmin) return true;
   if (!room.tenant_id) return true; // legacy global room
   if (room.tenant_id === tenantId) return true;
@@ -90,6 +91,18 @@ function roomVisibleToUser(room, tenantId, isSuperAdmin) {
     if (room.target_tenants.includes(tenantId)) return true;
   }
   return false;
+}
+
+// Audience control (#chat): beyond college scoping, a room can be limited to
+//   - ALL    -> anyone in the visible colleges (default)
+//   - COURSE -> only users enrolled in the course (member_ids resolved at creation)
+//   - USERS  -> only the explicit member list
+function roomAudienceAllows(room, userId) {
+  if (!room.audience_type || room.audience_type === 'ALL') return true;
+  if (room.audience_type === 'COURSE' || room.audience_type === 'USERS') {
+    return Array.isArray(room.member_ids) && room.member_ids.includes(userId);
+  }
+  return true;
 }
 
 function roomView(room) {
@@ -101,6 +114,10 @@ function roomView(room) {
     created_at: room.created_at,
     tenant_id: room.tenant_id || null,
     target_tenants: room.target_tenants || [],
+    audience_type: room.audience_type || 'ALL',
+    audience_id: room.audience_id || null,
+    member_ids: room.member_ids || [],
+    is_locked: !!room.is_locked,
     _count: {
       members: room.members.length,
       messages: store.messages.filter(m => m.room_id === room.id).length,
@@ -118,9 +135,10 @@ if (!store.rooms.some(r => r.id === 'general')) {
 
 // ─── REST API ───
 
-// List rooms visible to the caller's college
+// List rooms visible to the caller's college + audience
 app.get('/api/v1/chat/rooms', (req, res) => {
-  const visible = store.rooms.filter(r => roomVisibleToUser(r, req.tenantId, req.isSuperAdmin));
+  const visible = store.rooms.filter(r => roomVisibleToUser(r, req.tenantId, req.isSuperAdmin))
+    .filter(r => roomAudienceAllows(r, req.userId));
   res.json(visible.map(roomView));
 });
 
@@ -132,6 +150,11 @@ app.post('/api/v1/chat/rooms', (req, res) => {
   if (req.isSuperAdmin && Array.isArray(req.body?.target_tenants)) {
     targetTenants = req.body.target_tenants.map(String).filter(Boolean);
   }
+  const audienceType = ['COURSE', 'USERS'].includes(req.body?.audience_type) ? req.body.audience_type : 'ALL';
+  let memberIds = [];
+  if (audienceType !== 'ALL') {
+    memberIds = Array.isArray(req.body?.member_ids) ? req.body.member_ids.map(String).filter(Boolean) : [];
+  }
   const room = {
     id: uid('room'),
     name,
@@ -139,6 +162,11 @@ app.post('/api/v1/chat/rooms', (req, res) => {
     created_by: req.body?.created_by || req.userId,
     tenant_id: req.tenantId,
     target_tenants: targetTenants,
+    audience_type: audienceType,
+    audience_id: audienceType === 'COURSE' ? (req.body?.audience_id || null) : null,
+    member_ids: memberIds,
+    is_locked: false,
+    deleted_at: null,
     members: [],
     created_at: new Date().toISOString(),
   };
@@ -147,12 +175,39 @@ app.post('/api/v1/chat/rooms', (req, res) => {
   res.status(201).json(roomView(room));
 });
 
+// Update a room — hold/reopen (is_locked) by the creator or a super admin (#chat)
+app.patch('/api/v1/chat/rooms/:id', (req, res) => {
+  const room = store.rooms.find(r => r.id === req.params.id);
+  if (!room || room.deleted_at) return res.status(404).json({ message: 'Room not found' });
+  const canManage = req.isSuperAdmin || room.created_by === req.userId;
+  if (!canManage) return res.status(403).json({ message: 'Only the room creator or a super admin can manage this room' });
+  if (typeof req.body?.is_locked === 'boolean') {
+    room.is_locked = req.body.is_locked;
+  }
+  saveStore();
+  res.json(roomView(room));
+});
+
+// Soft-delete a room — creator or super admin (#chat); hidden everywhere, recoverable
+app.delete('/api/v1/chat/rooms/:id', (req, res) => {
+  const room = store.rooms.find(r => r.id === req.params.id);
+  if (!room || room.deleted_at) return res.status(404).json({ message: 'Room not found' });
+  const canManage = req.isSuperAdmin || room.created_by === req.userId;
+  if (!canManage) return res.status(403).json({ message: 'Only the room creator or a super admin can delete this room' });
+  room.deleted_at = new Date().toISOString();
+  saveStore();
+  res.json({ ok: true, id: room.id });
+});
+
 // Join a room
 app.post('/api/v1/chat/rooms/:id/join', (req, res) => {
   const room = store.rooms.find(r => r.id === req.params.id);
-  if (!room) return res.status(404).json({ message: 'Room not found' });
+  if (!room || room.deleted_at) return res.status(404).json({ message: 'Room not found' });
   if (!roomVisibleToUser(room, req.tenantId, req.isSuperAdmin)) {
     return res.status(403).json({ message: 'This room is not available in your college' });
+  }
+  if (!roomAudienceAllows(room, req.userId)) {
+    return res.status(403).json({ message: 'This room is only for its invited audience' });
   }
   const userId = req.body?.user_id || req.userId;
   if (!room.members.includes(userId)) {
@@ -165,19 +220,28 @@ app.post('/api/v1/chat/rooms/:id/join', (req, res) => {
 // Messages in a room
 app.get('/api/v1/chat/rooms/:id/messages', (req, res) => {
   const room = store.rooms.find(r => r.id === req.params.id);
-  if (!room) return res.status(404).json({ message: 'Room not found' });
+  if (!room || room.deleted_at) return res.status(404).json({ message: 'Room not found' });
   if (!roomVisibleToUser(room, req.tenantId, req.isSuperAdmin)) {
     return res.status(403).json({ message: 'This room is not available in your college' });
+  }
+  if (!roomAudienceAllows(room, req.userId)) {
+    return res.status(403).json({ message: 'This room is only for its invited audience' });
   }
   res.json(store.messages.filter(m => m.room_id === room.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
 });
 
-// Send a message to a room
+// Send a message to a room (blocked when the room is on hold / closed)
 app.post('/api/v1/chat/rooms/:id/messages', (req, res) => {
   const room = store.rooms.find(r => r.id === req.params.id);
-  if (!room) return res.status(404).json({ message: 'Room not found' });
+  if (!room || room.deleted_at) return res.status(404).json({ message: 'Room not found' });
   if (!roomVisibleToUser(room, req.tenantId, req.isSuperAdmin)) {
     return res.status(403).json({ message: 'This room is not available in your college' });
+  }
+  if (!roomAudienceAllows(room, req.userId)) {
+    return res.status(403).json({ message: 'This room is only for its invited audience' });
+  }
+  if (room.is_locked) {
+    return res.status(403).json({ message: 'This room is closed — new messages are disabled.' });
   }
   const content = String(req.body?.content || '').trim();
   if (!content) return res.status(400).json({ message: 'Message content is required' });
@@ -225,6 +289,19 @@ app.post('/api/v1/chat/dm', (req, res) => {
   saveStore();
   io.to(`dm_${dm.from_user}_${dm.to_user}`).emit('receive_dm', dm);
   res.status(201).json(dm);
+});
+
+// Mark a DM as read (only the recipient) so the sender sees ✓✓ (#chat)
+app.put('/api/v1/chat/dm/:id/read', (req, res) => {
+  const dm = store.dms.find(d => d.id === req.params.id);
+  if (!dm) return res.status(404).json({ message: 'Message not found' });
+  if (dm.to_user !== req.userId) {
+    return res.status(403).json({ message: 'Only the recipient can mark this message as read' });
+  }
+  dm.is_read = true;
+  dm.read_at = new Date().toISOString();
+  saveStore();
+  res.json(dm);
 });
 
 // ─── Socket.IO real-time ───

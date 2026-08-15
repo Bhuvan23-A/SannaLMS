@@ -413,6 +413,12 @@ services:
     restart: always
     environment:
       - PORT=3007
+      # Persist the chat store on a named volume so messages/rooms/DMs survive
+      # container rebuilds and restarts (#chat durability — was /tmp, wiped on
+      # every recreate).
+      - CHAT_DATA_FILE=/app/data/chat-store.json
+    volumes:
+      - chat_data:/app/data
     depends_on: []
 
   liveclass-service:
@@ -467,3 +473,4 @@ volumes:
   minio_data:
   mongo_data:
   uploads_data:
+  chat_data:
