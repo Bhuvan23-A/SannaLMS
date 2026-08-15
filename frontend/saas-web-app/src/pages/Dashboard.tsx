@@ -6,7 +6,8 @@ import {
   LogOut, User, Activity, BookOpen, Terminal, CheckSquare, 
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
-  FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw
+  FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
+  MessageSquare, MessagesSquare
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -50,7 +51,7 @@ export const Dashboard: React.FC = () => {
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications' | 'forums' | 'chat'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
   // Determine roles from Keycloak. Realm role names vary by case/legacy export
@@ -441,6 +442,8 @@ export const Dashboard: React.FC = () => {
     if (activeTab === 'grades') fetchMyGrades();
     if (activeTab === 'notifications') fetchNotifications();
     if (activeTab === 'courses') fetchMyCourses();
+    if (activeTab === 'forums') fetchForums();
+    if (activeTab === 'chat') fetchChatRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -968,6 +971,96 @@ export const Dashboard: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
+  // --- FORUMS (#fix): students see their college's forums + post threads ---
+  const [forums, setForums] = useState<any[]>([]);
+  const [selectedForum, setSelectedForum] = useState<any>(null);
+  const [forumThreads, setForumThreads] = useState<any[]>([]);
+  const [forumsLoading, setForumsLoading] = useState(false);
+  const [threadTitle, setThreadTitle] = useState('');
+  const [threadContent, setThreadContent] = useState('');
+  const [threadPosting, setThreadPosting] = useState(false);
+
+  const fetchForums = async () => {
+    setForumsLoading(true);
+    try {
+      const response = await apiClient.get('/forums');
+      setForums(Array.isArray(response.data) ? response.data : []);
+    } catch { setForums([]); } finally { setForumsLoading(false); }
+  };
+
+  const openForum = async (f: any) => {
+    setSelectedForum(f);
+    setForumThreads([]);
+    setForumsLoading(true);
+    try {
+      const r = await apiClient.get(`/threads/forum/${f.id}`);
+      setForumThreads(Array.isArray(r.data) ? r.data : []);
+    } catch { setForumThreads([]); } finally { setForumsLoading(false); }
+  };
+
+  const createForumThread = async (e: any) => {
+    e.preventDefault();
+    if (!selectedForum || !threadTitle.trim()) return;
+    setThreadPosting(true);
+    try {
+      await apiClient.post('/threads', { forum_id: selectedForum.id, title: threadTitle.trim(), content: threadContent.trim() });
+      setThreadTitle(''); setThreadContent('');
+      await openForum(selectedForum);
+    } catch (err: any) { alert(err?.response?.data?.message || 'Failed to post thread'); } finally { setThreadPosting(false); }
+  };
+
+  // --- CHAT (#fix): group chat rooms for the student's college ---
+  const [chatRooms, setChatRooms] = useState<any[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [roomMessages, setRoomMessages] = useState<any[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMsg, setChatMsg] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchChatRooms = async () => {
+    setChatLoading(true);
+    try {
+      const response = await apiClient.get('/chat/rooms');
+      setChatRooms(Array.isArray(response.data) ? response.data : []);
+    } catch { setChatRooms([]); } finally { setChatLoading(false); }
+  };
+
+  const loadRoomMessages = async () => {
+    if (!selectedRoom) return;
+    try {
+      const r = await apiClient.get(`/chat/rooms/${selectedRoom.id}/messages`);
+      setRoomMessages(Array.isArray(r.data) ? r.data : []);
+      setTimeout(() => chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch { setRoomMessages([]); }
+  };
+
+  const openRoom = async (room: any) => {
+    setSelectedRoom(room);
+    setRoomMessages([]);
+    try { await apiClient.post(`/chat/rooms/${room.id}/join`); } catch { /* non-critical */ }
+    await loadRoomMessages();
+  };
+
+  const sendChatMessage = async () => {
+    if (!selectedRoom || !chatMsg.trim()) return;
+    setChatSending(true);
+    try {
+      await apiClient.post(`/chat/rooms/${selectedRoom.id}/messages`, { content: chatMsg.trim() });
+      setChatMsg('');
+      await loadRoomMessages();
+    } catch (err: any) { alert(err?.response?.data?.message || 'Failed to send message'); } finally { setChatSending(false); }
+  };
+
+  // Live updates: poll the open chat room every 5s so new messages appear
+  // without a manual reload (#live).
+  useEffect(() => {
+    if (activeTab !== 'chat' || !selectedRoom) return;
+    const t = setInterval(loadRoomMessages, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedRoom]);
+
   // --- MY GRADES (#fix) ---
   const [myGrades, setMyGrades] = useState<any[]>([]);
   const [gradesLoading, setGradesLoading] = useState(false);
@@ -1060,6 +1153,12 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
                   <Bell size={18} /> Notifications
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'forums' ? 'active' : ''}`} onClick={() => setActiveTab('forums')}>
+                  <MessageSquare size={18} /> Forums
+                </button>
+                <button className={`nav-link-btn ${activeTab === 'chat' ? 'active' : ''}`} onClick={() => setActiveTab('chat')}>
+                  <MessagesSquare size={18} /> Chat
+                </button>
               </>
             )}
 
@@ -1149,6 +1248,8 @@ export const Dashboard: React.FC = () => {
               {activeTab === 'attendance' && 'Student GPS & QR Attendance Portal'}
               {activeTab === 'grades' && 'My Grades & Progress'}
               {activeTab === 'notifications' && 'Notifications Inbox'}
+              {activeTab === 'forums' && 'Discussion Forums'}
+              {activeTab === 'chat' && 'College Chat'}
             </h1>
           </div>
 
@@ -2130,6 +2231,148 @@ export const Dashboard: React.FC = () => {
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{n.body}</p>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 9c. FORUMS TAB (#fix) — college forums + thread posting */}
+        {activeTab === 'forums' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
+                {selectedForum ? selectedForum.title : 'Discussion Forums'}
+              </h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {selectedForum && (
+                  <button onClick={() => { setSelectedForum(null); setForumThreads([]); }} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>← Back to forums</button>
+                )}
+                <button onClick={selectedForum ? openForum.bind(null, selectedForum) : fetchForums} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
+                  {forumsLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {!selectedForum ? (
+              forumsLoading ? (
+                <p style={{ color: 'var(--text-secondary)' }}>Loading forums...</p>
+              ) : forums.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                  <MessageSquare size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No forums available for your college yet.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {forums.map(f => (
+                    <div
+                      key={f.id}
+                      onClick={() => openForum(f)}
+                      style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1.25rem', transition: 'all 0.15s' }}
+                    >
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>{f.title}</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{f.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              <>
+                <form onSubmit={createForumThread} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input className="input-field" placeholder="Thread title" value={threadTitle} onChange={e => setThreadTitle(e.target.value)} style={{ flex: 1, minWidth: '160px' }} required />
+                  <input className="input-field" placeholder="What's on your mind?" value={threadContent} onChange={e => setThreadContent(e.target.value)} style={{ flex: 2, minWidth: '220px' }} required />
+                  <button type="submit" className="btn-primary" disabled={threadPosting} style={{ padding: '8px 18px' }}>{threadPosting ? 'Posting...' : 'Post Thread'}</button>
+                </form>
+
+                {forumsLoading ? (
+                  <p style={{ color: 'var(--text-secondary)' }}>Loading threads...</p>
+                ) : forumThreads.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)' }}>No threads yet — start the first one above.</p>
+                ) : forumThreads.map(t => (
+                  <div key={t.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <strong style={{ color: '#fff', fontSize: '0.95rem' }}>{t.title}</strong>
+                      {t.is_solved && <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '2px 8px', borderRadius: '10px' }}>Solved</span>}
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>{t.content}</p>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {t.user_id ? `${t.user_id === studentUserId ? 'You' : 'Peer'} · ` : ''}{t.created_at ? new Date(t.created_at).toLocaleString() : ''}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 9d. CHAT TAB (#fix) — group chat rooms for the student's college */}
+        {activeTab === 'chat' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '75vh' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
+                {selectedRoom ? `#${selectedRoom.name}` : 'Group Chat'}
+              </h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {selectedRoom && (
+                  <button onClick={() => setSelectedRoom(null)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>← Rooms</button>
+                )}
+                <button onClick={selectedRoom ? loadRoomMessages : fetchChatRooms} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>{chatLoading ? 'Loading...' : 'Refresh'}</button>
+              </div>
+            </div>
+
+            {!selectedRoom ? (
+              chatLoading ? (
+                <p style={{ color: 'var(--text-secondary)' }}>Loading rooms...</p>
+              ) : chatRooms.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                  <MessagesSquare size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No chat rooms yet — your trainers or college admin can create one.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {chatRooms.map(room => (
+                    <div
+                      key={room.id}
+                      onClick={() => openRoom(room)}
+                      style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1.25rem', transition: 'all 0.15s' }}
+                    >
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>#{room.name}</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        {room._count?.members ?? 0} members · {room._count?.messages ?? 0} messages
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
+                  {roomMessages.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>No messages yet — say hello!</p>
+                  ) : roomMessages.map(msg => (
+                    <div key={msg.id} style={{ display: 'flex', justifyContent: msg.user_id === studentUserId ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ maxWidth: '65%', padding: '0.6rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.9rem', background: msg.user_id === studentUserId ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)' }}>
+                        <div>{msg.content}</div>
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '0.25rem' }}>
+                          {msg.user_id === studentUserId ? 'You' : 'Peer'} · {msg.created_at ? new Date(msg.created_at).toLocaleTimeString() : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={chatMessagesEndRef} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    className="input-field"
+                    style={{ flex: 1 }}
+                    placeholder="Type a message..."
+                    value={chatMsg}
+                    onChange={e => setChatMsg(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                  />
+                  <button className="btn-primary" onClick={sendChatMessage} disabled={chatSending || !chatMsg.trim()} style={{ padding: '0 1.2rem' }}>
+                    {chatSending ? 'Sending...' : <Send size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

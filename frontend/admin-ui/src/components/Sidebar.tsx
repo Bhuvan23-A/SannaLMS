@@ -106,11 +106,14 @@ export default function Sidebar() {
     { name: '🎓 My Certificates', href: '/certificates' },
   ];
 
-  // Trainers/assistant trainers see only their teaching tools — no platform
-  // dashboard, calendar, search, forums/chat, certificates or analytics (#fix).
+  // Trainers/assistant trainers see their teaching tools + communication
+  // (notifications, forums, chat) — no platform dashboard, calendar, search,
+  // certificates or analytics (#fix).
   const trainerLinks = [
     { name: '📚 My Courses', href: '/courses' },
     { name: '🔔 Notifications', href: '/notifications' },
+    { name: '💬 Forums', href: '/forums' },
+    { name: '🗨️ Chat', href: '/chat' },
     { divider: 'Assessment' },
     { name: '📊 Question Bank', href: '/assessments/questions' },
     { name: '🧪 Quizzes', href: '/assessments/quizzes' },
