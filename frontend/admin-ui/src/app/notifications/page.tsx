@@ -232,7 +232,17 @@ export default function NotificationsPage() {
               {targetType === 'SEMESTER' && (
                 <select className="input-field" value={semesterId} onChange={e => setSemesterId(e.target.value)}>
                   {visibleSemesters.length === 0 && <option value="">{isSuperAdmin ? 'No semesters in this college' : 'No semesters'}</option>}
-                  {visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{isSuperAdmin ? `${collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : ''}${s.name}` : s.name}</option>)}
+                  {/* Semesters repeat per branch (Sem 1 × 8 branches) — always
+                      show the branch so each option is unambiguous (#fix). */}
+                  {visibleSemesters.map((s: any) => {
+                    const branch = branches.find((b: any) => b.id === s.branch_id)?.name || '';
+                    const prefix = isSuperAdmin && collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : '';
+                    return (
+                      <option key={s.id} value={s.id}>
+                        {`${prefix}${s.name}${branch ? ` · ${branch}` : ''}`}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
 
