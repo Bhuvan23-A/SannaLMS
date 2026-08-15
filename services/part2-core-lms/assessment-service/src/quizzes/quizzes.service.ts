@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -37,9 +37,15 @@ export class QuizzesService {
     return quiz;
   }
 
-  async getQuizzes(tenantId: string, courseId: string, viewer?: { role?: string; roles?: string[]; userId?: string }) {
+  // courseIds = the viewer's enrolled course ids (students only). The student
+  // frontend passes them explicitly because enrollment lives in course-service;
+  // without them a student would see every quiz in the college, including ones
+  // for courses they are not enrolled in (#scoping).
+  async getQuizzes(tenantId: string, courseId: string, viewer?: { role?: string; roles?: string[]; userId?: string }, courseIds?: string[]) {
+    const where: any = { tenant_id: tenantId };
+    if (courseId) where.course_id = courseId;
     const quizzes = await this.prisma.quiz.findMany({
-      where: { tenant_id: tenantId, course_id: courseId },
+      where,
       include: { questions: { include: { question: true } } }
     });
     // Every Keycloak user carries the realm-default 'student' role, so staff
@@ -48,31 +54,54 @@ export class QuizzesService {
     const upRoles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
     const isStaff = upRoles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
     const isStudent = upRoles.includes('STUDENT') && !isStaff;
-    // Students only see quizzes assigned to them (whole-course or individually)
+    // Students only see quizzes for courses they are enrolled in (courseIds) and
+    // that are assigned to them (whole-course or individually). No courseIds =
+    // no quizzes — never leak the whole college's list.
     const visible = isStudent
-      ? quizzes.filter((q: any) => {
-          const a = parseAssignedTo(q.assigned_to);
-          if (!a || a.type === 'ALL') return true;
-          return Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
-        })
+      ? quizzes
+          .filter((q: any) => {
+            if (!courseIds || courseIds.length === 0) return false;
+            if (!courseIds.includes(q.course_id)) return false;
+            const a = parseAssignedTo(q.assigned_to);
+            if (!a || a.type === 'ALL') return true;
+            return Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
+          })
       : quizzes;
+    // Attach the student's own submission state so the quiz list can show
+    // "Completed" and block retakes without trusting localStorage (#retake).
+    let mySubmissions = new Map<string, any>();
+    if (isStudent && visible.length > 0) {
+      const subs = await this.prisma.quizSubmission.findMany({
+        where: { quiz_id: { in: visible.map((q: any) => q.id) }, user_id: viewer?.userId || '' }
+      });
+      mySubmissions = new Map(subs.map((s: any) => [s.quiz_id, s]));
+    }
     // Normalize the nested question.options (stored as a JSON string) to arrays
     // so the quiz-taking UI can render them without crashing.
-    return visible.map((quiz: any) => ({
-      ...quiz,
-      questions: (quiz.questions || []).map((qq: any) => ({
-        ...qq,
-        question: qq.question ? {
-          ...qq.question,
-          // The quiz-taking UI renders question.text — the model stores it as
-          // content/title, so expose it here (and always as a string).
-          text: String(qq.question.content || qq.question.title || ''),
-          options: typeof qq.question.options === 'string'
-            ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
-            : (qq.question.options || [])
-        } : qq.question
-      }))
-    }));
+    return visible.map((quiz: any) => {
+      const sub = mySubmissions.get(quiz.id);
+      return {
+        ...quiz,
+        my_submission: sub ? {
+          submitted: true,
+          score: sub.score,
+          is_graded: sub.is_graded,
+          submitted_at: sub.submitted_at,
+        } : null,
+        questions: (quiz.questions || []).map((qq: any) => ({
+          ...qq,
+          question: qq.question ? {
+            ...qq.question,
+            // The quiz-taking UI renders question.text — the model stores it as
+            // content/title, so expose it here (and always as a string).
+            text: String(qq.question.content || qq.question.title || ''),
+            options: typeof qq.question.options === 'string'
+              ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+              : (qq.question.options || [])
+          } : qq.question
+        })),
+      };
+    });
   }
 
   // Submissions for a quiz — used by trainers/college admins to review student
@@ -138,7 +167,15 @@ export class QuizzesService {
   }
 
   async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
-    // 1. Get Quiz and Questions
+    // 1. One attempt per student per quiz — retakes are not allowed (#retake).
+    const existing = await this.prisma.quizSubmission.findFirst({
+      where: { quiz_id: quizId, user_id: userId }
+    });
+    if (existing) {
+      throw new ConflictException('You have already submitted this quiz — retakes are not allowed.');
+    }
+
+    // 2. Get Quiz and Questions
     const quizQuestions = await this.prisma.quizQuestion.findMany({
       where: { quiz_id: quizId },
       include: { question: true }
@@ -186,7 +223,7 @@ export class QuizzesService {
       }
     }
 
-    // 3. Save Submission
+    // 4. Save Submission
     return this.prisma.quizSubmission.create({
       data: {
         quiz_id: quizId,

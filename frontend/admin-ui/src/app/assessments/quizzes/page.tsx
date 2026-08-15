@@ -5,10 +5,12 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
+import { useColleges } from '@/hooks/useColleges';
 import Link from 'next/link';
 
 export default function QuizzesPage() {
   const { isAdmin, isTrainer, role } = useRole();
+  const { colleges, isSuperAdmin } = useColleges();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,12 @@ export default function QuizzesPage() {
       const assigned_to = assignType === 'ALL'
         ? { type: 'ALL' }
         : { type: 'INDIVIDUALS', user_ids: selectedStudents };
-      await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify({ ...form, course_id: courseId, assigned_to }) });
+      // Super admin: scope the quiz to the selected college's tenant so the
+      // college's students actually see it (otherwise it lands in 'master').
+      const body: any = { ...form, course_id: courseId, assigned_to };
+      const selectedCollege = colleges.find((c: any) => c.id === collegeId);
+      if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
+      await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify(body) });
       setShowForm(false);
       setForm({ title: '', description: '', duration_mins: 30, question_ids: [] });
       setAssignType('ALL'); setSelectedStudents([]);

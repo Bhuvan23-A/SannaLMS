@@ -5,10 +5,12 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
+import { useColleges } from '@/hooks/useColleges';
 import Link from 'next/link';
 
 export default function AssignmentsPage() {
   const { isAdmin, isTrainer, role } = useRole();
+  const { colleges, isSuperAdmin } = useColleges();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   // Course-aware assignments (#fix): the course is chosen from the real course
@@ -109,7 +111,12 @@ export default function AssignmentsPage() {
       const assigned_to = assignType === 'ALL'
         ? { type: 'ALL' }
         : { type: 'INDIVIDUALS', user_ids: selectedStudents };
-      await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify({ ...form, due_date, course_id: courseId, assigned_to }) });
+      // Super admin: scope the assignment to the selected college's tenant so
+      // the college's students actually see it (otherwise it lands in 'master').
+      const body: any = { ...form, due_date, course_id: courseId, assigned_to };
+      const selectedCollege = colleges.find((c: any) => c.id === collegeId);
+      if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
+      await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify(body) });
       setShowForm(false); setForm({ title: '', description: '', due_date: '', max_marks: 100 });
       setAssignType('ALL'); setSelectedStudents([]);
       loadAssignments();

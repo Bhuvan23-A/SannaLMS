@@ -24,7 +24,10 @@ export class AssignmentsService {
     });
   }
 
-  async getAssignments(tenantId: string, courseId?: string, viewer?: { role?: string; roles?: string[]; userId?: string }) {
+  // courseIds = the student's enrolled course ids (passed by the student
+  // frontend, since enrollment lives in course-service). Students must only
+  // see assignments for courses they are enrolled in (#scoping).
+  async getAssignments(tenantId: string, courseId?: string, viewer?: { role?: string; roles?: string[]; userId?: string }, courseIds?: string[]) {
     const whereClause: any = { tenant_id: tenantId };
     if (courseId) {
       whereClause.course_id = courseId;
@@ -38,9 +41,13 @@ export class AssignmentsService {
     const upRoles = (viewer?.roles || []).map((r: string) => r.toUpperCase());
     const isStaff = upRoles.some((r) => ['SUPERADMIN', 'TENANTADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR', 'TRAINER', 'ASSISTANT', 'GUEST_FACULTY'].includes(r));
     const isStudent = upRoles.includes('STUDENT') && !isStaff;
-    // Students only see assignments assigned to them (whole-course or individually)
+    // Students only see assignments for courses they are enrolled in and that
+    // are assigned to them (whole-course or individually). No courseIds = no
+    // assignments — never leak the whole college's list.
     if (isStudent) {
       return assignments.filter((a: any) => {
+        if (!courseIds || courseIds.length === 0) return false;
+        if (!courseIds.includes(a.course_id)) return false;
         const target = parseAssignedTo(a.assigned_to);
         if (!target || target.type === 'ALL') return true;
         return Array.isArray(target.user_ids) && target.user_ids.includes(viewer?.userId || '');

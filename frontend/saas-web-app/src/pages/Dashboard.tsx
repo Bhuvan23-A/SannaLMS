@@ -263,11 +263,23 @@ export const Dashboard: React.FC = () => {
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitResult, setQuizSubmitResult] = useState<{ score: number; maxScore: number; graded: boolean } | null>(null);
 
+  // Helper: the student's enrolled course ids (scoping quizzes/assignments to
+  // the courses they are actually enrolled in — the backend requires them).
+  const fetchEnrolledCourseIds = async (): Promise<string[]> => {
+    try {
+      const resp = await apiClient.get('/courses');
+      const list = Array.isArray(resp.data) ? resp.data : [];
+      return list.map((c: any) => c.id).filter(Boolean);
+    } catch { return []; }
+  };
+
   const fetchQuizzes = async () => {
     setQuizzesLoading(true);
     setQuizzesError('');
     try {
-      const response = await apiClient.get('/quizzes');
+      const courseIds = await fetchEnrolledCourseIds();
+      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '?course_ids=';
+      const response = await apiClient.get(`/quizzes${qs}`);
       const data = response.data || [];
       setQuizList(Array.isArray(data) ? data : []);
     } catch (err: any) {
@@ -296,7 +308,9 @@ export const Dashboard: React.FC = () => {
     setAssignmentsLoading(true);
     setAssignmentsError('');
     try {
-      const response = await apiClient.get('/assignments');
+      const courseIds = await fetchEnrolledCourseIds();
+      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '?course_ids=';
+      const response = await apiClient.get(`/assignments${qs}`);
       const data = response.data || [];
       const list = Array.isArray(data) ? data : [];
       setAssignmentList(list);
@@ -608,7 +622,15 @@ export const Dashboard: React.FC = () => {
       } catch { /* ignore */ }
       if (res.is_graded !== false) awardXp('quiz_ace');
     } catch (err: any) {
-      alert('Failed to submit quiz: ' + (err?.response?.data?.message || err?.message));
+      const status = err?.response?.status;
+      alert(status === 409
+        ? 'You have already submitted this quiz — retakes are not allowed.'
+        : 'Failed to submit quiz: ' + (err?.response?.data?.message || err?.message));
+      if (status === 409) {
+        setExamStarted(false);
+        setPickedQuiz(null);
+        fetchQuizzes();
+      }
     }
   };
 
@@ -1460,17 +1482,23 @@ export const Dashboard: React.FC = () => {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {quizList.map((quiz: any) => {
-                      const done = getQuizDone(quiz.id);
+                      // Server-authoritative completion state (blocks retakes);
+                      // localStorage is only a fallback for older records.
+                      const done = quiz.my_submission?.submitted ? quiz.my_submission : getQuizDone(quiz.id);
                       return (
                       <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
                         <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>✓ Completed {done.score}/{done.maxScore}</span>}</h4>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>{done.score != null ? `✓ Completed ${done.score}/${done.maxScore}` : '✓ Submitted'}</span>}</h4>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {(quiz.questions || []).length} questions · {quiz.duration_mins || 10} min · {quiz.description || 'No description'}
                           </span>
                         </div>
-                        <button onClick={() => startQuiz(quiz)} style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
-                          {done ? 'Retake' : 'Start Quiz'}
+                        <button
+                          onClick={() => startQuiz(quiz)}
+                          disabled={!!done}
+                          style={{ border: 'none', background: done ? 'rgba(255,255,255,0.06)' : 'var(--accent-emerald)', color: done ? 'var(--text-secondary)' : '#fff', padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: done ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.9rem' }}
+                        >
+                          {done ? 'Completed' : 'Start Quiz'}
                         </button>
                       </div>
                       );

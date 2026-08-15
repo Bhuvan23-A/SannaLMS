@@ -16,11 +16,14 @@ export class AssignmentsController {
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
-  findAll(@Query('course_id') courseId: string, @Req() req: Record<string, any>) {
+  findAll(@Query('course_id') courseId: string, @Query('course_ids') courseIds: string, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     const viewer = { roles: req.user?.roles || [], userId: req.user?.id || '' };
-    return this.assignmentsService.getAssignments(String(tenantId), courseId, viewer);
+    // Students pass their enrolled course ids so the list is scoped to the
+    // courses they are actually enrolled in (#scoping).
+    const ids = courseIds ? courseIds.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined;
+    return this.assignmentsService.getAssignments(String(tenantId), courseId, viewer, ids);
   }
 
   // Student submissions + scores for an assignment — trainers & college admins review these (#13)
