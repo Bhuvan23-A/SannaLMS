@@ -18,9 +18,17 @@ export class ThreadsService {
   }
 
   async getThreads(forumId: string) {
+    // Include each thread's replies (posts) so the UI renders them in one
+    // call instead of N round-trips per thread (#fix).
     return this.prisma.thread.findMany({
       where: { forum_id: forumId },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      include: {
+        posts: {
+          orderBy: { created_at: 'asc' },
+          select: { id: true, user_id: true, content: true, created_at: true },
+        },
+      },
     });
   }
 

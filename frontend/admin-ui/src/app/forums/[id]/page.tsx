@@ -3,16 +3,39 @@
 import { useState, useEffect, use } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import { useRole } from '@/hooks/useRole';
 import Link from 'next/link';
 
 export default function ThreadsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: forumId } = use(params);
+  const { isAdmin, isTrainer } = useRole();
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
+  // Reply state (#fix): one reply box per thread.
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   // People resolver (#fix): show author names instead of raw UUIDs
   const { nameOf } = useUserDirectory();
+
+  const postReply = async (threadId: string) => {
+    const content = (replyTexts[threadId] || '').trim();
+    if (!content) return;
+    setReplyingTo(threadId);
+    try {
+      await fetchApi(`/api/v1/threads/${threadId}/posts`, { method: 'POST', body: JSON.stringify({ content }) });
+      setReplyTexts(prev => { const n = { ...prev }; delete n[threadId]; return n; });
+      loadThreads();
+    } catch (err: any) { alert(err.message || 'Failed to post reply'); } finally { setReplyingTo(null); }
+  };
+
+  const markSolved = async (threadId: string) => {
+    try {
+      await fetchApi(`/api/v1/threads/${threadId}/solve`, { method: 'PUT' });
+      loadThreads();
+    } catch (err: any) { alert(err.message || 'Failed to mark solved'); }
+  };
 
   useEffect(() => {
     loadThreads();
@@ -79,13 +102,39 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {threads.length === 0 ? <p>No threads in this forum.</p> : threads.map(t => (
           <div className="panel" key={t.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <h3 style={{ fontSize: '18px', color: 'var(--primary-color)', marginBottom: '10px' }}>{t.title}</h3>
-              {t.is_solved && <span className="badge badge-success">Solved</span>}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {t.is_solved && <span className="badge badge-success">Solved</span>}
+                {(isAdmin || isTrainer) && !t.is_solved && (
+                  <button className="btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: '#00c864', borderColor: '#00c864' }} onClick={() => markSolved(t.id)}>✓ Mark Solved</button>
+                )}
+              </div>
             </div>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '15px' }}>{t.content}</p>
-            <div style={{ fontSize: '12px', color: '#888' }}>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '10px' }}>{t.content}</p>
+            <div style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>
               By {nameOf(t.user_id)} on {new Date(t.created_at).toLocaleString()}
+            </div>
+
+            {/* Replies (#fix): replies render under their thread */}
+            {(t.posts || []).length > 0 && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px', marginBottom: '10px' }}>
+                {(t.posts || []).map((p: any) => (
+                  <div key={p.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '8px 12px', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '13px' }}>{p.content}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+                      {nameOf(p.user_id)} · {new Date(p.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input className="input-field" style={{ flex: 1 }} placeholder="Write a reply..." value={replyTexts[t.id] || ''} onChange={e => setReplyTexts({ ...replyTexts, [t.id]: e.target.value })} onKeyDown={e => e.key === 'Enter' && postReply(t.id)} />
+              <button className="btn-primary" style={{ padding: '6px 14px' }} disabled={replyingTo === t.id} onClick={() => postReply(t.id)}>
+                {replyingTo === t.id ? 'Posting...' : 'Reply'}
+              </button>
             </div>
           </div>
         ))}

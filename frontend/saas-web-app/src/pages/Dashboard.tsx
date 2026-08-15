@@ -979,6 +979,19 @@ export const Dashboard: React.FC = () => {
   const [threadTitle, setThreadTitle] = useState('');
   const [threadContent, setThreadContent] = useState('');
   const [threadPosting, setThreadPosting] = useState(false);
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  const postForumReply = async (threadId: string) => {
+    const content = (replyTexts[threadId] || '').trim();
+    if (!content) return;
+    setReplyingTo(threadId);
+    try {
+      await apiClient.post(`/threads/${threadId}/posts`, { content });
+      setReplyTexts(prev => { const n = { ...prev }; delete n[threadId]; return n; });
+      if (selectedForum) await openForum(selectedForum);
+    } catch (err: any) { alert(err?.response?.data?.message || 'Failed to post reply'); } finally { setReplyingTo(null); }
+  };
 
   const fetchForums = async () => {
     setForumsLoading(true);
@@ -2294,6 +2307,34 @@ export const Dashboard: React.FC = () => {
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0' }}>{t.content}</p>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                       {t.user_id ? `${t.user_id === studentUserId ? 'You' : 'Peer'} · ` : ''}{t.created_at ? new Date(t.created_at).toLocaleString() : ''}
+                    </div>
+
+                    {/* Replies (#fix): replies render under their thread */}
+                    {(t.posts || []).length > 0 && (
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '0.6rem', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {(t.posts || []).map((p: any) => (
+                          <div key={p.id} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem' }}>
+                            <div style={{ fontSize: '0.85rem' }}>{p.content}</div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                              {p.user_id ? `${p.user_id === studentUserId ? 'You' : 'Peer'} · ` : ''}{p.created_at ? new Date(p.created_at).toLocaleString() : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+                      <input
+                        className="input-field"
+                        style={{ flex: 1 }}
+                        placeholder="Write a reply..."
+                        value={replyTexts[t.id] || ''}
+                        onChange={e => setReplyTexts({ ...replyTexts, [t.id]: e.target.value })}
+                        onKeyDown={e => e.key === 'Enter' && postForumReply(t.id)}
+                      />
+                      <button className="btn-primary" style={{ padding: '0 1rem' }} disabled={replyingTo === t.id} onClick={() => postForumReply(t.id)}>
+                        {replyingTo === t.id ? 'Posting...' : 'Reply'}
+                      </button>
                     </div>
                   </div>
                 ))}
