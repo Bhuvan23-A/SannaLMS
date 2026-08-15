@@ -825,6 +825,9 @@ export const Dashboard: React.FC = () => {
   const studentUserId = keycloak.subject || userProfile?.id || 'u-1';
   const selectedAttendanceSession = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
   const selectedAttendanceCourse = attendanceCourses.find((x: any) => x.id === attendanceCourseId);
+  // Students can only check in while the session is LIVE (trainer started it
+  // and it hasn't auto-closed) — other sessions are listed but disabled.
+  const selectedIsLive = !!selectedAttendanceSession && selectedAttendanceSession.status === 'LIVE';
 
   const fetchAttendanceCourses = async () => {
     let list: any[] = [];
@@ -859,7 +862,9 @@ export const Dashboard: React.FC = () => {
       const response = await apiClient.get(`/attendance/sessions?course_id=${encodeURIComponent(courseId)}`);
       const sessions = Array.isArray(response.data) ? response.data : [];
       setAttendanceSessionOptions(sessions);
-      setSelectedSessionId(sessions.length > 0 ? sessions[0].id : '');
+      // Default to the first LIVE session so the student lands ready to check in
+      const live = sessions.filter((s: any) => s.status === 'LIVE');
+      setSelectedSessionId((live.length > 0 ? live[0] : sessions[0])?.id || '');
     } catch (err) {
       console.warn('Could not load attendance sessions', err);
       setAttendanceSessionOptions([]);
@@ -2195,17 +2200,22 @@ export const Dashboard: React.FC = () => {
                     >
                       {attendanceSessionOptions.length === 0 && <option value="">No sessions for this course yet</option>}
                       {attendanceSessionOptions.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''}</option>
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''} [{s.status === 'LIVE' ? 'LIVE' : s.status === 'ENDED' ? 'Ended' : 'Scheduled'}]</option>
                       ))}
                     </select>
+                    {!selectedIsLive && (
+                      <p style={{ fontSize: '0.72rem', color: '#fbbf24', marginBottom: '0.6rem' }}>
+                        ⏳ Check-in is only allowed while the session is <strong>LIVE</strong> — ask your trainer to start it.
+                      </p>
+                    )}
                     <button
                       onClick={() => {
                         const s = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
                         if (s?.qr_token) handleQRCheckIn(s.qr_token);
                         else setCheckInMessage('❌ Selected session has no QR token yet.');
                       }}
-                      disabled={checkingIn}
-                      style={{ border: 'none', background: 'var(--accent-cyan)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
+                      disabled={checkingIn || !selectedIsLive}
+                      style={{ border: 'none', background: selectedIsLive ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.12)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: selectedIsLive ? 'pointer' : 'not-allowed', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
                     >
                       Check In via QR
                     </button>
@@ -2257,9 +2267,14 @@ export const Dashboard: React.FC = () => {
                     >
                       {attendanceSessionOptions.length === 0 && <option value="">No sessions for this course yet</option>}
                       {attendanceSessionOptions.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''}</option>
+                        <option key={s.id} value={s.id}>{s.title || s.course_id || s.id}{s.date ? ` — ${new Date(s.date).toLocaleDateString()}` : ''} [{s.status === 'LIVE' ? 'LIVE' : s.status === 'ENDED' ? 'Ended' : 'Scheduled'}]</option>
                       ))}
                     </select>
+                    {!selectedIsLive && (
+                      <p style={{ fontSize: '0.72rem', color: '#fbbf24', marginBottom: '0.6rem' }}>
+                        ⏳ GPS check-in is only allowed while the session is <strong>LIVE</strong>.
+                      </p>
+                    )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <div>
                         <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Latitude</label>
@@ -2282,8 +2297,8 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <button
                       onClick={handleGPSCheckIn}
-                      disabled={checkingIn}
-                      style={{ border: 'none', background: 'var(--accent-emerald)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
+                      disabled={checkingIn || !selectedIsLive}
+                      style={{ border: 'none', background: selectedIsLive ? 'var(--accent-emerald)' : 'rgba(255,255,255,0.12)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: selectedIsLive ? 'pointer' : 'not-allowed', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
                     >
                       Trigger GPS Validation
                     </button>

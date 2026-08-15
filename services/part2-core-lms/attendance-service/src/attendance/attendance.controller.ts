@@ -32,6 +32,32 @@ export class AttendanceController {
     return this.attendanceService.getSessions(String(tenantId), courseId);
   }
 
+  // Start a session — opens attendance for check-in (SCHEDULED -> LIVE)
+  @Post('sessions/:id/start')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  async startSession(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    try {
+      return await this.attendanceService.startSession(id, String(tenantId));
+    } catch (err) {
+      return asHttpError(err, 'Could not start session');
+    }
+  }
+
+  // End a session — closes attendance immediately (LIVE -> ENDED)
+  @Post('sessions/:id/end')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  async endSession(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    try {
+      return await this.attendanceService.endSession(id, String(tenantId));
+    } catch (err) {
+      return asHttpError(err, 'Could not end session');
+    }
+  }
+
   // Manual marking
   @Post('sessions/:id/mark')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')

@@ -15,7 +15,7 @@ export default function AttendancePage() {
   const [courseId, setCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', date: '', lat: '', lng: '', radius_m: 100 });
+  const [form, setForm] = useState({ title: '', date: '', lat: '', lng: '', radius_m: 100, end_time: '' });
   const [activeSession, setActiveSession] = useState<any>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrInput, setQrInput] = useState('');
@@ -57,12 +57,35 @@ export default function AttendancePage() {
     try {
       await fetchApi('/api/v1/attendance/sessions', {
         method: 'POST',
-        body: JSON.stringify({ ...form, course_id: courseId, lat: parseFloat(form.lat) || null, lng: parseFloat(form.lng) || null })
+        body: JSON.stringify({ ...form, course_id: courseId, lat: parseFloat(form.lat) || null, lng: parseFloat(form.lng) || null, end_time: form.end_time || null })
       });
       setShowForm(false);
-      setForm({ title: '', date: '', lat: '', lng: '', radius_m: 100 });
+      setForm({ title: '', date: '', lat: '', lng: '', radius_m: 100, end_time: '' });
       loadSessions();
     } catch { alert('Failed to create session'); }
+  };
+
+  const startSession = async (id: string) => {
+    try {
+      await fetchApi(`/api/v1/attendance/sessions/${id}/start`, { method: 'POST' });
+      showFlash('✅ Session started — students can check in now');
+      loadSessions();
+    } catch { alert('Failed to start session'); }
+  };
+
+  const endSession = async (id: string) => {
+    try {
+      await fetchApi(`/api/v1/attendance/sessions/${id}/end`, { method: 'POST' });
+      showFlash('⏹ Session ended — attendance closed');
+      loadSessions();
+    } catch { alert('Failed to end session'); }
+  };
+
+  // Status badge color + label for the session lifecycle
+  const statusBadge = (s: any) => {
+    if (s.status === 'LIVE') return <span className="badge badge-success" style={{ borderColor: '#00c864', color: '#00c864' }}>● LIVE</span>;
+    if (s.status === 'ENDED') return <span className="badge badge-danger" style={{ borderColor: '#ff4757', color: '#ff4757' }}>Ended</span>;
+    return <span className="badge badge-warning" style={{ borderColor: '#fbbf24', color: '#fbbf24' }}>Scheduled</span>;
   };
 
   const markPresent = async (sessionId: string, userId: string) => {
@@ -189,6 +212,10 @@ export default function AttendancePage() {
             <label style={{ display: 'block', marginBottom: '5px' }}>GPS Radius (meters)</label>
             <input type="number" className="input-field" style={{ width: '200px' }} value={form.radius_m} onChange={e => setForm({ ...form, radius_m: parseInt(e.target.value) })} />
           </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Auto-close at (optional — attendance ends automatically at this time)</label>
+            <input type="datetime-local" className="input-field" style={{ width: '280px' }} value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} />
+          </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn-primary">Create Session</button>
             <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
@@ -231,9 +258,12 @@ export default function AttendancePage() {
           <div className="panel" key={s.id}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{s.title}</h3>
+                <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{s.title} {statusBadge(s)}</h3>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   <span className="badge badge-info">📅 {new Date(s.date).toLocaleString()}</span>
+                  {s.end_time && <span className="badge badge-warning">⏱ Auto-closes {new Date(s.end_time).toLocaleString()}</span>}
+                  {s.status === 'LIVE' && s.started_at && <span className="badge badge-success">▶ Started {new Date(s.started_at).toLocaleTimeString()}</span>}
+                  {s.status === 'ENDED' && s.ended_at && <span className="badge badge-danger">⏹ Ended {new Date(s.ended_at).toLocaleTimeString()}</span>}
                   {s._count && <span className="badge badge-success">{s._count.records} checked in</span>}
                   {s.qr_token && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '8px', background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '8px' }}>
@@ -257,7 +287,13 @@ export default function AttendancePage() {
                 </div>
               </div>
               {(isAdmin || isTrainer) && (
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  {s.status !== 'LIVE' && (
+                    <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => startSession(s.id)}>▶ Start</button>
+                  )}
+                  {s.status === 'LIVE' && (
+                    <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => endSession(s.id)}>⏹ End</button>
+                  )}
                   <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => openSession(s)}>
                     View Records
                   </button>

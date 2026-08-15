@@ -49,6 +49,10 @@ export class AttendanceService {
         lat: data.lat,
         lng: data.lng,
         radius_m: data.radius_m || 100,
+        // Optional scheduled auto-close time; the session starts SCHEDULED
+        // and only becomes check-in-able when the trainer starts it.
+        end_time: data.end_time ? new Date(data.end_time) : null,
+        status: 'SCHEDULED',
         // Auto-generate a QR token for every session
         qr_token: crypto.randomBytes(16).toString('hex'),
       }
@@ -56,11 +60,63 @@ export class AttendanceService {
   }
 
   async getSessions(tenantId: string, courseId: string) {
-    return this.prisma.session.findMany({
+    const sessions = await this.prisma.session.findMany({
       where: { tenant_id: tenantId, course_id: courseId },
       orderBy: { date: 'desc' },
       include: { _count: { select: { records: true } } }
     });
+    // Lazy auto-close: a session whose end_time has passed is treated (and
+    // persisted) as ENDED so stale sessions never accept check-ins.
+    const now = new Date();
+    for (const s of sessions) {
+      if (s.status === 'LIVE' && s.end_time && s.end_time <= now) {
+        await this.prisma.session.update({
+          where: { id: s.id },
+          data: { status: 'ENDED', ended_at: now }
+        });
+        s.status = 'ENDED';
+        s.ended_at = now;
+      }
+    }
+    return sessions;
+  }
+
+  // Trainer starts the session — only from here can students check in.
+  async startSession(sessionId: string, tenantId: string) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error('Session not found');
+    if (session.tenant_id !== tenantId && tenantId !== 'master') throw new Error('Session not found');
+    return this.prisma.session.update({
+      where: { id: sessionId },
+      data: { status: 'LIVE', started_at: new Date(), ended_at: null }
+    });
+  }
+
+  // Trainer ends the session — attendance closes immediately.
+  async endSession(sessionId: string, tenantId: string) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error('Session not found');
+    if (session.tenant_id !== tenantId && tenantId !== 'master') throw new Error('Session not found');
+    return this.prisma.session.update({
+      where: { id: sessionId },
+      data: { status: 'ENDED', ended_at: new Date() }
+    });
+  }
+
+  // A session is check-in-able only while LIVE (auto-closes once end_time passes).
+  private async ensureLive(session: any): Promise<void> {
+    if (session.end_time && session.end_time <= new Date()) {
+      await this.prisma.session.update({
+        where: { id: session.id },
+        data: { status: 'ENDED', ended_at: new Date() }
+      });
+      throw new Error('This attendance session has ended. Ask your trainer to start a new one.');
+    }
+    if (session.status !== 'LIVE') {
+      throw new Error(session.status === 'ENDED'
+        ? 'This attendance session has ended. Ask your trainer to start a new one.'
+        : 'Attendance session is not live yet. Wait for your trainer to start it.');
+    }
   }
 
   // ─── Manual Attendance ───────────────────────────────────
@@ -76,6 +132,7 @@ export class AttendanceService {
   async checkInByQR(qrToken: string, userId: string, tenantId: string) {
     const session = await this.prisma.session.findUnique({ where: { qr_token: qrToken } });
     if (!session) throw new Error('Invalid QR code or session not found');
+    await this.ensureLive(session);
     if (!(await this.isEnrolled(userId, session.course_id))) {
       throw new Error('You are not enrolled in this course. Ask your college admin to add you.');
     }
@@ -90,6 +147,7 @@ export class AttendanceService {
   async checkInByGPS(sessionId: string, userId: string, lat: number, lng: number, tenantId: string) {
     const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
     if (!session) throw new Error('Session not found');
+    await this.ensureLive(session);
 
     // Haversine distance calculation
     const R = 6371000; // Earth radius in meters

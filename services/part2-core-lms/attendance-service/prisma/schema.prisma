@@ -18,6 +18,12 @@ model Session {
   lat         Float?
   lng         Float?
   radius_m    Int?     @default(100) // GPS radius in meters
+  // Live-session lifecycle: SCHEDULED -> LIVE -> ENDED. Students can only
+  // check in while LIVE; a scheduled end_time auto-closes the session.
+  status      String   @default("SCHEDULED") // SCHEDULED | LIVE | ENDED
+  started_at  DateTime?
+  ended_at    DateTime?
+  end_time    DateTime?          // optional auto-close time ("Ends at")
   created_at  DateTime @default(now())
 
   records     AttendanceRecord[]
