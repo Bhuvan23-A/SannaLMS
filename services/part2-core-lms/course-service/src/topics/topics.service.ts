@@ -5,6 +5,16 @@ import { PrismaService } from '../prisma.service';
 export class TopicsService {
   constructor(private prisma: PrismaService) {}
 
+  /** The tenant that owns this topic — from its lesson's module's course, so a
+   *  super admin editing a college course never writes into tenant 'master'. */
+  async resolveTenant(lessonId: string): Promise<string | null> {
+    const l = await this.prisma.extendedClient.lesson.findUnique({
+      where: { id: lessonId },
+      select: { module: { select: { course: { select: { tenant_id: true } }, subject: { select: { tenant_id: true } } } } },
+    });
+    return l?.module?.course?.tenant_id || l?.module?.subject?.tenant_id || null;
+  }
+
   create(data: any, tenantId: string) {
     return this.prisma.extendedClient.topic.create({
       data: {

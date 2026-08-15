@@ -179,12 +179,34 @@ export const Dashboard: React.FC = () => {
               for (const l of lessons) {
                 let video = '';
                 let transcript = '';
+                let asset: any = null;
                 try {
                   const topRes = await apiClient.get(`/topics/lesson/${l.id}`);
                   const topics = Array.isArray(topRes.data) ? topRes.data : [];
-                  if (topics[0]?.content) { video = topics[0].content; transcript = topics[0].content; }
+                  const first = topics[0];
+                  if (first?.id) {
+                    // Real lesson media lives in the topic's asset (PDF/video) —
+                    // fetch it so the player can show documents and videos, not
+                    // just typed content.
+                    try {
+                      const aRes = await apiClient.get(`/content/asset/${first.id}`);
+                      const a = aRes.data;
+                      if (a?.physical_path) {
+                        asset = {
+                          type: a.type,
+                          status: a.status,
+                          // container path /app/uploads/... → public /uploads/...
+                          url: String(a.physical_path).replace(/^\/app/, ''),
+                        };
+                      }
+                    } catch { /* topic has no asset yet */ }
+                  }
+                  const content = first?.content || '';
+                  const isUrl = /^(https?:)?\/\//.test(content) || content.startsWith('/uploads/');
+                  video = asset?.type === 'VIDEO' && asset?.status === 'READY' ? asset.url : (isUrl ? content : '');
+                  transcript = isUrl ? '' : content;
                 } catch { /* lesson has no topics yet */ }
-                mod.lessons.push({ id: l.id, title: l.title, duration: '—', completed: false, video, transcript });
+                mod.lessons.push({ id: l.id, title: l.title, duration: '—', completed: false, video, transcript, asset });
               }
             } catch { /* module has no lessons yet */ }
             course.modules.push(mod);
@@ -1302,11 +1324,20 @@ export const Dashboard: React.FC = () => {
                       <button onClick={() => setIsPlayingVideo(true)} style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'var(--accent-cyan)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', boxShadow: '0 0 20px rgba(6,182,212,0.4)', transition: 'transform 0.2s' }}>
                         <Play size={32} fill="#fff" />
                       </button>
+                    ) : activeLesson.asset?.type === 'DOCUMENT' && activeLesson.asset?.status === 'READY' ? (
+                      <a href={activeLesson.asset.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', padding: '0.7rem 1.4rem', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '0.95rem' }}>
+                        <FileText size={20} /> 📄 Open PDF
+                      </a>
                     ) : (
                       <FileText size={40} color="var(--text-secondary)" />
                     )}
                     <p style={{ marginTop: '1.5rem', fontWeight: 600, fontSize: '1.1rem' }}>{activeLesson.title}</p>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{activeLesson.video ? 'Click to play media session' : 'No video uploaded — read the lesson content below'}</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      {activeLesson.video ? 'Click to play media session'
+                        : activeLesson.asset?.type === 'DOCUMENT' && activeLesson.asset?.status === 'READY' ? 'Open the PDF to view the lesson material'
+                        : activeLesson.transcript ? 'No video uploaded — read the lesson content below'
+                        : 'No content added to this lesson yet'}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1337,10 +1368,14 @@ export const Dashboard: React.FC = () => {
                     {activeLesson.completed ? 'Completed' : 'Mark Complete'}
                   </button>
                 </div>
-                <h4>Lecture Transcript Context (for RAG AI Tutor):</h4>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', marginTop: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.02)' }}>
-                  {activeLesson.transcript}
-                </p>
+                {activeLesson.transcript && (
+                  <>
+                    <h4>Lecture Transcript Context (for RAG AI Tutor):</h4>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', marginTop: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.02)' }}>
+                      {activeLesson.transcript}
+                    </p>
+                  </>
+                )}
                 <button onClick={() => setActiveTab('tutor')} style={{ marginTop: '1rem', border: 'none', background: 'linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan))', color: '#fff', padding: '0.65rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Sparkles size={16} /> Query AI Tutor on this Lesson
                 </button>

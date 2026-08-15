@@ -8,9 +8,12 @@ export class ModulesController {
 
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
-  create(@Body() body: any, @Req() req: any) {
+  async create(@Body() body: any, @Req() req: any) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
-    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    // Super admins building content for a college course must not write it into
+    // tenant 'master' — resolve the tenant from the course/subject instead.
+    const resolved = isSuperAdmin ? await this.modulesService.resolveTenant(body) : null;
+    const tenantId = isSuperAdmin ? (resolved || body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     return this.modulesService.create(body, String(tenantId));
   }
 

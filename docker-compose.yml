@@ -331,6 +331,10 @@ services:
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=admin
       - MINIO_SECRET_KEY=minioadmin
+    # Course content uploads (topic PDFs/videos + course resources) must
+    # survive container rebuilds/recreates — the files live in /app/uploads.
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - postgres
 
@@ -458,3 +462,4 @@ volumes:
   redis_data:
   minio_data:
   mongo_data:
+  uploads_data:

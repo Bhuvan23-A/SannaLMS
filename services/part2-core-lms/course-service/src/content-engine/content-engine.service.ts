@@ -6,7 +6,7 @@ import { join, extname } from 'path';
 
 @Injectable()
 export class ContentEngineService {
-  private readonly logger = new Logger(ContentEngineService.name);
+  readonly logger = new Logger(ContentEngineService.name);
 
   constructor(
     private prisma: PrismaService,
@@ -21,12 +21,13 @@ export class ContentEngineService {
     physicalPath: string;
     fileSize: number;
     originalName: string;
+    initialStatus?: string;
   }) {
     const asset = await this.prisma.extendedClient.assetMetadata.create({
       data: {
         topic: { connect: { id: data.topicId } },
         type: data.type as any,
-        status: 'UPLOADING',
+        status: (data.initialStatus || 'UPLOADING') as any,
         physical_path: data.physicalPath,
         file_size: data.fileSize,
         tenant_id: data.tenantId,
@@ -49,6 +50,20 @@ export class ContentEngineService {
     return this.prisma.extendedClient.assetMetadata.findUnique({
       where: { topic_id: topicId },
       include: { video_metadata: true }
+    });
+  }
+
+  /** Remove an asset record (used when a re-upload replaces the old one). */
+  async deleteAsset(assetId: string) {
+    return this.prisma.extendedClient.assetMetadata.delete({ where: { id: assetId } });
+  }
+
+  /** Topic + its lesson/module/course chain — used to place uploads in the
+   *  right uploads/{tenant}/{course}/{module}/{lesson}/ directory. */
+  async getTopicContext(topicId: string) {
+    return this.prisma.extendedClient.topic.findUnique({
+      where: { id: topicId },
+      include: { lesson: { include: { module: { include: { course: true } } } } },
     });
   }
 

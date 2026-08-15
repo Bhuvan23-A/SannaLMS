@@ -5,6 +5,22 @@ import { PrismaService } from '../prisma.service';
 export class ModulesService {
   constructor(private prisma: PrismaService) {}
 
+  /** The tenant that owns this module — always the course's/subject's tenant,
+   *  never the uploader's (a super admin building content for a college course
+   *  would otherwise write it into tenant 'master' and the college would not
+   *  see it). */
+  async resolveTenant(data: any): Promise<string | null> {
+    if (data.course_id) {
+      const c = await this.prisma.extendedClient.course.findUnique({ where: { id: data.course_id }, select: { tenant_id: true } });
+      if (c) return c.tenant_id;
+    }
+    if (data.subject_id) {
+      const s = await this.prisma.extendedClient.subject.findUnique({ where: { id: data.subject_id }, select: { tenant_id: true } });
+      if (s) return s.tenant_id;
+    }
+    return null;
+  }
+
   /**
    * Create a module. The syllabus can be owned at two levels:
    * - subject level: subject_id only — the shared syllabus every offering reads

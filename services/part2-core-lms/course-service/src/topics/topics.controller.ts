@@ -8,9 +8,10 @@ export class TopicsController {
 
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
-  create(@Body() body: any, @Req() req: any) {
+  async create(@Body() body: any, @Req() req: any) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
-    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    const resolved = isSuperAdmin && body.lesson_id ? await this.topicsService.resolveTenant(body.lesson_id) : null;
+    const tenantId = isSuperAdmin ? (resolved || body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     return this.topicsService.create(body, String(tenantId));
   }
 
