@@ -137,7 +137,10 @@ export const Dashboard: React.FC = () => {
   const [coursesLoading, setCoursesLoading] = useState(false);
   
   const [selectedCourse, setSelectedCourse] = useState<any>(courses[0]);
-  const [activeLesson, setActiveLesson] = useState<any>(courses[0].modules[0].lessons[0]);
+  // NOTE: this initializer is re-evaluated on every render (React only USES it on the first),
+  // so it must be safe even after `courses` is replaced with the student's real enrollments
+  // (which may have zero modules/lessons). Optional chaining keeps it crash-proof.
+  const [activeLesson, setActiveLesson] = useState<any>(courses[0]?.modules?.[0]?.lessons?.[0]);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const [videoWatchedProgress, setVideoWatchedProgress] = useState(0);
   // Video can be blocked by some networks/ad blockers — show the transcript fallback.
