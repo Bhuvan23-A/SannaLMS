@@ -1930,7 +1930,11 @@ export const Dashboard: React.FC = () => {
                         </div>
                         {mySubmission.submission.file_url && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                            File: <a href={mySubmission.submission.file_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>{mySubmission.submission.file_url}</a>
+                            {mySubmission.submission.file_url.startsWith('http') || mySubmission.submission.file_url.startsWith('/') ? (
+                              <a href={mySubmission.submission.file_url.startsWith('http') ? mySubmission.submission.file_url : `${window.location.origin}${mySubmission.submission.file_url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>📎 {mySubmission.submission.file_url.split('/').pop()}</a>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>📎 {mySubmission.submission.file_url} (file not attached — older submission)</span>
+                            )}
                           </div>
                         )}
                         {mySubmission.submission.is_graded ? (
