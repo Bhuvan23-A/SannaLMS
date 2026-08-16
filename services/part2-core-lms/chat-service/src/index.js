@@ -27,6 +27,17 @@ function userIdFromReq(req) {
   return req.headers['x-mock-user-id'] || 'u-1';
 }
 
+// Best-effort display name for the JWT bearer (Keycloak tokens carry
+// name/preferred_username/email). Stored on DMs so the inbox can show who
+// messaged whom without a user-directory lookup (#dm inbox).
+function nameFromReq(req) {
+  const payload = jwtPayload(req);
+  if (payload) {
+    return payload.name || payload.preferred_username || payload.email || null;
+  }
+  return req.headers['x-mock-user-name'] || null;
+}
+
 function tenantIdFromReq(req) {
   const payload = jwtPayload(req);
   if (payload) {
@@ -267,6 +278,36 @@ app.post('/api/v1/chat/rooms/:id/messages', (req, res) => {
   res.status(201).json(msg);
 });
 
+// DM inbox (#dm): every person the caller has exchanged DMs with, with the
+// other party's display name, last message and unread count — so recipients
+// see who messaged them without pasting a UUID.
+app.get('/api/v1/chat/dm/conversations', (req, res) => {
+  const me = req.userId;
+  const groups = new Map();
+  for (const dm of store.dms) {
+    if (dm.from_user !== me && dm.to_user !== me) continue;
+    const other = dm.from_user === me ? dm.to_user : dm.from_user;
+    if (!groups.has(other)) groups.set(other, []);
+    groups.get(other).push(dm);
+  }
+  const convos = [];
+  for (const [other, dms] of groups) {
+    const sorted = dms.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const last = sorted[sorted.length - 1];
+    // Prefer the other party's own name (captured when they sent a DM).
+    const name = sorted.map(d => (d.from_user === other ? d.from_name : null)).find(Boolean) || null;
+    convos.push({
+      user_id: other,
+      name,
+      last_message: last ? last.content : null,
+      last_at: last ? last.created_at : null,
+      unread_count: dms.filter(d => d.from_user === other && d.to_user === me && !d.is_read).length,
+    });
+  }
+  convos.sort((a, b) => new Date(b.last_at) - new Date(a.last_at));
+  res.json(convos);
+});
+
 // DM conversation with a user
 app.get('/api/v1/chat/dm/:userId', (req, res) => {
   const me = req.userId;
@@ -285,6 +326,7 @@ app.post('/api/v1/chat/dm', (req, res) => {
   const dm = {
     id: uid('dm'),
     from_user: req.body?.user_id || req.userId,
+    from_name: req.body?.from_name || nameFromReq(req) || null,
     to_user: toUser,
     content,
     file_url: req.body?.file_url || null,

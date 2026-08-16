@@ -1041,19 +1041,38 @@ export const Dashboard: React.FC = () => {
   const [dmError, setDmError] = useState('');
   const dmMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  const loadDmConversation = async () => {
-    if (!UUID_RE.test(dmTarget.trim())) { setDmError('That does not look like a valid user ID (must be a full UUID). Ask the other person for their ID.'); setDmConvo([]); return; }
+  const loadDmConversation = async (target?: string) => {
+    const id = (target ?? dmTarget).trim();
+    if (!UUID_RE.test(id)) { setDmError('That does not look like a valid user ID (must be a full UUID). Ask the other person for their ID.'); setDmConvo([]); return; }
     setDmError('');
     setDmLoading(true);
     try {
-      const r = await apiClient.get(`/chat/dm/${dmTarget.trim()}`);
+      const r = await apiClient.get(`/chat/dm/${id}`);
       const data = Array.isArray(r.data) ? r.data : [];
       setDmConvo(data);
       // Auto-mark incoming DMs as read so the sender sees ✓✓ (#fix).
-      data.filter((m: any) => m.from_user === dmTarget.trim() && m.to_user === studentUserId && !m.is_read)
+      data.filter((m: any) => m.from_user === id && m.to_user === studentUserId && !m.is_read)
         .forEach((m: any) => apiClient.put(`/chat/dm/${m.id}/read`).catch(() => {}));
       setTimeout(() => dmMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch { setDmConvo([]); } finally { setDmLoading(false); }
+  };
+
+  // DM inbox (#dm): everyone the student has exchanged DMs with — so an
+  // incoming message shows up right in the list, no UUID pasting needed.
+  const [dmConversations, setDmConversations] = useState<any[]>([]);
+
+  const loadDmConversations = async () => {
+    try {
+      const r = await apiClient.get('/chat/dm/conversations');
+      setDmConversations(Array.isArray(r.data) ? r.data : []);
+    } catch { /* keep the last list */ }
+  };
+
+  const openDmConversation = async (otherId: string) => {
+    setDmTarget(otherId);
+    setDmError('');
+    await loadDmConversation(otherId);
+    loadDmConversations();
   };
 
   const sendDm = async () => {
@@ -1063,6 +1082,7 @@ export const Dashboard: React.FC = () => {
       await apiClient.post('/chat/dm', { to_user: dmTarget.trim(), content: dmMsg.trim() });
       setDmMsg('');
       await loadDmConversation();
+      loadDmConversations();
     } catch (err: any) { setDmError(err?.response?.data?.message || 'Failed to send message'); }
   };
 
@@ -1110,10 +1130,18 @@ export const Dashboard: React.FC = () => {
   }, [activeTab, selectedRoom]);
   useEffect(() => {
     if (activeTab !== 'chat' || chatView !== 'dm' || !UUID_RE.test(dmTarget.trim())) return;
-    const t = setInterval(loadDmConversation, 5000);
+    const t = setInterval(() => loadDmConversation(), 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, chatView, dmTarget]);
+  // Refresh the inbox (who's messaged me + unread counts) while on the DM view.
+  useEffect(() => {
+    if (activeTab !== 'chat' || chatView !== 'dm') return;
+    loadDmConversations();
+    const t = setInterval(loadDmConversations, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, chatView]);
 
   // --- MY GRADES (#fix) ---
   const [myGrades, setMyGrades] = useState<any[]>([]);
@@ -2413,45 +2441,71 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {chatView === 'dm' ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                  <input
-                    className="input-field"
-                    style={{ flex: 1, minWidth: '220px' }}
-                    placeholder="Paste the other user's ID (full UUID)"
-                    value={dmTarget}
-                    onChange={e => setDmTarget(e.target.value)}
-                  />
-                  <button className="btn-secondary" style={{ padding: '0 1rem' }} onClick={loadDmConversation}>{dmLoading ? 'Loading...' : 'Load Conversation'}</button>
-                </div>
-                {dmError && <p style={{ fontSize: '0.8rem', color: '#f87171', margin: '0 0 0.5rem' }}>⚠ {dmError}</p>}
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
-                  {dmConvo.length === 0 ? (
-                    <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>
-                      {UUID_RE.test(dmTarget.trim()) ? 'No messages yet in this conversation.' : 'Enter a valid user ID and press Load Conversation.'}
+              <div style={{ flex: 1, display: 'flex', gap: '1rem', minHeight: 0 }}>
+                {/* Inbox (#dm): everyone who has messaged me — click to open */}
+                <div style={{ width: '240px', flexShrink: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem' }}>
+                  <p style={{ fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: 0 }}>Inbox</p>
+                  {dmConversations.length === 0 ? (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                      No conversations yet — when a trainer or admin messages you, it appears here.
                     </p>
-                  ) : dmConvo.map(m => (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: m.from_user === studentUserId ? 'flex-end' : 'flex-start' }}>
-                      <div style={{ maxWidth: '65%', padding: '0.6rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.9rem', background: m.from_user === studentUserId ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)' }}>
-                        <div>{m.content}</div>
-                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '0.25rem' }}>
-                          {m.from_user === studentUserId ? 'You' : 'Peer'} · {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''} {m.from_user === studentUserId ? (m.is_read ? '✓✓' : '✓') : ''}
-                        </div>
+                  ) : dmConversations.map((c: any) => (
+                    <div
+                      key={c.user_id}
+                      onClick={() => openDmConversation(c.user_id)}
+                      style={{ cursor: 'pointer', padding: '0.6rem 0.7rem', borderRadius: '0.5rem', background: dmTarget === c.user_id ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || 'User'}</span>
+                        {c.unread_count > 0 && <span style={{ background: '#f87171', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '0.65rem', fontWeight: 700, flexShrink: 0 }}>{c.unread_count}</span>}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                        {c.last_message || 'No messages yet'}
                       </div>
                     </div>
                   ))}
-                  <div ref={dmMessagesEndRef} />
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    className="input-field"
-                    style={{ flex: 1 }}
-                    placeholder="Write a message..."
-                    value={dmMsg}
-                    onChange={e => setDmMsg(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && sendDm()}
-                  />
-                  <button className="btn-primary" onClick={sendDm} disabled={!dmMsg.trim()} style={{ padding: '0 1.2rem' }}><Send size={18} /></button>
+                {/* Open conversation */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <input
+                      className="input-field"
+                      style={{ flex: 1, minWidth: '220px' }}
+                      placeholder="Start a new chat — paste a user ID (full UUID)"
+                      value={dmTarget}
+                      onChange={e => setDmTarget(e.target.value)}
+                    />
+                    <button className="btn-secondary" style={{ padding: '0 1rem' }} onClick={() => loadDmConversation()}>{dmLoading ? 'Loading...' : 'Load Conversation'}</button>
+                  </div>
+                  {dmError && <p style={{ fontSize: '0.8rem', color: '#f87171', margin: '0 0 0.5rem' }}>⚠ {dmError}</p>}
+                  <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
+                    {dmConvo.length === 0 ? (
+                      <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>
+                        {UUID_RE.test(dmTarget.trim()) ? 'No messages yet in this conversation.' : 'Pick a conversation from the inbox on the left.'}
+                      </p>
+                    ) : dmConvo.map(m => (
+                      <div key={m.id} style={{ display: 'flex', justifyContent: m.from_user === studentUserId ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ maxWidth: '65%', padding: '0.6rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.9rem', background: m.from_user === studentUserId ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)' }}>
+                          <div>{m.content}</div>
+                          <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '0.25rem' }}>
+                            {m.from_user === studentUserId ? 'You' : (dmConversations.find((c: any) => c.user_id === m.from_user)?.name || 'Peer')} · {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''} {m.from_user === studentUserId ? (m.is_read ? '✓✓' : '✓') : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={dmMessagesEndRef} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      className="input-field"
+                      style={{ flex: 1 }}
+                      placeholder="Write a message..."
+                      value={dmMsg}
+                      onChange={e => setDmMsg(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && sendDm()}
+                    />
+                    <button className="btn-primary" onClick={sendDm} disabled={!dmMsg.trim()} style={{ padding: '0 1.2rem' }}><Send size={18} /></button>
+                  </div>
                 </div>
               </div>
             ) : !selectedRoom ? (

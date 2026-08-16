@@ -51,15 +51,31 @@ export default function ChatPage() {
     }
   };
 
-  const loadDMs = async () => {
-    if (!dmTarget) return;
-    const data = await fetchApi(`/api/v1/chat/dm/${dmTarget}`).catch(() => []);
+  const loadDMs = async (target?: string) => {
+    const id = (target ?? dmTarget);
+    if (!id) return;
+    const data = await fetchApi(`/api/v1/chat/dm/${id}`).catch(() => []);
     setDmConvo(data || []);
     // Auto-mark incoming DMs as read so the sender sees ✓✓ (#fix).
     const me = myUserId || 'u-1';
     (data || [])
-      .filter((m: any) => m.from_user === dmTarget && m.to_user === me && !m.is_read)
+      .filter((m: any) => m.from_user === id && m.to_user === me && !m.is_read)
       .forEach((m: any) => fetchApi(`/api/v1/chat/dm/${m.id}/read`, { method: 'PUT' }).catch(() => {}));
+  };
+
+  // DM inbox (#dm): everyone the caller has exchanged DMs with — so incoming
+  // messages show up in a list, no UUID pasting needed.
+  const [dmConversations, setDmConversations] = useState<any[]>([]);
+
+  const loadDmConversations = async () => {
+    const data = await fetchApi('/api/v1/chat/dm/conversations').catch(() => []);
+    setDmConversations(data || []);
+  };
+
+  const openDmConversation = async (otherId: string) => {
+    setDmTarget(otherId);
+    await loadDMs(otherId);
+    loadDmConversations();
   };
 
   useEffect(() => { loadRooms(); }, []);
@@ -81,7 +97,8 @@ export default function ChatPage() {
   }, [selectedRoom]);
   useEffect(() => {
     if (view !== 'dm') return;
-    const t = setInterval(() => { loadDMs(); }, 5000);
+    loadDmConversations();
+    const t = setInterval(() => { loadDMs(); loadDmConversations(); }, 5000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, dmTarget]);
@@ -102,6 +119,7 @@ export default function ChatPage() {
     }).catch(() => {});
     setNewMsg('');
     loadDMs();
+    loadDmConversations();
   };
 
   const createRoom = async () => {
@@ -297,43 +315,69 @@ export default function ChatPage() {
       )}
 
       {view === 'dm' && (
-        <div className="panel">
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Chatting with:</label>
-            <select className="form-input" style={{ width: '260px' }} value={dmTarget} onChange={e => { setDmTarget(e.target.value); loadDMs(); }}>
-              <option value="">Select a person…</option>
-              {users.map((u: any) => (
-                <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email} — {u.email}</option>
-              ))}
-            </select>
-            <button className="btn-secondary" onClick={loadDMs}>Load Conversation</button>
-          </div>
-
-          <div style={{ height: '400px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {dmConvo.length === 0 && <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>No messages yet</p>}
-            {dmConvo.map(dm => {
-              const mine = dm.from_user === myUserId || (!myUserId && dm.from_user === 'u-1');
-              return (
-              <div key={dm.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  maxWidth: '60%', padding: '8px 14px', borderRadius: '12px', fontSize: '14px',
-                  background: mine ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
-                }}>
-                  <div>{dm.content}</div>
-                  {dm.file_url && <a href={dm.file_url} target="_blank" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>📎 File</a>}
-                  <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
-                    {new Date(dm.created_at).toLocaleTimeString()} {dm.is_read ? '✓✓' : '✓'}
-                  </div>
+        <div className="panel" style={{ display: 'flex', gap: '20px' }}>
+          {/* Inbox (#dm): click a person to open the conversation */}
+          <div style={{ width: '240px', flexShrink: 0, overflowY: 'auto', maxHeight: '480px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <p style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0' }}>Inbox</p>
+            {dmConversations.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                No conversations yet — when someone messages you, it appears here.
+              </p>
+            ) : dmConversations.map((c: any) => (
+              <div
+                key={c.user_id}
+                onClick={() => openDmConversation(c.user_id)}
+                style={{ cursor: 'pointer', padding: '10px 12px', borderRadius: '8px', background: dmTarget === c.user_id ? 'rgba(79,70,229,0.25)' : 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name || nameOf(c.user_id) || 'User'}</span>
+                  {c.unread_count > 0 && <span style={{ background: '#ef4444', color: '#fff', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>{c.unread_count}</span>}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                  {c.last_message || 'No messages yet'}
                 </div>
               </div>
-              );
-            })}
+            ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input className="form-input" style={{ flex: 1 }} placeholder="Write a message..." value={newMsg}
-              onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendDM()} />
-            <button className="btn-primary" onClick={sendDM}>Send DM</button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Chatting with:</label>
+              <select className="form-input" style={{ width: '260px' }} value={dmTarget} onChange={e => { setDmTarget(e.target.value); loadDMs(); }}>
+                <option value="">Select a person…</option>
+                {users.map((u: any) => (
+                  <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email} — {u.email}</option>
+                ))}
+              </select>
+              <button className="btn-secondary" onClick={() => loadDMs()}>Load Conversation</button>
+            </div>
+
+            <div style={{ height: '400px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {dmConvo.length === 0 && <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>No messages yet</p>}
+              {dmConvo.map(dm => {
+                const mine = dm.from_user === myUserId || (!myUserId && dm.from_user === 'u-1');
+                return (
+                <div key={dm.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '60%', padding: '8px 14px', borderRadius: '12px', fontSize: '14px',
+                    background: mine ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
+                  }}>
+                    <div>{dm.content}</div>
+                    {dm.file_url && <a href={dm.file_url} target="_blank" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>📎 File</a>}
+                    <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
+                      {new Date(dm.created_at).toLocaleTimeString()} {dm.is_read ? '✓✓' : '✓'}
+                    </div>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input className="form-input" style={{ flex: 1 }} placeholder="Write a message..." value={newMsg}
+                onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendDM()} />
+              <button className="btn-primary" onClick={sendDM}>Send DM</button>
+            </div>
           </div>
         </div>
       )}
