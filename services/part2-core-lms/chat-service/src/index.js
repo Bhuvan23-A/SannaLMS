@@ -99,6 +99,9 @@ function roomVisibleToUser(room, tenantId, isSuperAdmin) {
 //   - USERS  -> only the explicit member list
 function roomAudienceAllows(room, userId) {
   if (!room.audience_type || room.audience_type === 'ALL') return true;
+  // The creator always sees (and can manage) their own room, even if they
+  // didn't include themselves in the invited member list (#chat fix).
+  if (room.created_by === userId) return true;
   if (room.audience_type === 'COURSE' || room.audience_type === 'USERS') {
     return Array.isArray(room.member_ids) && room.member_ids.includes(userId);
   }
@@ -151,15 +154,18 @@ app.post('/api/v1/chat/rooms', (req, res) => {
     targetTenants = req.body.target_tenants.map(String).filter(Boolean);
   }
   const audienceType = ['COURSE', 'USERS'].includes(req.body?.audience_type) ? req.body.audience_type : 'ALL';
+  const creatorId = req.body?.created_by || req.userId;
   let memberIds = [];
   if (audienceType !== 'ALL') {
     memberIds = Array.isArray(req.body?.member_ids) ? req.body.member_ids.map(String).filter(Boolean) : [];
+    // The creator is always part of their own room's audience (#chat fix).
+    if (creatorId && !memberIds.includes(creatorId)) memberIds.push(creatorId);
   }
   const room = {
     id: uid('room'),
     name,
     type: String(req.body?.type || 'GROUP'),
-    created_by: req.body?.created_by || req.userId,
+    created_by: creatorId,
     tenant_id: req.tenantId,
     target_tenants: targetTenants,
     audience_type: audienceType,
