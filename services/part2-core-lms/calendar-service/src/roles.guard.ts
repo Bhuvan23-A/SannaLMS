@@ -97,6 +97,14 @@ export class RolesGuard implements CanActivate {
       }
     }
 
+    // Write the normalized role set back onto the request so controllers that
+    // check `req.user.roles.includes('superadmin')` (e.g. events) see the same
+    // canonical roles the guard evaluated — otherwise mock/internal calls with
+    // an uppercase header like `SUPER_ADMIN` fail the lowercase check (#fix).
+    if (request.user) {
+      request.user.roles = [...userRoles];
+    }
+
     const hasRole = requiredRoles.some((role) => userRoles.has(role));
     return hasRole;
   }

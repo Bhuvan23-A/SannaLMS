@@ -51,7 +51,7 @@ export const Dashboard: React.FC = () => {
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications' | 'forums' | 'chat'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications' | 'calendar' | 'forums' | 'chat'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
   // Determine roles from Keycloak. Realm role names vary by case/legacy export
@@ -444,6 +444,7 @@ export const Dashboard: React.FC = () => {
     if (activeTab === 'courses') fetchMyCourses();
     if (activeTab === 'forums') fetchForums();
     if (activeTab === 'chat') fetchChatRooms();
+    if (activeTab === 'calendar') fetchCalendarEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -971,6 +972,29 @@ export const Dashboard: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
+  // --- CALENDAR (#fix): events scheduled for the student's college ---
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+
+  const fetchCalendarEvents = async () => {
+    setCalendarLoading(true);
+    try {
+      const response = await apiClient.get('/events');
+      setCalendarEvents(Array.isArray(response.data) ? response.data : []);
+    } catch { setCalendarEvents([]); } finally { setCalendarLoading(false); }
+  };
+
+  // Color-code event types so exams/holidays/deadlines stand out at a glance.
+  const eventTypeMeta = (t: string) => {
+    switch (t) {
+      case 'EXAM': return { label: 'Exam', color: '#ff6b6b', bg: 'rgba(255,80,80,0.12)' };
+      case 'CLASS': return { label: 'Class', color: '#60a5fa', bg: 'rgba(59,130,246,0.15)' };
+      case 'ASSIGNMENT_DEADLINE': return { label: 'Assignment Deadline', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' };
+      case 'HOLIDAY': return { label: 'Holiday', color: '#34d399', bg: 'rgba(52,211,153,0.12)' };
+      default: return { label: 'Event', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' };
+    }
+  };
+
   // --- FORUMS (#fix): students see their college's forums + post threads ---
   const [forums, setForums] = useState<any[]>([]);
   const [selectedForum, setSelectedForum] = useState<any>(null);
@@ -1235,6 +1259,9 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
                   <Bell size={18} /> Notifications
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
+                  <Calendar size={18} /> Calendar
+                </button>
                 <button className={`nav-link-btn ${activeTab === 'forums' ? 'active' : ''}`} onClick={() => setActiveTab('forums')}>
                   <MessageSquare size={18} /> Forums
                 </button>
@@ -1330,6 +1357,7 @@ export const Dashboard: React.FC = () => {
               {activeTab === 'attendance' && 'Student GPS & QR Attendance Portal'}
               {activeTab === 'grades' && 'My Grades & Progress'}
               {activeTab === 'notifications' && 'Notifications Inbox'}
+              {activeTab === 'calendar' && 'College Calendar & Events'}
               {activeTab === 'forums' && 'Discussion Forums'}
               {activeTab === 'chat' && 'College Chat'}
             </h1>
@@ -2566,6 +2594,44 @@ export const Dashboard: React.FC = () => {
                     {chatSending ? 'Sending...' : <Send size={18} />}
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 8b. CALENDAR TAB (#fix) — events scheduled for the student's college */}
+        {activeTab === 'calendar' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {calendarLoading ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Loading events...</p>
+            ) : calendarEvents.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <Calendar size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No events scheduled yet — your college admin or trainers will add them here.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
+                {calendarEvents.map((ev: any) => {
+                  const meta = eventTypeMeta(ev.event_type);
+                  const start = new Date(ev.start_time);
+                  const end = new Date(ev.end_time);
+                  const now = new Date();
+                  const status = start > now ? 'upcoming' : (end >= now ? 'ongoing' : 'past');
+                  return (
+                    <div key={ev.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.9rem', padding: '1.25rem', opacity: status === 'past' ? 0.55 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>{status}</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '3px 9px', borderRadius: '12px', background: meta.bg, color: meta.color }}>{meta.label}</span>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>{ev.title}</h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0 1rem' }}>{ev.description || 'No description.'}</p>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <div>📅 {start.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                        <div>🕐 {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
