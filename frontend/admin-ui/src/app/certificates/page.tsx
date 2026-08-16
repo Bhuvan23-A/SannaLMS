@@ -49,9 +49,21 @@ export default function CertificatesPage() {
   const loadCertificates = async () => {
     try {
       setLoading(true);
-      const d = await fetchApi('/api/v1/certificates/my');
+      // Admins/trainers see the whole college's certificates; students only their own.
+      const endpoint = (isAdmin || isTrainer) ? '/api/v1/certificates' : '/api/v1/certificates/my';
+      const d = await fetchApi(endpoint);
       setCertificates(d || []);
     } catch { } finally { setLoading(false); }
+  };
+
+  const revokeCert = async (id: string) => {
+    const reason = prompt('Reason for revoking this certificate:');
+    if (reason === null) return;
+    try {
+      await fetchApi(`/api/v1/certificates/${id}/revoke`, { method: 'POST', body: JSON.stringify({ reason: reason || 'No reason given' }) });
+      showFlash('🚫 Certificate revoked.');
+      loadCertificates();
+    } catch { alert('Failed to revoke certificate'); }
   };
 
   const issueCert = async (e: any) => {
@@ -254,8 +266,18 @@ export default function CertificatesPage() {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                   {c.grade && <span className="badge badge-success">Grade: {c.grade}</span>}
                   {c.cgpa && <span className="badge badge-info">CGPA: {c.cgpa.toFixed(1)}</span>}
+                  {c.is_revoked && <span className="badge" style={{ background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>🚫 Revoked</span>}
                   <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>#{c.certificate_no}</span>
                 </div>
+                {isAdmin && !c.is_revoked && (
+                  <button
+                    className="btn-secondary"
+                    style={{ marginTop: '12px', width: '100%', borderColor: 'var(--danger-color)', color: 'var(--danger-color)', fontSize: '12px', padding: '6px' }}
+                    onClick={() => revokeCert(c.id)}
+                  >
+                    🚫 Revoke Certificate
+                  </button>
+                )}
               </div>
             </div>
           ))}

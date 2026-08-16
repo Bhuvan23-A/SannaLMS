@@ -97,6 +97,13 @@ export class RolesGuard implements CanActivate {
       }
     }
 
+    // Write the normalized role set back onto the request so controllers that
+    // check `req.user.roles.includes('superadmin')` (e.g. certificates) see the
+    // same canonical roles the guard evaluated (#fix).
+    if (request.user) {
+      request.user.roles = [...userRoles];
+    }
+
     const hasRole = requiredRoles.some((role) => userRoles.has(role));
     return hasRole;
   }
