@@ -112,6 +112,7 @@ export default function Sidebar() {
   const trainerLinks = [
     { name: '📚 My Courses', href: '/courses' },
     { name: '🔔 Notifications', href: '/notifications' },
+    { name: '📅 Calendar', href: '/calendar' },
     { name: '💬 Forums', href: '/forums' },
     { name: '🗨️ Chat', href: '/chat' },
     { divider: 'Assessment' },

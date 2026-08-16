@@ -1276,6 +1276,18 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
                   <Activity size={18} /> Overview
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
+                  <Bell size={18} /> Notifications
+                </button>
+                <button className={`nav-link-btn ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
+                  <Calendar size={18} /> Calendar
+                </button>
+                <button className={`nav-link-btn ${activeTab === 'forums' ? 'active' : ''}`} onClick={() => setActiveTab('forums')}>
+                  <MessageSquare size={18} /> Forums
+                </button>
+                <button className={`nav-link-btn ${activeTab === 'chat' ? 'active' : ''}`} onClick={() => setActiveTab('chat')}>
+                  <MessagesSquare size={18} /> Chat
+                </button>
                 <a href={`https://admin.sannalms.sannainnovations.com/courses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <BookOpen size={18} /> Course Builder
                 </a>
