@@ -24,12 +24,23 @@ export default function CertificatesPage() {
   const [courses, setCourses] = useState<any[]>([]);
   const [templateCourseId, setTemplateCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
+  // Issue-form college filter (super admin) — pick any college's students/courses.
+  const [issueCollegeId, setIssueCollegeId] = useState('');
   // Super admin needs college context to tell colleges' courses/students apart
   const { colleges, activeColleges, isSuperAdmin, collegeNameByTenant } = useColleges();
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const visibleStudents = isSuperAdmin && selectedCollege
     ? students.filter((s: any) => !s.tenant_id || s.tenant_id === selectedCollege.tenant_id)
     : students;
+  // Issue form: filter by the chosen college, or show every college's students
+  // (with college labels) when "All colleges" is selected (#fix).
+  const issueCollege = colleges.find((c: any) => c.id === issueCollegeId);
+  const issueStudents = isSuperAdmin && issueCollege
+    ? students.filter((s: any) => !s.tenant_id || s.tenant_id === issueCollege.tenant_id)
+    : students;
+  const issueCourses = isSuperAdmin && issueCollege
+    ? courses.filter((c: any) => !c.tenant_id || c.tenant_id === issueCollege.tenant_id)
+    : courses;
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateUploading, setTemplateUploading] = useState(false);
@@ -69,7 +80,11 @@ export default function CertificatesPage() {
   const issueCert = async (e: any) => {
     e.preventDefault();
     try {
-      await fetchApi('/api/v1/certificates/issue', { method: 'POST', body: JSON.stringify(issueForm) });
+      // The certificate belongs to the student's college — pass their tenant_id
+      // so a super-admin-issued cert is visible to the college + the student (#fix).
+      const selectedStudent = students.find((s: any) => s.id === issueForm.user_id);
+      const body = { ...issueForm, tenant_id: selectedStudent?.tenant_id };
+      await fetchApi('/api/v1/certificates/issue', { method: 'POST', body: JSON.stringify(body) });
       setShowIssueForm(false);
       showFlash('✅ Certificate issued successfully!');
       loadCertificates();
@@ -179,8 +194,17 @@ export default function CertificatesPage() {
         <form onSubmit={issueCert} className="panel" style={{ marginBottom: '30px' }}>
           <h3 style={{ marginBottom: '20px' }}>Issue New Certificate</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
+              {isSuperAdmin && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>College</label>
+                  <select className="input-field" value={issueCollegeId} onChange={e => { setIssueCollegeId(e.target.value); setIssueForm({ ...issueForm, user_id: '', student_name: '' }); }}>
+                    <option value="">All colleges</option>
+                    {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
               <select
                 required
                 className="input-field"
@@ -191,8 +215,8 @@ export default function CertificatesPage() {
                 }}
               >
                 <option value="">Select student…</option>
-                {visibleStudents.length === 0 ? <option value="" disabled>{isSuperAdmin ? 'No students in this college' : 'No students found'}</option>
-                  : visibleStudents.map((u: any) => (
+                {issueStudents.length === 0 ? <option value="" disabled>{isSuperAdmin ? 'No students in this college' : 'No students found'}</option>
+                  : issueStudents.map((u: any) => (
                     <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}{isSuperAdmin && collegeNameByTenant(u.tenant_id) ? ` (${collegeNameByTenant(u.tenant_id)})` : ''}</option>
                   ))}
               </select>
@@ -209,7 +233,7 @@ export default function CertificatesPage() {
                 }}
               >
                 <option value="">Select course…</option>
-                {(isSuperAdmin && selectedCollege ? courses.filter((c: any) => !c.tenant_id || c.tenant_id === selectedCollege.tenant_id) : courses).map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
+                {issueCourses.map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
               </select>
             </div>
             <div>

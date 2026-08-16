@@ -12,6 +12,10 @@ export class CertificatesService {
   }
 
   async issueCertificate(data: Record<string, any>, tenantId: string) {
+    // A certificate belongs to the STUDENT'S college, not the issuer's — a
+    // super admin issuing for a college student must not store it under
+    // 'master' or the college admin and the student would never see it (#fix).
+    const effectiveTenant = data['tenant_id'] ? String(data['tenant_id']) : tenantId;
     // Check if already issued
     const existing = await this.prisma.certificate.findUnique({
       where: { course_id_user_id: { course_id: data.course_id, user_id: data.user_id } }
@@ -21,7 +25,7 @@ export class CertificatesService {
     return this.prisma.certificate.upsert({
       where: { course_id_user_id: { course_id: data.course_id, user_id: data.user_id } },
       create: {
-        tenant_id: tenantId,
+        tenant_id: effectiveTenant,
         course_id: data.course_id,
         user_id: data.user_id,
         course_title: data.course_title,
@@ -54,8 +58,14 @@ export class CertificatesService {
   }
 
   async getUserCertificates(userId: string, tenantId: string) {
+    // A student sees their own certificates from their college AND any
+    // platform-level ('master') certificates issued to them personally.
     return this.prisma.certificate.findMany({
-      where: { user_id: userId, tenant_id: tenantId, is_revoked: false }
+      where: {
+        user_id: userId,
+        is_revoked: false,
+        OR: [{ tenant_id: tenantId }, { tenant_id: 'master' }],
+      }
     });
   }
 
