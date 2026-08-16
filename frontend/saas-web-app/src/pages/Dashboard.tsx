@@ -7,7 +7,7 @@ import {
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
-  MessageSquare, MessagesSquare
+  MessageSquare, MessagesSquare, Video
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -51,7 +51,7 @@ export const Dashboard: React.FC = () => {
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'grades' | 'notifications' | 'calendar' | 'forums' | 'chat'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'liveclasses' | 'grades' | 'notifications' | 'calendar' | 'forums' | 'chat'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
   // Determine roles from Keycloak. Realm role names vary by case/legacy export
@@ -437,6 +437,7 @@ export const Dashboard: React.FC = () => {
     if (activeTab === 'leaderboard') fetchLeaderboard();
     if (activeTab === 'certificates') fetchMyCertificates();
     if (activeTab === 'attendance') fetchAttendanceCourses();
+    if (activeTab === 'liveclasses') fetchLiveClasses();
     if (activeTab === 'assessment') fetchQuizzes();
     if (activeTab === 'assignments') fetchAssignments();
     if (activeTab === 'grades') fetchMyGrades();
@@ -972,6 +973,27 @@ export const Dashboard: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
+  // --- LIVE CLASSES (#fix): the college's scheduled live sessions ---
+  const [liveClasses, setLiveClasses] = useState<any[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+
+  const fetchLiveClasses = async () => {
+    setLiveLoading(true);
+    try {
+      const r = await apiClient.get('/liveclasses');
+      setLiveClasses(Array.isArray(r.data) ? r.data : []);
+    } catch { setLiveClasses([]); } finally { setLiveLoading(false); }
+  };
+
+  const joinLiveClass = async (cls: any) => {
+    try {
+      const r = await apiClient.get(`/liveclasses/${cls.id}/join`);
+      const data = r.data;
+      if (data && data.jitsi_url) { window.open(data.jitsi_url, '_blank'); }
+      else { alert('This class is not joinable right now.'); }
+    } catch (err: any) { alert(err?.response?.data?.message || 'Failed to join the class'); }
+  };
+
   // --- CALENDAR (#fix): events scheduled for the student's college ---
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
@@ -1253,6 +1275,9 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveTab('attendance')}>
                   <Calendar size={18} /> Attendance
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'liveclasses' ? 'active' : ''}`} onClick={() => setActiveTab('liveclasses')}>
+                  <Video size={18} /> Live Classes
+                </button>
                 <button className={`nav-link-btn ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>
                   <GraduationCap size={18} /> My Grades
                 </button>
@@ -1367,6 +1392,7 @@ export const Dashboard: React.FC = () => {
               {activeTab === 'certificates' && 'Cryptographic Awards'}
               {activeTab === 'assignments' && 'Assignments & Submissions'}
               {activeTab === 'attendance' && 'Student GPS & QR Attendance Portal'}
+              {activeTab === 'liveclasses' && 'Live Classes'}
               {activeTab === 'grades' && 'My Grades & Progress'}
               {activeTab === 'notifications' && 'Notifications Inbox'}
               {activeTab === 'calendar' && 'College Calendar & Events'}
@@ -2645,6 +2671,45 @@ export const Dashboard: React.FC = () => {
                   );
                 })}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* 8c. LIVE CLASSES TAB (#fix) — the college's live sessions for students */}
+        {activeTab === 'liveclasses' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {liveLoading ? (
+              <p style={{ color: 'var(--text-secondary)' }}>Loading classes...</p>
+            ) : liveClasses.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                <Video size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No live classes scheduled yet — your trainers will add them here.</p>
+              </div>
+            ) : (
+              liveClasses.map((c: any) => {
+                const status = c.is_live ? 'live' : (c.ended_at ? 'ended' : 'upcoming');
+                return (
+                  <div key={c.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.9rem', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', opacity: status === 'ended' ? 0.55 : 1 }}>
+                    <div style={{ flex: 1, minWidth: '240px' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>{c.title}</h3>
+                        {status === 'live' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>🔴 LIVE</span>}
+                        {status === 'ended' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}>⏹ Ended</span>}
+                        {status === 'upcoming' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>Upcoming</span>}
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>{c.description || 'No description.'}</p>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        📅 {c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : ''} · ⏱ {c.duration_mins} mins
+                      </div>
+                    </div>
+                    {status !== 'ended' && (
+                      <button className="btn-primary" onClick={() => joinLiveClass(c)}>
+                        {status === 'live' ? '🔴 Join Now' : 'Join Class'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}

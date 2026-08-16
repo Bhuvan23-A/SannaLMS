@@ -23,8 +23,13 @@ export class LiveclassService {
     });
   }
 
-  async getClasses(tenantId: string, courseId: string) {
-    const filter: Record<string, any> = { course_id: courseId };
+  async getClasses(tenantId: string, courseId?: string) {
+    const filter: Record<string, any> = {};
+    // Without a course_id (e.g. the student portal listing every class in the
+    // college) return all the tenant's classes; with one, filter to it.
+    if (courseId) {
+      filter.course_id = courseId;
+    }
     if (tenantId !== 'master') {
       filter.tenant_id = tenantId;
     }
