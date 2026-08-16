@@ -56,7 +56,11 @@ export class GradebookService {
       where: {
         course_id_user_id: { course_id: courseId, user_id: userId }
       },
-      update: { total_score: totalScore, max_score: maxScore, grade, cgpa },
+      // tenant_id must be updated too: the row may have been created earlier
+      // under a different (e.g. 'master') tenant by a super-admin/mock call,
+      // and a recalc by the college must move it into the right tenant or the
+      // student's 'my grades' query (scoped by tenant) would never see it.
+      update: { tenant_id: tenantId, total_score: totalScore, max_score: maxScore, grade, cgpa },
       create: {
         tenant_id: tenantId,
         course_id: courseId,

@@ -2128,12 +2128,20 @@ export const Dashboard: React.FC = () => {
                 {verifyResult.error ? (
                   <p style={{ color: '#f87171', fontSize: '0.9rem' }}>❌ {verifyResult.error}</p>
                 ) : verifyResult.data ? (
-                  <div style={{ fontSize: '0.9rem', color: 'var(--accent-emerald)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <span>✅ Certificate is valid.</span>
-                    <span>Holder: {verifyResult.data.student_name}</span>
-                    <span>Course: {verifyResult.data.course_title}</span>
-                    {verifyResult.data.issued_at && <span>Issued: {new Date(verifyResult.data.issued_at).toLocaleDateString()}</span>}
-                  </div>
+                  verifyResult.data.is_revoked ? (
+                    <div style={{ fontSize: '0.9rem', color: '#f87171', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <span>🚫 This certificate has been revoked{verifyResult.data.revoke_reason ? ` — ${verifyResult.data.revoke_reason}` : ''}.</span>
+                      <span>Holder: {verifyResult.data.student_name}</span>
+                      <span>Course: {verifyResult.data.course_title}</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--accent-emerald)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <span>✅ Certificate is valid.</span>
+                      <span>Holder: {verifyResult.data.student_name}</span>
+                      <span>Course: {verifyResult.data.course_title}</span>
+                      {verifyResult.data.issued_at && <span>Issued: {new Date(verifyResult.data.issued_at).toLocaleDateString()}</span>}
+                    </div>
+                  )
                 ) : (
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Verifying...</p>
                 )}
