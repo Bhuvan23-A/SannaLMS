@@ -14,13 +14,18 @@ export class SubjectsController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
   create(@Body() body: any, @Req() req: any) {
-    return this.subjectsService.create(body, this.tenant(req));
+    // Super admins pick the target college in the UI — create the subject under
+    // that college's tenant instead of dumping it into 'master' (where it shows
+    // with no college and is invisible to every college admin).
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.subjectsService.create(body, tenantId);
   }
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT', 'GUEST_FACULTY')
-  findAll(@Req() req: any, @Query('branch_id') branchId?: string) {
-    return this.subjectsService.findAll(this.tenant(req), branchId);
+  findAll(@Req() req: any, @Query('branch_id') branchId?: string, @Query('include_archived') includeArchived?: string) {
+    return this.subjectsService.findAll(this.tenant(req), branchId, includeArchived === 'true');
   }
 
   @Get(':id')
@@ -45,5 +50,17 @@ export class SubjectsController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
   remove(@Param('id') id: string, @Req() req: any) {
     return this.subjectsService.remove(id, this.tenant(req));
+  }
+
+  @Post(':id/restore')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  restore(@Param('id') id: string, @Req() req: any) {
+    return this.subjectsService.restore(id, this.tenant(req));
+  }
+
+  @Delete(':id/permanent')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  removePermanent(@Param('id') id: string, @Req() req: any) {
+    return this.subjectsService.removePermanent(id, this.tenant(req));
   }
 }

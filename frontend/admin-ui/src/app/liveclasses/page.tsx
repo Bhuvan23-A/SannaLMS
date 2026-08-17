@@ -34,7 +34,8 @@ export default function LiveClassesPage() {
 
   const loadClasses = async () => {
     try {
-      setLoading(true);
+      // No setLoading(true) — the full-page flash unmounts the CollegeCoursePicker
+      // and caused an endless reload blink (#fix).
       const d = await fetchApi(`/api/v1/liveclasses?course_id=${courseId}`);
       setClasses(d || []);
     } catch { } finally { setLoading(false); }

@@ -242,9 +242,6 @@ export default function SemestersPage() {
                         <input type="number" min={1} max={12} className="input-field" value={editNumber} onChange={e => setEditNumber(e.target.value)} style={{ width: '80px' }} />
                       </td>
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <input type="number" min={1} max={12} className="input-field" value={editNumber} onChange={e => setEditNumber(e.target.value)} style={{ width: '80px' }} />
-                      </td>
-                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <input className="input-field" value={editName} onChange={e => setEditName(e.target.value)} style={{ width: '100%' }} />
                       </td>
                       {isSuperAdmin && <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}

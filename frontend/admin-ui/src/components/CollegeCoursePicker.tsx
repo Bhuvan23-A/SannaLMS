@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useColleges } from '@/hooks/useColleges';
 
 /**
@@ -34,10 +34,17 @@ export default function CollegeCoursePicker({
   const { colleges, activeColleges, isSuperAdmin, courseLabel } = useColleges();
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
 
-  const visibleCourses =
-    isSuperAdmin && selectedCollege
+  // Memoized so the auto-select effect below only re-runs when the courses list
+  // or the selected college actually changes. Without useMemo, `filter` returns
+  // a fresh array every render, the effect re-fires after every render, and the
+  // page's loading flash (which unmounts this component) restarts the whole
+  // cycle — the endless assignments/quizzes "blinking" bug (#fix).
+  const visibleCourses = useMemo(
+    () => (isSuperAdmin && selectedCollege
       ? courses.filter((c: any) => !c.tenant_id || c.tenant_id === selectedCollege.tenant_id)
-      : courses;
+      : courses),
+    [courses, isSuperAdmin, selectedCollege?.tenant_id]
+  );
 
   // Super admin: default to the first active college once the list arrives.
   useEffect(() => {

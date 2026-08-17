@@ -28,6 +28,13 @@ export default function SectionsPage() {
   const [sectionName, setSectionName] = useState('');
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
+  // Super admin picks the target college inside the modal so the section is
+  // created under that college's tenant (not 'master').
+  const [modalCollege, setModalCollege] = useState('');
+  const modalCollegeObj = activeColleges.find((c: any) => c.id === modalCollege);
+  const modalInCollege = (item: any) => !isSuperAdmin || !modalCollege || !item.tenant_id || item.tenant_id === modalCollegeObj?.tenant_id;
+  const modalBranches = branches.filter((b: any) => modalInCollege(b));
+  const modalSessions = sessions.filter((s: any) => modalInCollege(s));
 
   // Roster modal
   const [rosterSection, setRosterSection] = useState<any>(null);
@@ -74,10 +81,11 @@ export default function SectionsPage() {
           academic_session_id: sessionId,
           semester_number: Number(semesterNumber),
           name: sectionName.trim() || undefined,
+          tenant_id: modalCollegeObj?.tenant_id,
         }),
       });
       setModalOpen(false);
-      setBranchId(''); setSessionId(''); setSemesterNumber('1'); setSectionName('');
+      setBranchId(''); setSessionId(''); setSemesterNumber('1'); setSectionName(''); setModalCollege('');
       load();
     } catch (err: any) {
       setFormError(err.message);
@@ -216,7 +224,7 @@ export default function SectionsPage() {
             <option value="">All sessions</option>
             {visibleSessions.map((s: any) => <option key={s.id} value={s.id}>{collegeName(s.tenant_id)}{s.name}{s.is_current ? ' (current)' : ''}</option>)}
           </select>
-          <button className="btn-primary" onClick={() => setModalOpen(true)}>+ Add Section</button>
+          <button className="btn-primary" onClick={() => { setModalCollege(collegeFilter); setBranchId(''); setSessionId(''); setModalOpen(true); }}>+ Add Section</button>
         </div>
       </div>
       <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '-12px', marginBottom: '20px' }}>
@@ -280,20 +288,29 @@ export default function SectionsPage() {
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{formError}</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {isSuperAdmin && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College *</label>
+                  <select required className="input-field" value={modalCollege} onChange={e => { setModalCollege(e.target.value); setBranchId(''); setSessionId(''); }}>
+                    <option value="">Select college…</option>
+                    {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Branch / Program *</label>
                 <select required className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)}>
                   <option value="">Select…</option>
-                  {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option>
-                    : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{collegeName(b.tenant_id)}{b.name}</option>)}
+                  {modalBranches.length === 0 ? <option value="" disabled>No branches for this college</option>
+                    : modalBranches.map((b: any) => <option key={b.id} value={b.id}>{collegeName(b.tenant_id)}{b.name}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Academic Session *</label>
                 <select required className="input-field" value={sessionId} onChange={e => setSessionId(e.target.value)}>
                   <option value="">Select…</option>
-                  {visibleSessions.length === 0 ? <option value="" disabled>No sessions yet — add one first</option>
-                    : visibleSessions.map((s: any) => <option key={s.id} value={s.id}>{collegeName(s.tenant_id)}{s.name}{s.is_current ? ' (current)' : ''}</option>)}
+                  {modalSessions.length === 0 ? <option value="" disabled>No sessions yet — add one first</option>
+                    : modalSessions.map((s: any) => <option key={s.id} value={s.id}>{collegeName(s.tenant_id)}{s.name}{s.is_current ? ' (current)' : ''}</option>)}
                 </select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

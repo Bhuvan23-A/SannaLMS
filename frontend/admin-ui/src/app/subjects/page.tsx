@@ -15,6 +15,8 @@ export default function SubjectsPage() {
   // Super admin sees every college's subjects — filter by college (tenant).
   const { isSuperAdmin, activeColleges, collegeNameByTenant } = useColleges();
   const [collegeFilter, setCollegeFilter] = useState('');
+  // Archived subjects are hidden by default — toggle to see/unarchive/delete them.
+  const [showArchived, setShowArchived] = useState(false);
 
   // Create form state
   const [name, setName] = useState('');
@@ -25,6 +27,9 @@ export default function SubjectsPage() {
   const [ltp, setLtp] = useState('');
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
+  // Super admin picks the target college when creating (the subject must live
+  // under that college's tenant, not 'master').
+  const [createCollegeId, setCreateCollegeId] = useState('');
 
   // Syllabus editor state (phase 5): subject-owned module tree
   const [syllabusSubject, setSyllabusSubject] = useState<any>(null);
@@ -35,7 +40,7 @@ export default function SubjectsPage() {
     try {
       setLoading(true);
       const [subs, brs, depts] = await Promise.all([
-        fetchApi('/api/v1/subjects').catch(() => []),
+        fetchApi(`/api/v1/subjects${showArchived ? '?include_archived=true' : ''}`).catch(() => []),
         fetchApi('/api/v1/branches').catch(() => []),
         fetchApi('/api/v1/departments').catch(() => []),
       ]);
@@ -50,15 +55,25 @@ export default function SubjectsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [showArchived]);
 
   const branchName = (id: string) => branches.find((b: any) => b.id === id)?.name;
-  const visibleBranches = branches.filter((b: any) => !departmentId || b.department_id === departmentId);
+  // College-scoped cascading dropdowns: pick the college first, then its
+  // departments and branches only. College admins are already tenant-scoped.
+  const selectedCreateCollege = activeColleges.find((c: any) => c.id === createCollegeId);
+  const inCreateCollege = (item: any) => !isSuperAdmin || !createCollegeId || !item.tenant_id || item.tenant_id === selectedCreateCollege?.tenant_id;
+  const visibleDepartments = departments.filter((d: any) => inCreateCollege(d));
+  const visibleBranches = branches.filter((b: any) => inCreateCollege(b) && (!departmentId || b.department_id === departmentId));
 
   const createSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     setFormError('');
+    if (isSuperAdmin && !createCollegeId) {
+      setFormError('Select the college this subject belongs to');
+      setCreating(false);
+      return;
+    }
     try {
       await fetchApi('/api/v1/subjects', {
         method: 'POST',
@@ -69,10 +84,11 @@ export default function SubjectsPage() {
           department_id: departmentId || undefined,
           branch_id: branchId || undefined,
           lt_p: ltp.trim() || undefined,
+          tenant_id: selectedCreateCollege?.tenant_id,
         }),
       });
       setModalOpen(false);
-      setName(''); setCode(''); setCredits('3'); setDepartmentId(''); setBranchId(''); setLtp('');
+      setName(''); setCode(''); setCredits('3'); setDepartmentId(''); setBranchId(''); setLtp(''); setCreateCollegeId('');
       load();
     } catch (err: any) {
       setFormError(err.message);
@@ -82,9 +98,25 @@ export default function SubjectsPage() {
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm('Archive this subject? Its offerings keep their history, but the subject leaves the catalog.')) return;
+    if (!confirm('Archive this subject? Its offerings keep their history, but the subject leaves the active catalog.')) return;
     try {
       await fetchApi(`/api/v1/subjects/${id}`, { method: 'DELETE' });
+      load();
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const restoreSubject = async (id: string) => {
+    if (!confirm('Restore this subject to the active catalog?')) return;
+    try {
+      await fetchApi(`/api/v1/subjects/${id}/restore`, { method: 'POST' });
+      load();
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const deleteSubjectForever = async (s: any) => {
+    if (!confirm(`Permanently delete ${s.code} — ${s.name}? This removes the subject AND its syllabus. This cannot be undone.`)) return;
+    try {
+      await fetchApi(`/api/v1/subjects/${s.id}/permanent`, { method: 'DELETE' });
       load();
     } catch (err: any) { alert(err.message); }
   };
@@ -161,7 +193,10 @@ export default function SubjectsPage() {
               {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <button className="btn-primary" onClick={() => setModalOpen(true)}>+ Add Subject</button>
+          <button className="btn-secondary" onClick={() => setShowArchived(!showArchived)}>
+            {showArchived ? '✓ Showing Archived' : '🗄 View Archived'}
+          </button>
+          <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setDepartmentId(''); setBranchId(''); setModalOpen(true); }}>+ Add Subject</button>
         </div>
       </div>
       <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '-12px', marginBottom: '20px' }}>
@@ -191,7 +226,7 @@ export default function SubjectsPage() {
             {loading ? (
               <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
             ) : subjects.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No subjects yet. Add the subjects your college teaches.</td></tr>
+              <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>{showArchived ? 'No archived subjects.' : 'No subjects yet. Add the subjects your college teaches.'}</td></tr>
             ) : (
               subjects.filter((s: any) => {
                 if (!collegeFilter) return true;
@@ -207,11 +242,22 @@ export default function SubjectsPage() {
                     <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeNameByTenant(s.tenant_id) || '—'}</td>
                   )}
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                    <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px', background: s.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)' }}>{s.status}</span>
+                    <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px',
+                      background: s.status === 'ARCHIVED' ? 'rgba(239,68,68,0.15)' : s.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)',
+                      color: s.status === 'ARCHIVED' ? '#f87171' : undefined }}>{s.status}</span>
                   </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>📚 Syllabus</button>
-                    <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                    {s.deleted_at ? (
+                      <>
+                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>🗑 Delete Forever</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>📚 Syllabus</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))
@@ -284,6 +330,15 @@ export default function SubjectsPage() {
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{formError}</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {isSuperAdmin && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College *</label>
+                  <select required className="input-field" value={createCollegeId} onChange={e => { setCreateCollegeId(e.target.value); setDepartmentId(''); setBranchId(''); }}>
+                    <option value="">Select college…</option>
+                    {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Subject Name *</label>
                 <input required className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Data Structures" />
@@ -303,7 +358,8 @@ export default function SubjectsPage() {
                   <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Department</label>
                   <select className="input-field" value={departmentId} onChange={e => { setDepartmentId(e.target.value); setBranchId(''); }}>
                     <option value="">Select…</option>
-                    {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {visibleDepartments.length === 0 ? <option value="" disabled>No departments for this college</option>
+                      : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
                 <div>

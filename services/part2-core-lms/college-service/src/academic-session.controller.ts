@@ -15,7 +15,11 @@ export class AcademicSessionController {
   @Post()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
   create(@Body() body: any, @Req() req: any) {
-    return this.service.create(body, this.tenant(req));
+    // Super admins pick the target college in the UI — create the session under
+    // that college's tenant (not 'master', where it shows with no college).
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.service.create(body, tenantId);
   }
 
   @Get()

@@ -70,7 +70,8 @@ export default function QuizzesPage() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      // No setLoading(true): flashing the full-page "Loading..." screen unmounts
+      // the CollegeCoursePicker and caused the endless reload blink (#fix).
       const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
       const [qData, qnData] = await Promise.all([
         fetchApi(`/api/v1/quizzes?course_id=${courseId}${tenantQ}`),

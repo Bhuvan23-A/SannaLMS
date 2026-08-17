@@ -59,7 +59,10 @@ export default function AssignmentsPage() {
 
   const loadAssignments = async () => {
     try {
-      setLoading(true);
+      // No setLoading(true) here: flashing the full-page "Loading..." screen
+      // unmounts the CollegeCoursePicker, which restarts its auto-select and
+      // caused the endless reload blink on this page (#fix). The initial
+      // useState(true) already shows the loader on first mount.
       const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
       const d = await fetchApi(`/api/v1/assignments?course_id=${courseId}${tenantQ}`);
       setAssignments(d || []);

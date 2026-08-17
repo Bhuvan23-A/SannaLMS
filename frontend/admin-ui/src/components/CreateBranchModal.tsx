@@ -1,11 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import { useRole } from '@/hooks/useRole';
 
 export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+  const { role } = useRole();
+  const isSuperAdmin = role === 'SUPER_ADMIN';
   const [name, setName] = useState('');
   const [departments, setDepartments] = useState<any[]>([]);
+  const [colleges, setColleges] = useState<any[]>([]);
   const [heldCollegeIds, setHeldCollegeIds] = useState<Set<string>>(new Set());
+  const [collegeId, setCollegeId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [totalSemesters, setTotalSemesters] = useState('8');
   const [error, setError] = useState('');
@@ -14,20 +19,29 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
   useEffect(() => {
     (async () => {
       try {
-        const [depts, colleges] = await Promise.all([
+        const [depts, collegeList] = await Promise.all([
           fetchApi('/api/v1/departments').catch(() => []),
           fetchApi('/api/v1/colleges').catch(() => []),
         ]);
         setDepartments(Array.isArray(depts) ? depts : []);
+        const list = Array.isArray(collegeList) ? collegeList : [];
+        setColleges(list);
         // Held colleges are suspended — never build structure inside one.
-        const held = new Set<string>((Array.isArray(colleges) ? colleges : [])
-          .filter((c: any) => c.status === 'HELD').map((c: any) => c.id));
+        const held = new Set<string>(list.filter((c: any) => c.status === 'HELD').map((c: any) => c.id));
         setHeldCollegeIds(held);
+        // A single college admin's modal is already tenant-scoped; prefill the
+        // only active college for super admins so the dropdown is never empty.
+        const active = list.filter((c: any) => c.status !== 'HELD');
+        if (active.length === 1) setCollegeId(active[0].id);
       } catch { setDepartments([]); }
     })();
   }, []);
 
-  const visibleDepartments = departments.filter((d: any) => !heldCollegeIds.has(d.college_id));
+  const activeColleges = colleges.filter((c: any) => c.status !== 'HELD');
+  const visibleDepartments = departments.filter((d: any) =>
+    !heldCollegeIds.has(d.college_id) &&
+    (!isSuperAdmin || !collegeId || d.college_id === collegeId)
+  );
   const selectedDepartment = visibleDepartments.find((d: any) => d.id === departmentId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,12 +91,22 @@ export default function CreateBranchModal({ onClose, onSuccess }: { onClose: () 
               placeholder="e.g. Artificial Intelligence (AI)"
             />
           </div>
+          {isSuperAdmin && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College *</label>
+              <select required className="input-field" value={collegeId} onChange={e => { setCollegeId(e.target.value); setDepartmentId(''); }}>
+                <option value="">Select college…</option>
+                {activeColleges.length === 0 ? <option value="" disabled>No active colleges found</option>
+                  : activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Department</label>
             <select required className="input-field" value={departmentId} onChange={e => setDepartmentId(e.target.value)}>
               <option value="">Select department…</option>
               {visibleDepartments.length === 0 ? <option value="" disabled>No active departments found — add one first</option>
-                : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}{d.tenant_id ? ` (${d.tenant_id})` : ''}</option>)}
+                : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             {departments.length > visibleDepartments.length && (
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Departments in held colleges are hidden.</p>

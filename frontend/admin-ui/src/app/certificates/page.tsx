@@ -59,7 +59,8 @@ export default function CertificatesPage() {
 
   const loadCertificates = async () => {
     try {
-      setLoading(true);
+      // No setLoading(true) — the full-page flash unmounts the CollegeCoursePicker
+      // and caused an endless reload blink (#fix).
       // Admins/trainers see the whole college's certificates; students only their own.
       const endpoint = (isAdmin || isTrainer) ? '/api/v1/certificates' : '/api/v1/certificates/my';
       const d = await fetchApi(endpoint);

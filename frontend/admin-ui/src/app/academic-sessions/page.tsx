@@ -19,6 +19,10 @@ export default function AcademicSessionsPage() {
   const [setCurrent, setSetCurrent] = useState(true);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
+  // Super admin picks the target college so the session lives under that
+  // college's tenant (not 'master').
+  const [createCollegeId, setCreateCollegeId] = useState('');
+  const selectedCollege = activeColleges.find((c: any) => c.id === createCollegeId);
 
   const load = async () => {
     try {
@@ -47,10 +51,11 @@ export default function AcademicSessionsPage() {
           start_date: startDate || undefined,
           end_date: endDate || undefined,
           is_current: setCurrent,
+          tenant_id: selectedCollege?.tenant_id,
         }),
       });
       setModalOpen(false);
-      setName(''); setStartDate(''); setEndDate(''); setSetCurrent(true);
+      setName(''); setStartDate(''); setEndDate(''); setSetCurrent(true); setCreateCollegeId('');
       load();
     } catch (err: any) {
       setFormError(err.message);
@@ -94,7 +99,7 @@ export default function AcademicSessionsPage() {
               {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <button className="btn-primary" onClick={() => setModalOpen(true)}>+ Add Session</button>
+          <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setModalOpen(true); }}>+ Add Session</button>
         </div>
       </div>
       <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '-12px', marginBottom: '20px' }}>
@@ -169,6 +174,15 @@ export default function AcademicSessionsPage() {
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{formError}</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {isSuperAdmin && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College *</label>
+                  <select required className="input-field" value={createCollegeId} onChange={e => setCreateCollegeId(e.target.value)}>
+                    <option value="">Select college…</option>
+                    {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Session Name *</label>
                 <input required className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 2026-27" />

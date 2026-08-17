@@ -46,7 +46,8 @@ export default function AttendancePage() {
 
   const loadSessions = async () => {
     try {
-      setLoading(true);
+      // No setLoading(true) — the full-page flash unmounts the CollegeCoursePicker
+      // and caused an endless reload blink (#fix).
       const d = await fetchApi(`/api/v1/attendance/sessions?course_id=${courseId}`);
       setSessions(d || []);
     } catch { } finally { setLoading(false); }
