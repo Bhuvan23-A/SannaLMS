@@ -74,11 +74,23 @@ export class QuestionsService {
 
   async getQuestions(tenantId: string, filters?: { course_id?: string; subject_id?: string; department_id?: string; branch_id?: string; semester_id?: string }) {
     const whereClause: any = { tenant_id: tenantId };
-    if (filters?.course_id) {
-      whereClause.course_id = filters.course_id;
-    }
-    if (filters?.subject_id) {
-      whereClause.subject_id = filters.subject_id;
+    // Subject-first bank (#fix): questions are imported under a SUBJECT (one
+    // bank per catalog subject, reused by every offering of it), but quiz
+    // creation filters by course. When both are given, match either — so a
+    // quiz for course X sees every question of X's subject even though the
+    // bank rows carry course_id='c-1' (legacy placeholder).
+    if (filters?.course_id && filters?.subject_id) {
+      whereClause.OR = [
+        { course_id: filters.course_id },
+        { subject_id: filters.subject_id },
+      ];
+    } else {
+      if (filters?.course_id) {
+        whereClause.course_id = filters.course_id;
+      }
+      if (filters?.subject_id) {
+        whereClause.subject_id = filters.subject_id;
+      }
     }
     if (filters?.department_id) {
       whereClause.department_id = filters.department_id;

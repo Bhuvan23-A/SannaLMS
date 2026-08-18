@@ -73,9 +73,14 @@ export default function QuizzesPage() {
       // No setLoading(true): flashing the full-page "Loading..." screen unmounts
       // the CollegeCoursePicker and caused the endless reload blink (#fix).
       const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
+      // Subject-first question bank (#fix): questions live under a SUBJECT, not
+      // a course. Pass the selected course's subject_id too so the quiz builder
+      // shows the subject bank (the API matches course_id OR subject_id).
+      const selCourse = courses.find((c: any) => c.id === courseId);
+      const subjectQ = selCourse?.subject?.id ? `&subject_id=${selCourse.subject.id}` : '';
       const [qData, qnData] = await Promise.all([
         fetchApi(`/api/v1/quizzes?course_id=${courseId}${tenantQ}`),
-        (isAdmin || isTrainer) ? fetchApi(`/api/v1/questions?course_id=${courseId}${tenantQ}`) : Promise.resolve([])
+        (isAdmin || isTrainer) ? fetchApi(`/api/v1/questions?course_id=${courseId}${subjectQ}${tenantQ}`) : Promise.resolve([])
       ]);
       setQuizzes(qData || []);
       setQuestions(qnData || []);

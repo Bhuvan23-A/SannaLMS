@@ -71,11 +71,14 @@ export class SubjectsService {
   }
 
   async update(id: string, tenantId: string, data: any) {
-    const subject = await this.findOne(id, tenantId);
-    return this.prisma.extendedClient.subject.update({
+    // Use findAny so archived subjects can also be edited/restored in place
+    // (previously only non-archived subjects could be updated).
+    const subject = await this.findAny(id, tenantId);
+    const newCode = data.code !== undefined ? data.code.trim().toUpperCase() : undefined;
+    const updated = await this.prisma.extendedClient.subject.update({
       where: { id },
       data: {
-        code: data.code !== undefined ? data.code.trim().toUpperCase() : undefined,
+        code: newCode,
         name: data.name !== undefined ? data.name.trim() : undefined,
         description: data.description !== undefined ? data.description?.trim() || null : undefined,
         department_id: data.department_id !== undefined ? data.department_id || null : undefined,
@@ -86,6 +89,15 @@ export class SubjectsService {
         updated_by: data.updated_by || subject.updated_by,
       },
     });
+    // Cascade: every course offering carries a subject_code snapshot — keep it
+    // in sync when the subject code changes, so the UI never shows a stale code.
+    if (newCode && newCode !== subject.code) {
+      await this.prisma.extendedClient.course.updateMany({
+        where: { subject_id: id, deleted_at: null },
+        data: { subject_code: newCode },
+      });
+    }
+    return updated;
   }
 
   // Soft delete — offerings (courses) may reference the subject, so history stays.
@@ -116,15 +128,28 @@ export class SubjectsService {
     });
   }
 
-  // Hard delete: remove the subject AND its subject-owned syllabus tree. Blocked
-  // with a friendly error when course offerings still reference the subject.
-  async removePermanent(id: string, tenantId: string) {
+  // Hard delete: remove the subject AND its subject-owned syllabus tree. By
+  // default blocked with a friendly error when course offerings still reference
+  // it; pass cascade=true to archive (soft-delete) those offerings too so the
+  // subject can be removed without leaving dangling references.
+  async removePermanent(id: string, tenantId: string, cascade = false) {
     const subject = await this.findAny(id, tenantId);
-    const offeringCount = await this.prisma.extendedClient.course.count({ where: { subject_id: id } });
-    if (offeringCount > 0) {
+    const offerings = await this.prisma.extendedClient.course.findMany({
+      where: { subject_id: id, deleted_at: null },
+      select: { id: true, title: true },
+    });
+    if (offerings.length > 0 && !cascade) {
       throw new BadRequestException(
-        `This subject is used by ${offeringCount} course offering(s). Archive it instead, or delete those offerings first.`,
+        `This subject is used by ${offerings.length} course offering(s) (${offerings.map((o) => o.title).slice(0, 3).join(', ')}...). Archive it instead, or delete those offerings first.`,
       );
+    }
+    // Cascade: archive the offerings first (grades/enrollments history survives,
+    // the course just leaves active lists) before removing the subject.
+    if (offerings.length > 0) {
+      await this.prisma.extendedClient.course.updateMany({
+        where: { subject_id: id, deleted_at: null },
+        data: { deleted_at: new Date(), deleted_by: 'admin', status: CourseStatus.ARCHIVED },
+      });
     }
 
     // Cascade the subject-owned syllabus: modules → lessons → topics → assets/progress.
@@ -152,7 +177,7 @@ export class SubjectsService {
     }
 
     await this.prisma.extendedClient.subject.delete({ where: { id } });
-    return { deleted: true, id };
+    return { deleted: true, id, offerings_archived: offerings.length };
   }
 
   /**

@@ -18,6 +18,10 @@ export default function SubjectsPage() {
   // Archived subjects are hidden by default — toggle to see/unarchive/delete them.
   const [showArchived, setShowArchived] = useState(false);
 
+  // Edit modal state — reused for creating and editing a subject.
+  const [editingSubject, setEditingSubject] = useState<any>(null);
+  const [editCollegeId, setEditCollegeId] = useState('');
+
   // Create form state
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -105,6 +109,47 @@ export default function SubjectsPage() {
     } catch (err: any) { alert(err.message); }
   };
 
+  // Open the edit modal pre-filled with the subject's current values.
+  const openEdit = (s: any) => {
+    setEditingSubject(s);
+    setName(s.name || '');
+    setCode(s.code || '');
+    setCredits(String(s.credits ?? 3));
+    setDepartmentId(s.department_id || '');
+    setBranchId(s.branch_id || '');
+    setLtp(s.lt_p || '');
+    setCreateCollegeId('');
+    setEditCollegeId('');
+    setFormError('');
+  };
+
+  const updateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubject) return;
+    setCreating(true);
+    setFormError('');
+    try {
+      await fetchApi(`/api/v1/subjects/${editingSubject.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name,
+          code: code.trim() || undefined,
+          credits: credits ? Number(credits) : undefined,
+          department_id: departmentId || undefined,
+          branch_id: branchId || undefined,
+          lt_p: ltp.trim() || undefined,
+        }),
+      });
+      setEditingSubject(null);
+      setName(''); setCode(''); setCredits('3'); setDepartmentId(''); setBranchId(''); setLtp('');
+      load();
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const restoreSubject = async (id: string) => {
     if (!confirm('Restore this subject to the active catalog?')) return;
     try {
@@ -113,10 +158,21 @@ export default function SubjectsPage() {
     } catch (err: any) { alert(err.message); }
   };
 
-  const deleteSubjectForever = async (s: any) => {
-    if (!confirm(`Permanently delete ${s.code} — ${s.name}? This removes the subject AND its syllabus. This cannot be undone.`)) return;
+  const deleteSubjectForever = async (s: any, cascade = false) => {
+    const msg = cascade
+      ? `Permanently delete ${s.code} — ${s.name}? This also archives its course offering(s) (grades/history stay, courses leave active lists) and removes the syllabus. Cannot be undone.`
+      : `Permanently delete ${s.code} — ${s.name}? This removes the subject AND its syllabus. This cannot be undone.`;
+    if (!confirm(msg)) return;
     try {
-      await fetchApi(`/api/v1/subjects/${s.id}/permanent`, { method: 'DELETE' });
+      await fetchApi(`/api/v1/subjects/${s.id}/permanent${cascade ? '?cascade=true' : ''}`, { method: 'DELETE' });
+      load();
+    } catch (err: any) { alert(err.message); }
+  };
+
+  const deleteWithCascade = async (s: any) => {
+    if (!confirm(`Delete ${s.code} — ${s.name} and everything using it? Its course offerings will be archived automatically.`)) return;
+    try {
+      await fetchApi(`/api/v1/subjects/${s.id}/permanent?cascade=true`, { method: 'DELETE' });
       load();
     } catch (err: any) { alert(err.message); }
   };
@@ -250,12 +306,15 @@ export default function SubjectsPage() {
                     {s.deleted_at ? (
                       <>
                         <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
+                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>✏ Edit</button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>🗑 Delete Forever</button>
                       </>
                     ) : (
                       <>
                         <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>📚 Syllabus</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>✏ Edit</button>
+                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>🗑 Delete</button>
                       </>
                     )}
                   </td>
@@ -322,15 +381,15 @@ export default function SubjectsPage() {
         </div>
       )}
 
-      {modalOpen && (
+      {(modalOpen || editingSubject) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <form onSubmit={createSubject} className="glass-panel animate-fade-in" style={{ width: '460px', padding: '30px', maxHeight: '92vh', overflowY: 'auto' }}>
-            <h2 style={{ marginBottom: '20px' }}>Add Subject</h2>
+          <form onSubmit={editingSubject ? updateSubject : createSubject} className="glass-panel animate-fade-in" style={{ width: '460px', padding: '30px', maxHeight: '92vh', overflowY: 'auto' }}>
+            <h2 style={{ marginBottom: '20px' }}>{editingSubject ? `Edit Subject — ${editingSubject.code || editingSubject.name}` : 'Add Subject'}</h2>
             {formError && (
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{formError}</div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {isSuperAdmin && (
+              {isSuperAdmin && !editingSubject && (
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College *</label>
                   <select required className="input-field" value={createCollegeId} onChange={e => { setCreateCollegeId(e.target.value); setDepartmentId(''); setBranchId(''); }}>
@@ -376,8 +435,8 @@ export default function SubjectsPage() {
                 <input className="input-field" value={ltp} onChange={e => setLtp(e.target.value)} placeholder="e.g. 3-1-0 (optional)" />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={creating}>{creating ? 'Creating...' : 'Add Subject'}</button>
+                <button type="button" className="btn-secondary" onClick={() => { setModalOpen(false); setEditingSubject(null); }}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={creating}>{creating ? 'Saving...' : (editingSubject ? 'Save Changes' : 'Add Subject')}</button>
               </div>
             </div>
           </form>

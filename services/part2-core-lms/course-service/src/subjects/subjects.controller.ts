@@ -60,7 +60,7 @@ export class SubjectsController {
 
   @Delete(':id/permanent')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
-  removePermanent(@Param('id') id: string, @Req() req: any) {
-    return this.subjectsService.removePermanent(id, this.tenant(req));
+  removePermanent(@Param('id') id: string, @Req() req: any, @Query('cascade') cascade?: string) {
+    return this.subjectsService.removePermanent(id, this.tenant(req), cascade === 'true');
   }
 }
