@@ -175,6 +175,48 @@ async def get_global_leaderboard(limit: int = Query(10, ge=1, le=100)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Leaderboard fetch failed: {str(e)}")
 
+@router.get("/leaderboard/rank/{student_id}")
+async def get_student_leaderboard_rank(student_id: str):
+    """
+    Returns the student's current position on the GLOBAL leaderboard.
+    Uses Redis ZREVRANK (O(log n)) when available; falls back to a scan of the
+    primary store so the command-center rank card is always live.
+    Returns rank as 1-based; students with no XP yet get their rank as the
+    number of students above them + 1 (still ranked, just at the bottom).
+    """
+    r = await get_redis_client()
+    if r:
+        try:
+            zrank = await r.zrevrank("leaderboard:global", student_id)
+            total = await r.zcard("leaderboard:global")
+            if zrank is not None:
+                xp = await r.zscore("leaderboard:global", student_id) or 0
+                return {"student_id": student_id, "rank": zrank + 1, "total_students": int(total), "xp_points": int(xp)}
+            # Not on the board yet: count how many are above (all of them)
+            return {"student_id": student_id, "rank": int(total) + 1, "total_students": int(total), "xp_points": 0}
+        except Exception as e:
+            logger.warning(f"Redis rank fetch error: {e}")
+
+    # Fallback: scan primary store
+    students = []
+    if not db_manager.use_in_memory and db_manager.db is not None:
+        try:
+            students = await db_manager.db.students.find({}, {"_id": 0}).to_list(None)
+        except Exception:
+            students = list(in_memory_leaderboard.values())
+    else:
+        students = list(db_manager.in_memory_store.get("students", []))
+    students.sort(key=lambda s: s.get("xp_points", 0), reverse=True)
+    rank = next((i + 1 for i, s in enumerate(students) if s.get("student_id") == student_id), len(students) + 1)
+    my = next((s for s in students if s.get("student_id") == student_id), {})
+    return {
+        "student_id": student_id,
+        "rank": rank,
+        "total_students": len(students),
+        "xp_points": int(my.get("xp_points", 0)),
+    }
+
+
 @router.get("/leaderboard/batch/{batch_id}", response_model=List[LeaderboardEntry])
 async def get_batch_leaderboard(batch_id: str, limit: int = Query(10, ge=1, le=100)):
     """Day 12 Endpoint: Retrieves batch-specific real-time leaderboard backed by Redis."""

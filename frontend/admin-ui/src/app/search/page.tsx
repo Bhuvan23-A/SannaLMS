@@ -64,7 +64,7 @@ export default function SearchPage() {
               <div style={{ marginTop: '15px' }}>
                 {r.type === 'COURSE' && <Link href={`/courses/${r.id}`} className="btn-secondary">View Course</Link>}
                 {r.type === 'FORUM' && <Link href={`/forums/${r.id}`} className="btn-secondary">View Forum</Link>}
-                {r.type === 'THREAD' && <Link href={`/forums/${r.id}`} className="btn-secondary">View Thread</Link>}
+                {r.type === 'THREAD' && <Link href={`/forums/${r.forum_id}`} className="btn-secondary">View Thread</Link>}
               </div>
             </div>
           ))}

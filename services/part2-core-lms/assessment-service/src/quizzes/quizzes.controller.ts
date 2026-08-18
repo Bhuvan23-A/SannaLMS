@@ -28,6 +28,16 @@ export class QuizzesController {
     return this.quizzesService.getQuizzes(String(tenantId), courseId, viewer, ids);
   }
 
+  // The signed-in student's quiz-score percentile vs the whole college —
+  // powers the "Adaptive Score Rank" card in the command center (#live-stats).
+  @Get('my-rank')
+  @Roles('STUDENT')
+  myRank(@Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (req.query?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.quizzesService.myScorePercentile(String(tenantId), String(req.user?.id || 'u-1'));
+  }
+
   // Student attempts + scores for a quiz — trainers & college admins review these (#10)
   @Get(':id/submissions')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')

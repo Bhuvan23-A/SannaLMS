@@ -23,6 +23,7 @@ model Notification {
   id          String   @id @default(uuid())
   user_id     String
   tenant_id   String
+  sender_id   String?  // the staff user who created this notification (null = system)
   type        String   // "SYSTEM", "COURSE", "MESSAGE", etc.
   title       String
   body        String

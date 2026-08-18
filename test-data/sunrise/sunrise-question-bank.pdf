@@ -1,0 +1,481 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R 6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] /Count 8 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 12 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 13 0 R >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 14 0 R >>
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 15 0 R >>
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 16 0 R >>
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 17 0 R >>
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 18 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 19 0 R >>
+endobj
+12 0 obj
+<< /Length 1669 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (Sunrise University - Combined Question Bank Sample) Tj
+0 -15 Td (Course: Sample questions from multiple subjects) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Computer Networks \(IT101\) ---) Tj
+0 -15 Td (1. Which OSI layer is responsible for routing packets between networks?) Tj
+0 -15 Td (a\) Data Link) Tj
+0 -15 Td (b\) Network) Tj
+0 -15 Td (c\) Transport) Tj
+0 -15 Td (d\) Session) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which protocol provides reliable, connection-oriented delivery?) Tj
+0 -15 Td (a\) UDP) Tj
+0 -15 Td (b\) IP) Tj
+0 -15 Td (c\) TCP) Tj
+0 -15 Td (d\) ARP) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What is the default port number for HTTP?) Tj
+0 -15 Td (a\) 21) Tj
+0 -15 Td (b\) 25) Tj
+0 -15 Td (c\) 80) Tj
+0 -15 Td (d\) 443) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Machine Learning \(AIML101\) ---) Tj
+0 -15 Td (1. Which type of learning uses labeled data with known outputs?) Tj
+0 -15 Td (a\) Supervised) Tj
+0 -15 Td (b\) Unsupervised) Tj
+0 -15 Td (c\) Reinforcement) Tj
+0 -15 Td (d\) Self-supervised) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which algorithm is commonly used for binary classification?) Tj
+0 -15 Td (a\) Linear Regression) Tj
+0 -15 Td (b\) Logistic Regression) Tj
+0 -15 Td (c\) K-Means) Tj
+0 -15 Td (d\) Apriori) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What does overfitting mean in model training?) Tj
+0 -15 Td (a\) Model fails to learn training data) Tj
+0 -15 Td (b\) Model performs well on training data but poorly on unseen data) Tj
+0 -15 Td (c\) Model is too simple) Tj
+0 -15 Td (d\) Model has no parameters) Tj
+0 -15 Td (Answer: b) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Length 1439 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td () Tj
+0 -15 Td (--- Web Development \(IT201\) ---) Tj
+0 -15 Td (1. Which HTML tag creates a hyperlink?) Tj
+0 -15 Td (a\) <link>) Tj
+0 -15 Td (b\) <a>) Tj
+0 -15 Td (c\) <href>) Tj
+0 -15 Td (d\) <url>) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which CSS property changes the text color?) Tj
+0 -15 Td (a\) font-style) Tj
+0 -15 Td (b\) text-color) Tj
+0 -15 Td (c\) color) Tj
+0 -15 Td (d\) background) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which JavaScript keyword declares a block-scoped variable?) Tj
+0 -15 Td (a\) var) Tj
+0 -15 Td (b\) let) Tj
+0 -15 Td (c\) const) Tj
+0 -15 Td (d\) static) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Data Science \(AIML201\) ---) Tj
+0 -15 Td (1. Which of these is NOT a data type in Python?) Tj
+0 -15 Td (a\) int) Tj
+0 -15 Td (b\) float) Tj
+0 -15 Td (c\) char) Tj
+0 -15 Td (d\) list) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which library is used for data manipulation in Python?) Tj
+0 -15 Td (a\) Pandas) Tj
+0 -15 Td (b\) Flask) Tj
+0 -15 Td (c\) Django) Tj
+0 -15 Td (d\) Matplotlib) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What does EDA stand for?) Tj
+0 -15 Td (a\) Exploratory Data Analysis) Tj
+0 -15 Td (b\) Extended Data Analysis) Tj
+0 -15 Td (c\) External Data Access) Tj
+0 -15 Td (d\) Estimated Data Accuracy) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Business Analytics \(BBA101\) ---) Tj
+ET
+endstream
+endobj
+14 0 obj
+<< /Length 1724 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (1. Which tool is widely used for data visualization?) Tj
+0 -15 Td (a\) Excel) Tj
+0 -15 Td (b\) Power BI) Tj
+0 -15 Td (c\) Tableau) Tj
+0 -15 Td (d\) All of the above) Tj
+0 -15 Td (Answer: d) Tj
+0 -15 Td () Tj
+0 -15 Td (2. What does KPI stand for?) Tj
+0 -15 Td (a\) Key Performance Indicator) Tj
+0 -15 Td (b\) Key Process Index) Tj
+0 -15 Td (c\) Known Performance Indicator) Tj
+0 -15 Td (d\) Key Product Input) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which analysis answers 'what happened in the past?') Tj
+0 -15 Td (a\) Descriptive) Tj
+0 -15 Td (b\) Diagnostic) Tj
+0 -15 Td (c\) Predictive) Tj
+0 -15 Td (d\) Prescriptive) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Marketing Management \(BBA201\) ---) Tj
+0 -15 Td (1. Which of the 4 Ps refers to price, product, place and?) Tj
+0 -15 Td (a\) People) Tj
+0 -15 Td (b\) Promotion) Tj
+0 -15 Td (c\) Process) Tj
+0 -15 Td (d\) Profit) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which strategy segments the market and targets a specific group?) Tj
+0 -15 Td (a\) Mass marketing) Tj
+0 -15 Td (b\) Target marketing) Tj
+0 -15 Td (c\) Guerrilla marketing) Tj
+0 -15 Td (d\) Viral marketing) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What is a SWOT analysis?) Tj
+0 -15 Td (a\) Analysis of strengths, weaknesses, opportunities and threats) Tj
+0 -15 Td (b\) Sales and workforce optimization tool) Tj
+0 -15 Td (c\) Social media workflow tracker) Tj
+0 -15 Td (d\) Statistical weighting of targets) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Financial Accounting \(COM101\) ---) Tj
+0 -15 Td (1. Which financial statement shows a company's assets and liabilities?) Tj
+0 -15 Td (a\) Income statement) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Length 1664 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (b\) Balance sheet) Tj
+0 -15 Td (c\) Cash flow statement) Tj
+0 -15 Td (d\) Statement of equity) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. What does the accounting equation state?) Tj
+0 -15 Td (a\) Assets = Liabilities + Equity) Tj
+0 -15 Td (b\) Assets = Revenue - Expenses) Tj
+0 -15 Td (c\) Liabilities = Assets + Equity) Tj
+0 -15 Td (d\) Equity = Assets + Liabilities) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which of these is a current asset?) Tj
+0 -15 Td (a\) Inventory) Tj
+0 -15 Td (b\) Building) Tj
+0 -15 Td (c\) Patent) Tj
+0 -15 Td (d\) Equipment) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Cost Accounting \(COM201\) ---) Tj
+0 -15 Td (1. Which cost varies with the level of production?) Tj
+0 -15 Td (a\) Fixed cost) Tj
+0 -15 Td (b\) Variable cost) Tj
+0 -15 Td (c\) Sunk cost) Tj
+0 -15 Td (d\) Opportunity cost) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. What is the formula for break-even point in units?) Tj
+0 -15 Td (a\) Fixed costs / Contribution per unit) Tj
+0 -15 Td (b\) Variable costs / Selling price) Tj
+0 -15 Td (c\) Total costs / Units) Tj
+0 -15 Td (d\) Fixed costs x Selling price) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which of these is a direct cost?) Tj
+0 -15 Td (a\) Raw materials) Tj
+0 -15 Td (b\) Factory rent) Tj
+0 -15 Td (c\) Supervisor salary) Tj
+0 -15 Td (d\) Office electricity) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Design Fundamentals \(DES101\) ---) Tj
+0 -15 Td (1. Which principle refers to the visual weight distribution in a design?) Tj
+0 -15 Td (a\) Balance) Tj
+0 -15 Td (b\) Rhythm) Tj
+0 -15 Td (c\) Emphasis) Tj
+ET
+endstream
+endobj
+16 0 obj
+<< /Length 1414 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (d\) Proportion) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which color model is used for digital screens?) Tj
+0 -15 Td (a\) RGB) Tj
+0 -15 Td (b\) CMYK) Tj
+0 -15 Td (c\) PMS) Tj
+0 -15 Td (d\) HSB only) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which of these is a primary color in additive color mixing?) Tj
+0 -15 Td (a\) Red) Tj
+0 -15 Td (b\) Yellow) Tj
+0 -15 Td (c\) Magenta) Tj
+0 -15 Td (d\) Cyan) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Typography \(DES201\) ---) Tj
+0 -15 Td (1. What is the space between lines of text called?) Tj
+0 -15 Td (a\) Leading) Tj
+0 -15 Td (b\) Tracking) Tj
+0 -15 Td (c\) Kerning) Tj
+0 -15 Td (d\) Baseline) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. What is the space between individual characters called?) Tj
+0 -15 Td (a\) Kerning) Tj
+0 -15 Td (b\) Leading) Tj
+0 -15 Td (c\) Tracking) Tj
+0 -15 Td (d\) Margins) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which unit is commonly used to measure font size?) Tj
+0 -15 Td (a\) Points) Tj
+0 -15 Td (b\) Pixels) Tj
+0 -15 Td (c\) Inches) Tj
+0 -15 Td (d\) Picas only) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Anatomy and Physiology \(NUR101\) ---) Tj
+0 -15 Td (1. Which organ pumps blood throughout the body?) Tj
+0 -15 Td (a\) Heart) Tj
+0 -15 Td (b\) Lungs) Tj
+0 -15 Td (c\) Liver) Tj
+0 -15 Td (d\) Kidney) Tj
+0 -15 Td (Answer: a) Tj
+ET
+endstream
+endobj
+17 0 obj
+<< /Length 1639 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td () Tj
+0 -15 Td (2. Which system is responsible for gas exchange?) Tj
+0 -15 Td (a\) Respiratory system) Tj
+0 -15 Td (b\) Digestive system) Tj
+0 -15 Td (c\) Circulatory system) Tj
+0 -15 Td (d\) Endocrine system) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which cells carry oxygen in the blood?) Tj
+0 -15 Td (a\) Red blood cells) Tj
+0 -15 Td (b\) White blood cells) Tj
+0 -15 Td (c\) Platelets) Tj
+0 -15 Td (d\) Plasma cells) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Pharmacology \(NUR201\) ---) Tj
+0 -15 Td (1. What is pharmacology?) Tj
+0 -15 Td (a\) The study of drugs and their effects) Tj
+0 -15 Td (b\) The study of viruses) Tj
+0 -15 Td (c\) The study of plants) Tj
+0 -15 Td (d\) The study of genetics) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which route of drug administration has the fastest onset?) Tj
+0 -15 Td (a\) Intravenous) Tj
+0 -15 Td (b\) Oral) Tj
+0 -15 Td (c\) Topical) Tj
+0 -15 Td (d\) Subcutaneous) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What is a side effect?) Tj
+0 -15 Td (a\) An unintended effect of a drug) Tj
+0 -15 Td (b\) The desired therapeutic effect) Tj
+0 -15 Td (c\) A drug interaction) Tj
+0 -15 Td (d\) A placebo response) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Architectural Drawing \(ARC101\) ---) Tj
+0 -15 Td (1. Which view shows a building as seen from directly above?) Tj
+0 -15 Td (a\) Plan view) Tj
+0 -15 Td (b\) Elevation view) Tj
+0 -15 Td (c\) Section view) Tj
+0 -15 Td (d\) Perspective view) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which line type represents hidden edges in a drawing?) Tj
+ET
+endstream
+endobj
+18 0 obj
+<< /Length 1497 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (a\) Dashed line) Tj
+0 -15 Td (b\) Solid line) Tj
+0 -15 Td (c\) Dotted line) Tj
+0 -15 Td (d\) Wavy line) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What does a scale of 1:100 mean?) Tj
+0 -15 Td (a\) 1 unit on paper equals 100 units in reality) Tj
+0 -15 Td (b\) 100 units on paper equals 1 unit) Tj
+0 -15 Td (c\) 1 unit equals 1 meter) Tj
+0 -15 Td (d\) A 100 percent enlargement) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Building Materials \(ARC201\) ---) Tj
+0 -15 Td (1. Which material is the most common binder in concrete?) Tj
+0 -15 Td (a\) Cement) Tj
+0 -15 Td (b\) Sand) Tj
+0 -15 Td (c\) Water) Tj
+0 -15 Td (d\) Aggregate) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which of these is a natural building stone?) Tj
+0 -15 Td (a\) Granite) Tj
+0 -15 Td (b\) Brick) Tj
+0 -15 Td (c\) Glass) Tj
+0 -15 Td (d\) Steel) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which material is produced by heating limestone and clay?) Tj
+0 -15 Td (a\) Cement) Tj
+0 -15 Td (b\) Timber) Tj
+0 -15 Td (c\) Aluminum) Tj
+0 -15 Td (d\) Plastic) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Pharmaceutical Chemistry \(PHR101\) ---) Tj
+0 -15 Td (1. Which functional group is present in alcohols?) Tj
+0 -15 Td (a\) Hydroxyl) Tj
+0 -15 Td (b\) Carbonyl) Tj
+0 -15 Td (c\) Carboxyl) Tj
+0 -15 Td (d\) Amino) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. What is the pH of a neutral solution?) Tj
+0 -15 Td (a\) 7) Tj
+0 -15 Td (b\) 0) Tj
+ET
+endstream
+endobj
+19 0 obj
+<< /Length 1056 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (c\) 14) Tj
+0 -15 Td (d\) 1) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which bond joins atoms in an organic molecule?) Tj
+0 -15 Td (a\) Covalent bond) Tj
+0 -15 Td (b\) Ionic bond) Tj
+0 -15 Td (c\) Metallic bond) Tj
+0 -15 Td (d\) Hydrogen bond) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (--- Pharmaceutics \(PHR201\) ---) Tj
+0 -15 Td (1. What is a tablet?) Tj
+0 -15 Td (a\) A solid dosage form containing drug and excipients) Tj
+0 -15 Td (b\) A liquid medicine) Tj
+0 -15 Td (c\) An injection) Tj
+0 -15 Td (d\) A cream) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which route avoids first-pass metabolism?) Tj
+0 -15 Td (a\) Sublingual) Tj
+0 -15 Td (b\) Oral) Tj
+0 -15 Td (c\) Rectal) Tj
+0 -15 Td (d\) Topical) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What is an excipient?) Tj
+0 -15 Td (a\) An inactive substance in a dosage form) Tj
+0 -15 Td (b\) The active drug) Tj
+0 -15 Td (c\) A type of disease) Tj
+0 -15 Td (d\) A laboratory instrument) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+ET
+endstream
+endobj
+xref
+0 20
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000165 00000 n 
+0000000235 00000 n 
+0000000362 00000 n 
+0000000489 00000 n 
+0000000616 00000 n 
+0000000743 00000 n 
+0000000870 00000 n 
+0000000997 00000 n 
+0000001125 00000 n 
+0000001253 00000 n 
+0000002974 00000 n 
+0000004465 00000 n 
+0000006241 00000 n 
+0000007957 00000 n 
+0000009423 00000 n 
+0000011114 00000 n 
+0000012663 00000 n 
+trailer
+<< /Size 20 /Root 1 0 R >>
+startxref
+13771
+%%EOF

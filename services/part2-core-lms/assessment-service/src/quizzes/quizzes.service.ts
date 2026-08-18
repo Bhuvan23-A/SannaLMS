@@ -235,6 +235,47 @@ export class QuizzesService {
       }
     });
   }
+
+  /**
+   * The student's quiz-score standing vs every other graded student in the
+   * college. Each graded submission is normalised to a percentage (score /
+   * quiz max marks), then averaged per student — the returned percentile is
+   * the share of students the current user outperforms (0-100). Powers the
+   * "Adaptive Score Rank" card in the student command center.
+   */
+  async myScorePercentile(tenantId: string, userId: string) {
+    const subs = await this.prisma.quizSubmission.findMany({
+      where: { tenant_id: tenantId, is_graded: true, score: { not: null } },
+      include: { quiz: { include: { questions: { include: { question: true } } } } },
+    });
+
+    const studentAverages: Record<string, number[]> = {};
+    for (const s of subs) {
+      const maxMarks = s.quiz?.questions?.reduce((sum: number, qq: any) => sum + (qq.question?.marks || 0), 0) || 0;
+      if (maxMarks <= 0) continue;
+      const pct = Math.min(100, Math.max(0, ((s.score || 0) / maxMarks) * 100));
+      if (!studentAverages[s.user_id]) studentAverages[s.user_id] = [];
+      studentAverages[s.user_id].push(pct);
+    }
+
+    const myPcts = studentAverages[userId] || [];
+    if (myPcts.length === 0) {
+      return { percentile: null, attempts: 0, total_students: Object.keys(studentAverages).length };
+    }
+    const myAvg = myPcts.reduce((a, b) => a + b, 0) / myPcts.length;
+
+    let betterOrEqual = 0;
+    const others: number[] = [];
+    for (const [uid, pcts] of Object.entries(studentAverages)) {
+      if (uid === userId) continue;
+      const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+      others.push(avg);
+      if (avg <= myAvg) betterOrEqual += 1;
+    }
+    const total = others.length + 1;
+    const percentile = Math.round((betterOrEqual / total) * 100);
+    return { percentile, attempts: myPcts.length, total_students: total };
+  }
 }
 
 function parseAssignedTo(value: any): { type?: string; user_ids?: string[] } | null {

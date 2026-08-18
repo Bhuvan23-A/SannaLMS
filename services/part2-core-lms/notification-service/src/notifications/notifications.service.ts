@@ -103,7 +103,7 @@ export class NotificationsService {
     }
   }
 
-  async enqueueNotification(data: Record<string, any>, tenantId: string, callerRoles: string[] = []) {
+  async enqueueNotification(data: Record<string, any>, tenantId: string, callerRoles: string[] = [], senderId?: string) {
     const target: NotificationTarget | undefined = data['target'] || (data['user_id'] ? { type: 'USER', user_ids: [data['user_id']] } : undefined);
 
     if (!target || !target.type) {
@@ -145,6 +145,7 @@ export class NotificationsService {
           data: {
             user_id: userId,
             tenant_id: tenantId,
+            sender_id: senderId || null,
             type: String(data['type'] || 'SYSTEM'),
             title: String(data['title']),
             body: String(data['body']),
@@ -192,6 +193,17 @@ export class NotificationsService {
   async getHistory(userId: string) {
     return this.prisma.notification.findMany({
       where: { user_id: userId },
+      orderBy: { created_at: 'desc' },
+      take: 50
+    });
+  }
+
+  // Notifications the caller SENT (staff outbox). Previously the admin
+  // "history" panel only returned notifications addressed to the caller, so a
+  // super admin who sent a notification never saw it appear anywhere (#fix).
+  async getSentHistory(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { sender_id: userId },
       orderBy: { created_at: 'desc' },
       take: 50
     });

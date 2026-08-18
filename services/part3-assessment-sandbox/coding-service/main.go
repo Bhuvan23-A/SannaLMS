@@ -71,6 +71,31 @@ func prePullImages() {
 	}
 }
 
+// ensureImage makes sure the runtime image is present BEFORE a container is
+// created. The service pre-pulls at startup, but a `docker system prune` on the
+// host can remove the unused runtime images afterwards — lazy-pulling here
+// (with its own generous timeout, independent of the execution deadline)
+// keeps the sandbox working even after a prune.
+func ensureImage(image string) error {
+	ctx := context.Background()
+	if _, _, err := dockerClient.ImageInspectWithRaw(ctx, image); err == nil {
+		return nil // already present
+	}
+	log.Printf("[ensureImage] pulling missing image: %s", image)
+	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	reader, err := dockerClient.ImagePull(pullCtx, image, types.ImagePullOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to pull image %s: %w", image, err)
+	}
+	defer reader.Close()
+	if _, err := io.Copy(io.Discard, reader); err != nil {
+		return fmt.Errorf("failed to read pull stream for %s: %w", image, err)
+	}
+	log.Printf("[ensureImage] pulled %s", image)
+	return nil
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -169,7 +194,13 @@ func runInSandbox(req ExecutionRequest) ExecutionResponse {
 		},
 	}
 
-	// Create container
+	// Create container (lazy-pull the runtime image first if a prune removed it)
+	if err := ensureImage(image); err != nil {
+		return ExecutionResponse{
+			Status: "RUNTIME_ERROR",
+			Error:  fmt.Sprintf("Failed to prepare runtime image: %v", err),
+		}
+	}
 	resp, err := dockerClient.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
 	if err != nil {
 		return ExecutionResponse{

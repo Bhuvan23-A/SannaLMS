@@ -34,7 +34,12 @@ interface Module {
 export default function CourseDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const [activeTab, setActiveTab] = useState('builder');
   const { id: courseId } = use(params);
-  const { isTrainer, isAdmin } = useRole();
+  const { isAdmin, role } = useRole();
+  // Curriculum building (add module/lesson/topic, uploads, deletes, reorder)
+  // is a college-admin / primary-trainer privilege — the backend rejects these
+  // actions for TAs (POST /modules|lessons|topics are SUPER_ADMIN, COLLEGE_ADMIN,
+  // PRIMARY_TRAINER only), so a TA views the course read-only (#ta-perms).
+  const canEditCurriculum = isAdmin || role === 'PRIMARY_TRAINER';
 
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +245,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
       {/* Course Builder Tab */}
       {activeTab === 'builder' && (
         <div>
-          {(isTrainer || isAdmin) && (
+          {canEditCurriculum && (
             <div className="panel" style={{ marginBottom: '20px' }}>
               <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>➕ Add Module</h3>
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -268,7 +273,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                 {modules.map((mod, modIdx) => (
                   <div
                     key={mod.id}
-                    draggable={isTrainer || isAdmin}
+                    draggable={canEditCurriculum}
                     onDragStart={(e) => handleModuleDragStart(e, mod.id)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => handleModuleDrop(e, mod.id)}
@@ -285,10 +290,10 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{mod.lessons.length} lesson{mod.lessons.length !== 1 ? 's' : ''}</span>
-                        {(isTrainer || isAdmin) && (
+                        {canEditCurriculum && (
                           <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px' }} onClick={() => addLesson(mod.id, modIdx)}>+ Lesson</button>
                         )}
-                        {(isTrainer || isAdmin) && (
+                        {canEditCurriculum && (
                           <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteModule(mod.id)}>Delete</button>
                         )}
                         <button onClick={() => setModules(prev => prev.map(m => m.id === mod.id ? { ...m, expanded: !m.expanded } : m))}
@@ -308,10 +313,10 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                           </div>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{lesson.topics.length} topics</span>
-                            {(isTrainer || isAdmin) && (
+                            {canEditCurriculum && (
                               <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px' }} onClick={() => addTopic(lesson.id)}>+ Topic</button>
                             )}
-                            {(isTrainer || isAdmin) && (
+                            {canEditCurriculum && (
                               <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteLesson(lesson.id)}>Delete</button>
                             )}
                             <button onClick={() => setModules(prev => prev.map(m => m.id === mod.id ? { ...m, lessons: m.lessons.map(l => l.id === lesson.id ? { ...l, expanded: !l.expanded } : l) } : m))}
@@ -347,7 +352,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                                 </div>
                               )}
                             </div>
-                            {(isTrainer || isAdmin) && (
+                            {canEditCurriculum && (
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                 <label style={{ cursor: 'pointer' }}>
                                   <input type="file" style={{ display: 'none' }} accept="video/*,.pdf,.docx,.pptx,.zip"

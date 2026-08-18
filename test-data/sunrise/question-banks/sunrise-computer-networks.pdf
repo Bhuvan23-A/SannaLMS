@@ -1,0 +1,127 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+6 0 obj
+<< /Length 1482 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (Computer Networks - Question Bank) Tj
+0 -15 Td (Course: Computer Networks \(IT101\) | B.Tech IT | Semester 2 | Year 1) Tj
+0 -15 Td () Tj
+0 -15 Td (1. Which OSI layer is responsible for routing packets between networks?) Tj
+0 -15 Td (a\) Data Link) Tj
+0 -15 Td (b\) Network) Tj
+0 -15 Td (c\) Transport) Tj
+0 -15 Td (d\) Session) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which protocol provides reliable, connection-oriented delivery?) Tj
+0 -15 Td (a\) UDP) Tj
+0 -15 Td (b\) IP) Tj
+0 -15 Td (c\) TCP) Tj
+0 -15 Td (d\) ARP) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What is the default port number for HTTP?) Tj
+0 -15 Td (a\) 21) Tj
+0 -15 Td (b\) 25) Tj
+0 -15 Td (c\) 80) Tj
+0 -15 Td (d\) 443) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (4. Which device connects two different networks and forwards packets based on IP?) Tj
+0 -15 Td (a\) Hub) Tj
+0 -15 Td (b\) Switch) Tj
+0 -15 Td (c\) Router) Tj
+0 -15 Td (d\) Repeater) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (5. IPv4 addresses are how many bits long?) Tj
+0 -15 Td (a\) 16) Tj
+0 -15 Td (b\) 32) Tj
+0 -15 Td (c\) 64) Tj
+0 -15 Td (d\) 128) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (6. Which protocol translates domain names to IP addresses?) Tj
+0 -15 Td (a\) DHCP) Tj
+0 -15 Td (b\) DNS) Tj
+0 -15 Td (c\) FTP) Tj
+0 -15 Td (d\) SNMP) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (7. Which topology connects every node to a single central cable?) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1177 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (a\) Star) Tj
+0 -15 Td (b\) Bus) Tj
+0 -15 Td (c\) Ring) Tj
+0 -15 Td (d\) Mesh) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (8. Which protocol is used to send email?) Tj
+0 -15 Td (a\) SMTP) Tj
+0 -15 Td (b\) POP3) Tj
+0 -15 Td (c\) IMAP) Tj
+0 -15 Td (d\) HTTP) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (9. What does MAC stand for in networking?) Tj
+0 -15 Td (a\) Media Access Control) Tj
+0 -15 Td (b\) Memory Access Control) Tj
+0 -15 Td (c\) Managed Address Control) Tj
+0 -15 Td (d\) Media Address Code) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (10. Which layer of the TCP/IP model corresponds to the OSI Transport layer?) Tj
+0 -15 Td (a\) Application) Tj
+0 -15 Td (b\) Internet) Tj
+0 -15 Td (c\) Transport) Tj
+0 -15 Td (d\) Link) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (11. Explain the difference between TCP and UDP with one example use case for each.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+0 -15 Td (12. Describe how a packet travels from a source host to a destination host on another network.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000000449 00000 n 
+0000001982 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3210
+%%EOF

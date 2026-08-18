@@ -362,6 +362,26 @@ body {
   transition: all 0.2s ease-in-out;
 }
 
+/* Refresh / secondary action buttons (quizzes, leaderboard, certificates,
+   assignments, users...). These used to reference btn-secondary with no
+   definition in this app, so every "Refresh" button rendered as an unstyled
+   browser default (#refresh-style). Matches the admin portal's dark theme. */
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 .btn-sidebar-quick:hover {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(6, 182, 212, 0.3) !important;

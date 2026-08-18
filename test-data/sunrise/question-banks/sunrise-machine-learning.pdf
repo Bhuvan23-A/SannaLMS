@@ -1,0 +1,127 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+6 0 obj
+<< /Length 1732 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (Machine Learning - Question Bank) Tj
+0 -15 Td (Course: Machine Learning \(AIML101\) | B.Tech AI & ML | Semester 2 | Year 1) Tj
+0 -15 Td () Tj
+0 -15 Td (1. Which type of learning uses labeled data with known outputs?) Tj
+0 -15 Td (a\) Supervised) Tj
+0 -15 Td (b\) Unsupervised) Tj
+0 -15 Td (c\) Reinforcement) Tj
+0 -15 Td (d\) Self-supervised) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which algorithm is commonly used for binary classification?) Tj
+0 -15 Td (a\) Linear Regression) Tj
+0 -15 Td (b\) Logistic Regression) Tj
+0 -15 Td (c\) K-Means) Tj
+0 -15 Td (d\) Apriori) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (3. What does overfitting mean in model training?) Tj
+0 -15 Td (a\) Model fails to learn training data) Tj
+0 -15 Td (b\) Model performs well on training data but poorly on unseen data) Tj
+0 -15 Td (c\) Model is too simple) Tj
+0 -15 Td (d\) Model has no parameters) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (4. Which metric is used to evaluate classification models?) Tj
+0 -15 Td (a\) R-squared) Tj
+0 -15 Td (b\) F1 score) Tj
+0 -15 Td (c\) Mean Absolute Error) Tj
+0 -15 Td (d\) RMSE) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (5. Which dataset is commonly used to learn classification?) Tj
+0 -15 Td (a\) Iris) Tj
+0 -15 Td (b\) Titanic) Tj
+0 -15 Td (c\) MNIST) Tj
+0 -15 Td (d\) All of the above) Tj
+0 -15 Td (Answer: d) Tj
+0 -15 Td () Tj
+0 -15 Td (6. What is the output of a linear regression model?) Tj
+0 -15 Td (a\) A class label) Tj
+0 -15 Td (b\) A continuous value) Tj
+0 -15 Td (c\) A probability) Tj
+0 -15 Td (d\) A cluster id) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (7. Which technique splits data into training and testing sets?) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1276 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (a\) Cross-validation) Tj
+0 -15 Td (b\) Gradient descent) Tj
+0 -15 Td (c\) Normalization) Tj
+0 -15 Td (d\) Feature scaling) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (8. Which of the following is an unsupervised learning algorithm?) Tj
+0 -15 Td (a\) K-Means) Tj
+0 -15 Td (b\) Linear Regression) Tj
+0 -15 Td (c\) Decision Tree) Tj
+0 -15 Td (d\) Logistic Regression) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (9. What is the purpose of the learning rate in gradient descent?) Tj
+0 -15 Td (a\) Controls step size) Tj
+0 -15 Td (b\) Controls dataset size) Tj
+0 -15 Td (c\) Controls number of features) Tj
+0 -15 Td (d\) Controls model depth) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (10. Which library is most popular for machine learning in Python?) Tj
+0 -15 Td (a\) NumPy) Tj
+0 -15 Td (b\) Pandas) Tj
+0 -15 Td (c\) Scikit-learn) Tj
+0 -15 Td (d\) Requests) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (11. Explain the bias-variance tradeoff in machine learning models.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+0 -15 Td (12. Describe the steps you would take to build a spam email classifier from scratch.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000000449 00000 n 
+0000002232 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3559
+%%EOF

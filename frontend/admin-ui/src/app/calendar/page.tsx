@@ -83,7 +83,9 @@ export default function CalendarPage() {
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Global Calendar</h2>
-        {(isAdmin || isTrainer) && (
+        {/* Event creation is SUPER_ADMIN / COLLEGE_ADMIN / PRIMARY_TRAINER only
+            on the backend — TAs view events but cannot create them (#ta-perms). */}
+        {(isAdmin || role === 'PRIMARY_TRAINER') && (
           <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Event</button>
         )}
       </div>

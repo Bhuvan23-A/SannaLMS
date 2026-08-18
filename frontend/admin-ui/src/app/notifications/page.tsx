@@ -71,8 +71,11 @@ export default function NotificationsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      // Staff see the notifications they SENT (outbox); students see the ones
+      // addressed to them. /history alone returned nothing after sending (#fix).
+      const historyUrl = (isAdmin || isTrainer) ? '/api/v1/notifications/sent' : '/api/v1/notifications/history';
       const [histData, prefData, collegesData, depts, brs, sems, coursesData] = await Promise.all([
-        fetchApi('/api/v1/notifications/history'),
+        fetchApi(historyUrl),
         isAdmin ? fetchApi('/api/v1/notifications/preferences').catch(() => null) : Promise.resolve(null),
         isSuperAdmin ? fetchApi('/api/v1/colleges').catch(() => []) : Promise.resolve([]),
         (isSuperAdmin || isCollegeAdmin) ? fetchApi('/api/v1/departments').catch(() => []) : Promise.resolve([]),
@@ -302,7 +305,7 @@ export default function NotificationsPage() {
         )}
 
         <div className="panel" style={{ flex: isAdmin || isTrainer ? 2 : 1, minWidth: '400px' }}>
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Recent History</h2>
+          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>{isAdmin || isTrainer ? 'Sent History' : 'Recent History'}</h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {history.length === 0 ? (

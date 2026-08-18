@@ -1,0 +1,127 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+6 0 obj
+<< /Length 1532 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (Web Development - Question Bank) Tj
+0 -15 Td (Course: Web Development \(IT201\) | B.Tech IT | Semester 4 | Year 2) Tj
+0 -15 Td () Tj
+0 -15 Td (1. Which HTML tag creates a hyperlink?) Tj
+0 -15 Td (a\) <link>) Tj
+0 -15 Td (b\) <a>) Tj
+0 -15 Td (c\) <href>) Tj
+0 -15 Td (d\) <url>) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (2. Which CSS property changes the text color?) Tj
+0 -15 Td (a\) font-style) Tj
+0 -15 Td (b\) text-color) Tj
+0 -15 Td (c\) color) Tj
+0 -15 Td (d\) background) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (3. Which JavaScript keyword declares a block-scoped variable?) Tj
+0 -15 Td (a\) var) Tj
+0 -15 Td (b\) let) Tj
+0 -15 Td (c\) const) Tj
+0 -15 Td (d\) static) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (4. Which HTTP method is used to update an existing resource?) Tj
+0 -15 Td (a\) GET) Tj
+0 -15 Td (b\) POST) Tj
+0 -15 Td (c\) PUT) Tj
+0 -15 Td (d\) DELETE) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (5. What does API stand for?) Tj
+0 -15 Td (a\) Application Programming Interface) Tj
+0 -15 Td (b\) Automated Process Integration) Tj
+0 -15 Td (c\) Application Process Interface) Tj
+0 -15 Td (d\) Automated Programming Instruction) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (6. Which markup language is used to structure web content?) Tj
+0 -15 Td (a\) HTML) Tj
+0 -15 Td (b\) CSS) Tj
+0 -15 Td (c\) JavaScript) Tj
+0 -15 Td (d\) SQL) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (7. Which JavaScript framework is maintained by Facebook?) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1078 >>
+stream
+BT
+/F1 12 Tf
+10 770 Td (a\) Angular) Tj
+0 -15 Td (b\) Vue) Tj
+0 -15 Td (c\) React) Tj
+0 -15 Td (d\) Svelte) Tj
+0 -15 Td (Answer: c) Tj
+0 -15 Td () Tj
+0 -15 Td (8. What is the default port for HTTPS?) Tj
+0 -15 Td (a\) 80) Tj
+0 -15 Td (b\) 443) Tj
+0 -15 Td (c\) 8080) Tj
+0 -15 Td (d\) 3000) Tj
+0 -15 Td (Answer: b) Tj
+0 -15 Td () Tj
+0 -15 Td (9. Which command installs packages in Node.js?) Tj
+0 -15 Td (a\) npm install) Tj
+0 -15 Td (b\) node install) Tj
+0 -15 Td (c\) npx install) Tj
+0 -15 Td (d\) yarn add all) Tj
+0 -15 Td (Answer: a) Tj
+0 -15 Td () Tj
+0 -15 Td (10. Which of these is a valid JSON value type?) Tj
+0 -15 Td (a\) String) Tj
+0 -15 Td (b\) Number) Tj
+0 -15 Td (c\) Boolean) Tj
+0 -15 Td (d\) All of the above) Tj
+0 -15 Td (Answer: d) Tj
+0 -15 Td () Tj
+0 -15 Td (11. Explain the difference between client-side and server-side rendering.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+0 -15 Td (12. Describe how a RESTful API request-response cycle works.) Tj
+0 -15 Td (\(Write your answer in the space provided.\)) Tj
+0 -15 Td () Tj
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000000449 00000 n 
+0000002032 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3161
+%%EOF

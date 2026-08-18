@@ -12,7 +12,7 @@ export class NotificationsController {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     const callerRoles: string[] = req.user?.roles || [];
-    return this.notificationsService.enqueueNotification(body, String(tenantId), callerRoles);
+    return this.notificationsService.enqueueNotification(body, String(tenantId), callerRoles, req.user?.id);
   }
 
   @Get('preferences')
@@ -38,6 +38,17 @@ export class NotificationsController {
   getHistory(@Req() req: Record<string, any>) {
     const userId = req.user?.id || 'u-1';
     return this.notificationsService.getHistory(String(userId));
+  }
+
+  // Staff outbox: notifications the caller sent (the admin "Recent History"
+  // panel). Previously only /history existed, which returns notifications
+  // addressed TO the caller — so after sending a notification the admin saw
+  // nothing (#fix).
+  @Get('sent')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  getSent(@Req() req: Record<string, any>) {
+    const userId = req.user?.id || 'u-1';
+    return this.notificationsService.getSentHistory(String(userId));
   }
 
   @Put(':id/read')

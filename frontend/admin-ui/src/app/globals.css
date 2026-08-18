@@ -166,6 +166,60 @@ p {
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
+/* Dropdowns (selects) — consistent sizing, custom chevron caret and smooth
+   transitions across every page. Previously each <select> used the browser's
+   default (outdated) caret, varied padding per page, and snapped instantly
+   on focus/hover (#dropdown-style). `appearance: none` strips the native
+   arrow so the shared SVG chevron below renders uniformly in every browser. */
+select.input-field,
+select.form-input,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 12px 38px 12px 16px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+select.input-field:hover,
+select.form-input:hover,
+select:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+select.input-field:focus,
+select.form-input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* `.form-input` is used by chat/course-builder pages but was never defined,
+   so those inputs/selects rendered unstyled. Alias it to the input-field look
+   so every control shares the same base + the dropdown caret above. */
+.form-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
 /* Animations */
 /* fadeIn is opacity-only on purpose (#fix): the page root carries
    `animation-fill-mode: forwards`, which would otherwise leave a permanent

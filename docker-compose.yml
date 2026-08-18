@@ -460,6 +460,11 @@ services:
     environment:
       - PORT=3010
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms
+      # Global search reads the real course + discussion databases (each service
+      # owns its own DB). The old config only pointed at the base `sannalms` DB,
+      # so every query failed and search always returned empty (#search-fix).
+      - COURSE_DB_URL=postgresql://postgres:postgres@postgres:5432/sannalms_course
+      - DISCUSSION_DB_URL=postgresql://postgres:postgres@postgres:5432/sannalms_discussion
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres

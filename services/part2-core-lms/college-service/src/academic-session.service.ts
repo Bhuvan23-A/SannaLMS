@@ -15,10 +15,12 @@ export class AcademicSessionService {
     const status = data.status || (data.is_current ? 'ACTIVE' : 'PLANNED');
 
     // Exactly one ACTIVE / is_current session per tenant — activating a new one
-    // deactivates the rest.
+    // deactivates the rest. Always scope by the target tenant (never the empty
+    // 'master' filter): a super admin creating Sunrise's session must not
+    // demote Green Valley's or any other college's sessions.
     if (status === 'ACTIVE' || data.is_current) {
       await this.prisma.extendedClient.academicSession.updateMany({
-        where: { ...this.whereFor(tenantId), is_current: true },
+        where: { tenant_id: tenantId, is_current: true },
         data: { is_current: false, status: 'PLANNED' },
       });
     }
@@ -48,8 +50,11 @@ export class AcademicSessionService {
       where: { id, ...this.whereFor(tenantId) },
     });
     if (!session) throw new NotFoundException('Academic session not found');
+    // Demote only sessions of the SAME college as the one being activated —
+    // never the empty 'master' filter, which would demote every college's
+    // current session when a super admin activates one.
     await this.prisma.extendedClient.academicSession.updateMany({
-      where: { ...this.whereFor(tenantId), is_current: true, id: { not: id } },
+      where: { tenant_id: session.tenant_id, is_current: true, id: { not: id } },
       data: { is_current: false, status: 'PLANNED' },
     });
     return this.prisma.extendedClient.academicSession.update({

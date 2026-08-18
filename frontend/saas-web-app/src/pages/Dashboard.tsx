@@ -368,8 +368,10 @@ export const Dashboard: React.FC = () => {
   };
 
   // Award XP for real student actions (quiz completed, attendance check-in).
-  // Routes to the Part-4 gamification service through the gateway.
-  const awardXp = async (actionType: string) => {
+  // Routes to the Part-4 gamification service through the gateway. For quizzes
+  // the score/maxScore are passed so XP scales with performance — aced quizzes
+  // pay full base XP, weak attempts pay proportionally less (#xp-scaling).
+  const awardXp = async (actionType: string, score?: number, maxScore?: number) => {
     try {
       const fullName = keycloak.tokenParsed?.preferred_username
         || [userProfile?.firstName, userProfile?.lastName].filter(Boolean).join(' ')
@@ -378,11 +380,55 @@ export const Dashboard: React.FC = () => {
         student_id: keycloak.subject || 'u-1',
         student_name: fullName,
         action_type: actionType,
+        score: typeof score === 'number' ? score : null,
+        max_score: typeof maxScore === 'number' ? maxScore : null,
       });
     } catch (err) {
       console.warn('XP award failed (non-critical)', err);
     }
   };
+
+  // --- COMMAND CENTER LIVE STATS (#live-stats) ---
+  // The overview cards used to be hardcoded (2,450 XP, Top 5%, #14) and never
+  // changed. They are now fetched from the real services: XP + rank from the
+  // gamification service, quiz-score standing from the assessment service.
+  const [xpTotal, setXpTotal] = useState<number | null>(null);
+  const [leaderboardRank, setLeaderboardRank] = useState<{ rank: number; total_students: number } | null>(null);
+  const [scorePercentile, setScorePercentile] = useState<{ percentile: number | null; attempts: number } | null>(null);
+
+  const fetchOverviewStats = async () => {
+    if (!keycloak.subject) return;
+    try {
+      // 1. Total XP + level from the gamification service
+      try {
+        const xpResp = await apiClient.get(`${window.location.origin}/api/gamification/student/${keycloak.subject}`);
+        setXpTotal(xpResp.data?.xp_points ?? 0);
+      } catch { setXpTotal(0); }
+      // 2. Global leaderboard rank (live, ZREVRANK-based)
+      try {
+        const rankResp = await apiClient.get(`${window.location.origin}/api/gamification/leaderboard/rank/${keycloak.subject}`);
+        const d = rankResp.data || {};
+        setLeaderboardRank({ rank: d.rank ?? 1, total_students: d.total_students ?? 1 });
+      } catch { setLeaderboardRank(null); }
+      // 3. Quiz-score percentile vs the whole college
+      try {
+        const pctResp = await apiClient.get('/quizzes/my-rank');
+        const d = pctResp.data || {};
+        setScorePercentile({ percentile: d.percentile ?? null, attempts: d.attempts ?? 0 });
+      } catch { setScorePercentile(null); }
+    } catch (err) {
+      console.warn('Failed to load command-center stats', err);
+    }
+  };
+
+  // Completed lessons across the student's enrolled courses — computed live
+  // from the real curriculum state instead of the old hardcoded "12 / 18".
+  const completedLessons = courses
+    .filter(c => c.enrolled)
+    .reduce((acc, c) => acc + (c.modules || []).reduce((a: number, m: any) => a + (m.lessons || []).filter((l: any) => l.completed).length, 0), 0);
+  const totalLessons = courses
+    .filter(c => c.enrolled)
+    .reduce((acc, c) => acc + (c.modules || []).reduce((a: number, m: any) => a + (m.lessons || []).length, 0), 0);
 
   // Local record of quizzes this student already completed (survives refresh)
   const getQuizDone = (quizId: string) => {
@@ -434,6 +480,7 @@ export const Dashboard: React.FC = () => {
 
   // Load live data when tabs open
   useEffect(() => {
+    if (activeTab === 'overview') fetchOverviewStats();
     if (activeTab === 'leaderboard') fetchLeaderboard();
     if (activeTab === 'certificates') fetchMyCertificates();
     if (activeTab === 'attendance') fetchAttendanceCourses();
@@ -449,9 +496,11 @@ export const Dashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // On first load, replace demo courses with the student's real enrolled courses.
+  // On first load, replace demo courses with the student's real enrolled courses
+  // and pull the live command-center stats.
   useEffect(() => {
     fetchMyCourses();
+    fetchOverviewStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -647,7 +696,13 @@ export const Dashboard: React.FC = () => {
       try {
         localStorage.setItem(`quizDone:${pickedQuiz.id}:${keycloak.subject || ''}`, JSON.stringify({ score: res.score ?? 0, maxScore, at: Date.now() }));
       } catch { /* ignore */ }
-      if (res.is_graded !== false) awardXp('quiz_ace');
+      if (res.is_graded !== false) {
+        // XP now scales with the score — full marks pays the full 200 XP base,
+        // partial scores pay proportionally (#xp-scaling).
+        await awardXp('quiz_ace', res.score ?? 0, maxScore);
+      }
+      // Keep the command-center cards live after earning XP
+      fetchOverviewStats();
     } catch (err: any) {
       const status = err?.response?.status;
       alert(status === 409
@@ -1426,19 +1481,19 @@ export const Dashboard: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Total Experience Points</p>
-                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', background: 'linear-gradient(to right, #fbbf24, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>2,450 XP</h2>
+                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', background: 'linear-gradient(to right, #fbbf24, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{xpTotal === null ? '—' : `${xpTotal.toLocaleString()} XP`}</h2>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Completed Lessons</p>
-                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-cyan)' }}>12 / 18</h2>
+                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-cyan)' }}>{totalLessons > 0 ? `${completedLessons} / ${totalLessons}` : '—'}</h2>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Adaptive Score Rank</p>
-                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-emerald)' }}>Top 5%</h2>
+                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-emerald)' }}>{scorePercentile?.percentile == null ? '—' : `Top ${Math.max(1, 100 - scorePercentile.percentile)}%`}</h2>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Global Leaderboard Rank</p>
-                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-indigo)' }}>#14</h2>
+                <h2 style={{ fontSize: '2rem', marginTop: '0.5rem', color: 'var(--accent-indigo)' }}>{leaderboardRank ? `#${leaderboardRank.rank}` : '—'}</h2>
               </div>
             </div>
 

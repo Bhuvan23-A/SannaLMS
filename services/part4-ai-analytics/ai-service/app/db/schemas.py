@@ -150,6 +150,10 @@ class AwardXPRequest(BaseModel):
     student_id: str
     action_type: str
     student_name: Optional[str] = None
+    # Optional performance info — quiz XP scales with the score ratio so
+    # better attempts earn more points than weak ones.
+    score: Optional[float] = None
+    max_score: Optional[float] = None
 
 class StudentGamificationState(BaseModel):
     student_id: str
