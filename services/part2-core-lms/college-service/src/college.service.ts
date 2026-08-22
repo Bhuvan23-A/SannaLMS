@@ -128,6 +128,8 @@ export class CollegeService {
     await this.prisma.extendedClient.userRole.deleteMany({
       where: { OR: [{ tenant_id: tenantId }, { college_id: id }] },
     }).then((r: any) => (results.userRoles = r.count)).catch(() => (results.userRoles = -1));
+    await del(this.prisma.extendedClient.section, 'sections');
+    await del(this.prisma.extendedClient.academicSession, 'academicSessions');
     await del(this.prisma.extendedClient.semester, 'semesters');
     await del(this.prisma.extendedClient.branch, 'branches');
     await del(this.prisma.extendedClient.department, 'departments');

@@ -48,7 +48,7 @@ export class NotificationsService {
         const res = await fetch(url, { headers: MOCK_AUTH_HEADERS });
         if (!res.ok) return [];
         const data = await res.json();
-        return (Array.isArray(data) ? data : []).map((u: any) => u.id || u.user_id).filter(Boolean);
+        return (Array.isArray(data) ? data : []).map((u: any) => u.user_id || u.id).filter(Boolean);
       } catch (err) {
         this.logger.warn(`Target resolution failed for ${url}: ${(err as Error).message}`);
         return [];

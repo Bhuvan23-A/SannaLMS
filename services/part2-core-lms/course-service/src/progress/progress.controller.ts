@@ -15,7 +15,7 @@ export class ProgressController {
     @Body() body: { status: string; tenant_id: string },
     @Req() req: any,
   ) {
-    const userId = req.headers['x-mock-user-id'] || 'student-1';
+    const userId = req.user?.id || req.headers['x-mock-user-id'] || 'student-1';
     return this.progressService.updateTopicProgress(userId, topicId, body.status, body.tenant_id);
   }
 
@@ -26,7 +26,7 @@ export class ProgressController {
     @Body() body: { seconds_watched: number; tenant_id: string },
     @Req() req: any,
   ) {
-    const userId = req.headers['x-mock-user-id'] || 'student-1';
+    const userId = req.user?.id || req.headers['x-mock-user-id'] || 'student-1';
     return this.progressService.updateVideoProgress(userId, topicId, body.seconds_watched, body.tenant_id);
   }
 
@@ -36,7 +36,7 @@ export class ProgressController {
     @Param('courseId') courseId: string,
     @Req() req: any,
   ) {
-    const userId = req.headers['x-mock-user-id'] || 'student-1';
+    const userId = req.user?.id || req.headers['x-mock-user-id'] || 'student-1';
     const percentage = await this.progressService.calculateOverallCourseProgress(userId, courseId);
     return { overall_progress: percentage };
   }
