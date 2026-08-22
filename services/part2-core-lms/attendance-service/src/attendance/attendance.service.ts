@@ -44,11 +44,11 @@ export class AttendanceService {
         tenant_id: tenantId,
         course_id: data.course_id,
         title: data.title,
-        date: new Date(data.date),
+        date: data.date ? new Date(data.date) : new Date(),
         location: data.location,
         lat: data.lat,
         lng: data.lng,
-        radius_m: data.radius_m || 100,
+        radius_m: data.radius_m || data.radius_meters || 100,
         // Optional scheduled auto-close time; the session starts SCHEDULED
         // and only becomes check-in-able when the trainer starts it.
         end_time: data.end_time ? new Date(data.end_time) : null,
