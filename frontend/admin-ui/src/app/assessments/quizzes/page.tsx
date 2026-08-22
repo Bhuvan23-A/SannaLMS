@@ -22,7 +22,7 @@ export default function QuizzesPage() {
   // so the API returns that college's quizzes (not the empty master).
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, question_ids: [] as string[] });
+  const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, start_time: '', end_time: '', question_ids: [] as string[] });
   // Assign-to targeting (#11): whole course or specific enrolled students
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
@@ -144,11 +144,15 @@ export default function QuizzesPage() {
       // Super admin: scope the quiz to the selected college's tenant so the
       // college's students actually see it (otherwise it lands in 'master').
       const body: any = { ...form, course_id: courseId, assigned_to };
+      if (body.start_time) body.start_time = new Date(body.start_time).toISOString();
+      else delete body.start_time;
+      if (body.end_time) body.end_time = new Date(body.end_time).toISOString();
+      else delete body.end_time;
       const selectedCollege = colleges.find((c: any) => c.id === collegeId);
       if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
       await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify(body) });
       setShowForm(false);
-      setForm({ title: '', description: '', duration_mins: 30, question_ids: [] });
+      setForm({ title: '', description: '', duration_mins: 30, start_time: '', end_time: '', question_ids: [] });
       setAssignType('ALL'); setSelectedStudents([]);
       loadData();
     } catch { alert('Failed to create quiz'); }
@@ -330,6 +334,18 @@ export default function QuizzesPage() {
             <label style={{ display: 'block', marginBottom: '5px' }}>Description</label>
             <textarea className="input-field" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Start Time (optional)</label>
+              <input type="datetime-local" className="input-field" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} />
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Quiz is hidden from students until this time</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>End Time (optional)</label>
+              <input type="datetime-local" className="input-field" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} />
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Submissions are blocked after this time</span>
+            </div>
+          </div>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Assign To</label>
             <div style={{ display: 'flex', gap: '20px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -442,14 +458,21 @@ export default function QuizzesPage() {
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <span className="badge badge-info">{q.questions?.length || 0} Questions</span>
                     {q.duration_mins && <span className="badge badge-success">⏱ {q.duration_mins} mins</span>}
+                    {q.start_time && <span className="badge badge-warning">Opens: {new Date(q.start_time).toLocaleString()}</span>}
+                    {q.end_time && <span className="badge" style={{ background: 'rgba(244,63,94,0.15)', color: 'var(--danger-color)' }}>Closes: {new Date(q.end_time).toLocaleString()}</span>}
                     {q.assigned_to && <span className="badge badge-warning">Assigned to specific students</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(q.id)}>
-                      {submissionsQuizId === q.id ? 'Hide Submissions' : '📊 View Submissions'}
+                      {submissionsQuizId === q.id ? 'Hide Submissions' : 'View Submissions'}
                     </button>
+                  )}
+                  {(isAdmin || isTrainer) && (
+                    <a href={`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/quizzes/${q.id}/submissions/export`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ fontSize: '13px', textDecoration: 'none' }}>
+                      Export CSV
+                    </a>
                   )}
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteQuiz(q.id)}>Delete</button>

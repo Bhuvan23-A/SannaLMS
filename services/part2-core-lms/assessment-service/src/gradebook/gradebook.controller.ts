@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Req, Query, Body } from '@nestjs/common';
+import { Controller, Post, Get, Param, Req, Query, Body, Res } from '@nestjs/common';
 import { GradebookService } from './gradebook.service';
 import { Roles } from '../roles.guard';
 
@@ -55,5 +55,20 @@ export class GradebookController {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
     return this.gradebookService.getCourseGrades(String(tenantId), courseId);
+  }
+
+  @Get(':courseId/export')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  async exportCourseGrades(@Param('courseId') courseId: string, @Req() req: Record<string, any>, @Res() res: any) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
+    const grades = await this.gradebookService.getCourseGrades(String(tenantId), courseId);
+    const header = 'Student ID,Total Score,Max Score,Grade,CGPA\n';
+    const rows = grades.map((g: any) => `${g.user_id},${g.total_score},${g.max_score},${g.grade || ''},${g.cgpa || ''}`).join('\n');
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="grades-${courseId}.csv"`,
+    });
+    res.send(header + rows);
   }
 }

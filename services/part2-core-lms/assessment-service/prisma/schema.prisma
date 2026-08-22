@@ -41,6 +41,8 @@ model Quiz {
   description   String?
   duration_mins Int?
   is_published  Boolean  @default(false)
+  start_time    DateTime? // When the quiz becomes available to students
+  end_time      DateTime? // When the quiz auto-closes and submissions are blocked
   assigned_to   Json?    // {"type":"ALL"} | {"type":"INDIVIDUALS","user_ids":[...]} — student visibility
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt

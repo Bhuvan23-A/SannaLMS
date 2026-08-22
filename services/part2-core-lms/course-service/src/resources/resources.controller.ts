@@ -1,5 +1,5 @@
 import {
-  Controller, Post, Get, Delete, Param, Req, Body,
+  Controller, Post, Get, Delete, Param, Req, Body, Res,
   UploadedFile, UseInterceptors, BadRequestException
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -43,13 +43,29 @@ export class ResourcesController {
     if (!file) throw new BadRequestException('No file uploaded. Use multipart field "file".');
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.resourcesService.createResource(courseId, String(tenantId), file, body.title);
+    return this.resourcesService.createResource(courseId, String(tenantId), file, body.title, body.visibility);
   }
 
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
-  list(@Param('courseId') courseId: string) {
-    return this.resourcesService.listResources(courseId);
+  list(@Param('courseId') courseId: string, @Req() req: any) {
+    const roles = (req.user?.roles || []).map((r: string) => r.toUpperCase());
+    const isStudent = roles.includes('STUDENT');
+    return this.resourcesService.listResources(courseId, isStudent);
+  }
+
+  @Get(':id/download')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
+  async download(@Param('id') id: string, @Res() res: any) {
+    const resource = await this.resourcesService.getResource(id);
+    if (!existsSync(resource.file_path)) {
+      throw new BadRequestException('File not found on disk');
+    }
+    res.set({
+      'Content-Type': resource.content_type || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(resource.file_name)}"`,
+    });
+    res.sendFile(resource.file_path);
   }
 
   @Delete(':id')

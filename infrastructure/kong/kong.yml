@@ -21,6 +21,10 @@ services:
         paths:
           - /api/v1/legacy-users
         strip_path: false
+      - name: user-activity-routes
+        paths:
+          - /api/v1/users/activity
+        strip_path: false
 
   # ─── Part 2: Core LMS ────────────────────────────────────────────
   - name: college-service

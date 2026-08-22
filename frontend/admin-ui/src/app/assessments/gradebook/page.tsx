@@ -144,9 +144,16 @@ export default function GradebookPage() {
           )}
         </div>
         {(isAdmin || isTrainer) && (
-          <button className="btn-primary" disabled={calculating} onClick={recalculateAll}>
-            {calculating ? 'Calculating...' : '🔄 Recalculate Grades'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-primary" disabled={calculating} onClick={recalculateAll}>
+              {calculating ? 'Calculating...' : 'Recalculate Grades'}
+            </button>
+            {courseId && (
+              <a href={`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/gradebook/${courseId}/export`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                Export CSV
+              </a>
+            )}
+          </div>
         )}
       </div>
 

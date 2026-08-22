@@ -14,6 +14,8 @@ export class QuizzesService {
       duration_mins: data.duration_mins,
       is_published: data.is_published || false
     };
+    if (data.start_time) quizData.start_time = new Date(data.start_time);
+    if (data.end_time) quizData.end_time = new Date(data.end_time);
     // assigned_to: { type: 'ALL' } or { type: 'INDIVIDUALS', user_ids: [...] } — stored as a JSON string
     // (Prisma Json fields reject null, so only set when provided — same pattern as question options)
     if (data.assigned_to) {
@@ -57,11 +59,18 @@ export class QuizzesService {
     // Students only see quizzes for courses they are enrolled in (courseIds) and
     // that are assigned to them (whole-course or individually). No courseIds =
     // no quizzes — never leak the whole college's list.
+    // Schedule filtering: students only see quizzes that have started (or have
+    // no start_time) and have not yet ended (or have no end_time). Staff always
+    // see all quizzes so they can manage scheduling.
+    const now = new Date();
     const visible = isStudent
       ? quizzes
           .filter((q: any) => {
             if (!courseIds || courseIds.length === 0) return false;
             if (!courseIds.includes(q.course_id)) return false;
+            // Schedule gating for students
+            if (q.start_time && new Date(q.start_time) > now) return false;
+            if (q.end_time && new Date(q.end_time) < now) return false;
             const a = parseAssignedTo(q.assigned_to);
             if (!a || a.type === 'ALL') return true;
             return Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
@@ -175,7 +184,17 @@ export class QuizzesService {
       throw new ConflictException('You have already submitted this quiz — retakes are not allowed.');
     }
 
-    // 2. Get Quiz and Questions
+    // 2. Check schedule: block submissions after end_time
+    const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
+    if (!quiz) throw new NotFoundException('Quiz not found');
+    if (quiz.end_time && new Date(quiz.end_time) < new Date()) {
+      throw new BadRequestException('This quiz has ended and no longer accepts submissions.');
+    }
+    if (quiz.start_time && new Date(quiz.start_time) > new Date()) {
+      throw new BadRequestException('This quiz has not started yet.');
+    }
+
+    // 3. Get Quiz and Questions
     const quizQuestions = await this.prisma.quizQuestion.findMany({
       where: { quiz_id: quizId },
       include: { question: true }

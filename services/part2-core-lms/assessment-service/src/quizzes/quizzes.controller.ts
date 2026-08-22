@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Req, Query, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Req, Query, Param, BadRequestException, Res } from '@nestjs/common';
 import { QuizzesService } from './quizzes.service';
 import { Roles } from '../roles.guard';
 
@@ -43,6 +43,22 @@ export class QuizzesController {
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   getSubmissions(@Param('id') id: string) {
     return this.quizzesService.getQuizSubmissions(id);
+  }
+
+  // CSV export of quiz submissions with malpractice flags
+  @Get(':id/submissions/export')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  async exportSubmissions(@Param('id') id: string, @Res() res: any) {
+    const data = await this.quizzesService.getQuizSubmissions(id);
+    const header = 'Student ID,Score,Graded,Violations,Auto-Submitted,Submitted At\n';
+    const rows = (data.submissions || []).map((s: any) =>
+      `${s.user_id},${s.score ?? ''},${s.is_graded},${s.violation_count || 0},${s.auto_submitted || false},${s.submitted_at || ''}`
+    ).join('\n');
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="quiz-${id}-submissions.csv"`,
+    });
+    res.send(header + rows);
   }
 
   // Manually grade an essay/coding quiz submission — score + feedback are

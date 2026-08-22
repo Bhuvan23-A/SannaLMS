@@ -87,4 +87,16 @@ export class CertificatesController {
   revoke(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.certificatesService.revokeCertificate(id, body.reason || 'No reason given');
   }
+
+  // Batch issue certificates for multiple students at once (#batch-certs)
+  @Post('batch-issue')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  batchIssue(@Body() body: { students: Array<Record<string, any>> }, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (req.user?.tenantId || 'master') : (req.user?.tenantId || 'test-tenant');
+    if (!body.students || !Array.isArray(body.students) || body.students.length === 0) {
+      throw new BadRequestException('students array is required');
+    }
+    return this.certificatesService.batchIssueCertificates(body.students, String(tenantId));
+  }
 }

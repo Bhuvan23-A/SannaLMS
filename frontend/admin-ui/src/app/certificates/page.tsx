@@ -46,6 +46,12 @@ export default function CertificatesPage() {
   const [templateUploading, setTemplateUploading] = useState(false);
   const [templateStatus, setTemplateStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Batch issue state
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const [batchCourseId, setBatchCourseId] = useState('');
+  const [batchGrade, setBatchGrade] = useState('A');
+  const [batchCgpa, setBatchCgpa] = useState(4.0);
+  const [batchIssuing, setBatchIssuing] = useState(false);
 
   useEffect(() => {
     loadCertificates();
@@ -123,6 +129,42 @@ export default function CertificatesPage() {
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
+  // Batch issue certificates for all enrolled students in a course
+  const batchIssueCerts = async () => {
+    if (!batchCourseId) { alert('Select a course first'); return; }
+    try {
+      setBatchIssuing(true);
+      // Fetch enrolled students for the selected course
+      const enrollments = await fetchApi(`/api/v1/enrollments/course/${batchCourseId}`);
+      if (!Array.isArray(enrollments) || enrollments.length === 0) {
+        alert('No enrolled students found for this course.');
+        return;
+      }
+      const course = courses.find((c: any) => c.id === batchCourseId);
+      const studentsData = enrollments.map((en: any) => {
+        const user = students.find((s: any) => s.id === en.user_id) || {};
+        return {
+          course_id: batchCourseId,
+          user_id: en.user_id,
+          course_title: course?.title || '',
+          student_name: [user.first_name, user.last_name].filter(Boolean).join(' ') || en.user_id,
+          tenant_id: user.tenant_id || '',
+          grade: batchGrade,
+          cgpa: batchCgpa,
+        };
+      });
+      const res = await fetchApi('/api/v1/certificates/batch-issue', {
+        method: 'POST',
+        body: JSON.stringify({ students: studentsData }),
+      });
+      setShowBatchForm(false);
+      showFlash(`✅ Batch complete: ${res.issued} issued, ${res.skipped} skipped.`);
+      loadCertificates();
+    } catch (err: any) {
+      alert(err.message || 'Failed to batch issue certificates');
+    } finally { setBatchIssuing(false); }
+  };
+
   if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading certificates...</div>;
 
   return (
@@ -131,8 +173,9 @@ export default function CertificatesPage() {
         <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎓 Certificates</h1>
         {(isAdmin || isTrainer) && (
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-secondary" onClick={() => setShowTemplateForm(!showTemplateForm)}>🖼 Upload Course Template</button>
-            <button className="btn-primary" onClick={() => setShowIssueForm(!showIssueForm)}>+ Issue Certificate</button>
+            <button className="btn-secondary" onClick={() => setShowTemplateForm(!showTemplateForm)}>Upload Course Template</button>
+            <button className="btn-secondary" onClick={() => { setShowBatchForm(!showBatchForm); setShowIssueForm(false); }}>Batch Issue</button>
+            <button className="btn-primary" onClick={() => { setShowIssueForm(!showIssueForm); setShowBatchForm(false); }}>+ Issue Certificate</button>
           </div>
         )}
       </div>
@@ -162,6 +205,37 @@ export default function CertificatesPage() {
       )}
 
       {flash && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{flash}</div>}
+
+      {/* Batch Issue Form */}
+      {showBatchForm && (isAdmin || isTrainer) && (
+        <div className="panel" style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Batch Issue Certificates</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px' }}>Issue certificates to ALL enrolled students in a course at once. Each student gets a unique certificate number.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Course</label>
+              <select required className="input-field" value={batchCourseId} onChange={e => setBatchCourseId(e.target.value)}>
+                <option value="">Select course...</option>
+                {courses.map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Grade</label>
+              <select className="input-field" value={batchGrade} onChange={e => setBatchGrade(e.target.value)}>
+                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>CGPA</label>
+              <input type="number" step="0.1" min="0" max="4" className="input-field" value={batchCgpa} onChange={e => setBatchCgpa(parseFloat(e.target.value))} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-primary" disabled={batchIssuing} onClick={batchIssueCerts}>{batchIssuing ? 'Issuing...' : 'Issue to All Students'}</button>
+            <button className="btn-secondary" onClick={() => setShowBatchForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Public Verify Panel */}
       <div className="panel" style={{ marginBottom: '30px' }}>

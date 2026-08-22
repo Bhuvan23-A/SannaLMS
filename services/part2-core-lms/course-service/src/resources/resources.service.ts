@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma.service';
 export class ResourcesService {
   constructor(private prisma: PrismaService) {}
 
-  async createResource(courseId: string, tenantId: string, file: Express.Multer.File, title?: string) {
+  async createResource(courseId: string, tenantId: string, file: Express.Multer.File, title?: string, visibility?: string) {
     if (!file) throw new NotFoundException('No file uploaded');
     return this.prisma.courseResource.create({
       data: {
@@ -16,15 +16,27 @@ export class ResourcesService {
         file_path: file.path,
         file_size: file.size,
         content_type: file.mimetype,
+        visibility: visibility || 'ALL',
       },
     });
   }
 
-  async listResources(courseId: string) {
+  async listResources(courseId: string, isStudent?: boolean) {
+    const where: any = { course_id: courseId };
+    // Students only see resources marked STUDENT_ONLY or ALL; staff see everything
+    if (isStudent) {
+      where.visibility = { in: ['ALL', 'STUDENT_ONLY'] };
+    }
     return this.prisma.courseResource.findMany({
-      where: { course_id: courseId },
+      where,
       orderBy: { created_at: 'desc' },
     });
+  }
+
+  async getResource(id: string) {
+    const resource = await this.prisma.courseResource.findUnique({ where: { id } });
+    if (!resource) throw new NotFoundException('Resource not found');
+    return resource;
   }
 
   async removeResource(id: string) {

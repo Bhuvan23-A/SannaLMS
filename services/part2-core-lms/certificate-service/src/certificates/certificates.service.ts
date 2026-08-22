@@ -82,6 +82,34 @@ export class CertificatesService {
     });
   }
 
+  // Batch issue certificates — accepts an array of student objects and issues
+  // certificates for each. Each certificate gets its own unique verification code.
+  async batchIssueCertificates(students: Array<Record<string, any>>, tenantId: string) {
+    const results = { issued: 0, skipped: 0, certificates: [] as any[] };
+    for (const student of students) {
+      try {
+        const cert = await this.issueCertificate({
+          course_id: student.course_id,
+          user_id: student.user_id,
+          course_title: student.course_title,
+          student_name: student.student_name,
+          tenant_id: student.tenant_id || tenantId,
+          grade: student.grade,
+          cgpa: student.cgpa,
+        }, tenantId);
+        if (cert) {
+          results.issued++;
+          results.certificates.push(cert);
+        } else {
+          results.skipped++;
+        }
+      } catch {
+        results.skipped++;
+      }
+    }
+    return results;
+  }
+
   // ─── Certificate templates (#17) ─────────────────────────────
   async uploadTemplate(courseId: string, tenantId: string, file: Express.Multer.File) {
     if (!file) throw new Error('No file uploaded');
