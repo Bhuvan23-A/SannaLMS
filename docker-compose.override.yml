@@ -1,0 +1,195 @@
+# docker-compose.override.yml — Memory limits + Node.js optimization
+# Applied automatically by `docker compose up` alongside docker-compose.yml
+
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  minio:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  mongodb:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  keycloak:
+    environment:
+      - KC_JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseG1GC -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  kong-db:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  kong:
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  nginx:
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  admin-ui:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  auth-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  user-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  college-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  course-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  assessment-p2:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  assessment-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  attendance-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  calendar-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  certificate-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  discussion-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  liveclass-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  notification-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  search-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  chat-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  coding-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  ai-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=384
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  assignment-service:
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=192
+    deploy:
+      resources:
+        limits:
+          memory: 256M
