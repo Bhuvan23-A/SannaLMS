@@ -137,7 +137,7 @@ export default function SemestersPage() {
     setPromoteTarget({ from: s, to: next });
     setPromotePreview(null);
     try {
-      const d = await fetchApi(`/api/v1/promotions/preview?branch_id=${s.branch_id}&from_semester_id=${s.id}&to_semester_id=${next.id}`);
+      const d = await fetchApi(`/api/v1/promotions/preview?branch_id=${s.branch_id}&from_semester_id=${s.id}&to_semester_id=${next.id}&tenant_id=${s.tenant_id || ''}`);
       setPromotePreview(d);
     } catch (err: any) {
       alert('Preview failed: ' + (err.message || 'error'));
@@ -155,6 +155,7 @@ export default function SemestersPage() {
           branch_id: promoteTarget.from.branch_id,
           from_semester_id: promoteTarget.from.id,
           to_semester_id: promoteTarget.to.id,
+          tenant_id: promoteTarget.from.tenant_id,
         }),
       });
       alert(`✅ Promoted ${res.student_count} students from ${promoteTarget.from.name} to ${promoteTarget.to.name} (${res.enrollments_created} new enrollments created).`);

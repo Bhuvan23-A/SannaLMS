@@ -8,7 +8,7 @@ export class PromotionsController {
 
   private tenantOf(req: any, body?: any): string {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
-    return isSuperAdmin ? (body?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return isSuperAdmin ? (body?.tenant_id || req.query?.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
   }
 
   @Get('preview')
