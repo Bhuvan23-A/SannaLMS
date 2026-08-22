@@ -14,6 +14,14 @@ interface UseExamProctoringOptions {
   maxStrikes?: number;
   onAutoSubmit?: () => void;
   onViolation?: (violation: ExamViolation) => void;
+  onMobileDetected?: () => void;
+}
+
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+    || (navigator.maxTouchPoints > 0 && /Mobi|Android/i.test(ua));
 }
 
 // In-browser exam lockdown: detect tab switches / focus loss / copy-paste /
@@ -28,6 +36,7 @@ export function useExamProctoring({
   maxStrikes = 3,
   onAutoSubmit,
   onViolation,
+  onMobileDetected,
 }: UseExamProctoringOptions) {
   const [strikes, setStrikes] = useState(0);
   const [lastViolation, setLastViolation] = useState<ExamViolation | null>(null);
@@ -40,10 +49,11 @@ export function useExamProctoring({
   const sendViolation = useCallback(
     (eventType: string, details: Record<string, any> = {}) => {
       if (!enabled) return;
+      const deviceType = isMobileDevice() ? 'mobile' : 'desktop';
       const violation: ExamViolation = {
         event_type: eventType,
         timestamp: new Date().toISOString(),
-        details,
+        details: { ...details, device_type: deviceType },
       };
       setLastViolation(violation);
       setStrikes((prev) => {
@@ -73,6 +83,16 @@ export function useExamProctoring({
     setStrikes(0);
     setLastViolation(null);
     setAutoSubmitted(false);
+
+    // Detect mobile device at exam start
+    if (isMobileDevice()) {
+      sendViolation('mobile_device_detected', {
+        device_type: 'mobile',
+        user_agent: navigator.userAgent,
+        screen: `${screen.width}x${screen.height}`,
+      });
+      onMobileDetected?.();
+    }
 
     const onVisibility = () => {
       if (document.hidden) sendViolation('tab_switch', { state: 'hidden' });
