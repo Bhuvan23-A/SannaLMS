@@ -62,7 +62,7 @@ export class QuizzesController {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
     const userId = req.user?.id || 'u-1';
-    return this.quizzesService.submitQuiz(id, body.answers, String(userId), String(tenantId));
+    return this.quizzesService.submitQuiz(id, body.answers, String(userId), String(tenantId), body.proctoring);
   }
 
   // Delete a quiz — removes its question links and submissions (cascade), so

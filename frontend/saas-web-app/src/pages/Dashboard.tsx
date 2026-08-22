@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient, keycloak } from '../api/client';
 import SessionQR from '../SessionQR';
+import { useExamProctoring } from '../hooks/useExamProctoring';
 import { 
   LogOut, User, Activity, BookOpen, Terminal, CheckSquare, 
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
@@ -285,6 +286,22 @@ export const Dashboard: React.FC = () => {
   const [quizQuestionIndex, setQuizQuestionIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitResult, setQuizSubmitResult] = useState<{ score: number; maxScore: number; graded: boolean } | null>(null);
+  const submittingRef = useRef(false);
+
+  // Exam lockdown: detect tab switches / focus loss / copy-paste during a real
+  // quiz, log each violation to the Part-4 proctoring service, and auto-submit
+  // after 3 strikes. Active only while a quiz is actually in progress.
+  const {
+    strikes: proctorStrikes,
+    lastViolation: proctorViolation,
+    autoSubmitted: proctorAutoSubmitted,
+  } = useExamProctoring({
+    enabled: examStarted && !!pickedQuiz,
+    studentId: keycloak.subject || undefined,
+    examId: pickedQuiz?.id,
+    maxStrikes: 3,
+    onAutoSubmit: () => submitRealQuiz(),
+  });
 
   // Helper: the student's enrolled course ids (scoping quizzes/assignments to
   // the courses they are actually enrolled in — the backend requires them).
@@ -681,9 +698,19 @@ export const Dashboard: React.FC = () => {
   };
 
   const submitRealQuiz = async () => {
-    if (!pickedQuiz) return;
+    if (!pickedQuiz || submittingRef.current) return;
+    submittingRef.current = true;
     try {
-      const response = await apiClient.post(`/quizzes/${pickedQuiz.id}/submit`, { answers: quizAnswers });
+      const response = await apiClient.post(`/quizzes/${pickedQuiz.id}/submit`, {
+        answers: quizAnswers,
+        // Exam-lockdown audit trail: violations logged to the Part-4 proctoring
+        // service are summarized on the submission so trainers can review it.
+        proctoring: {
+          violation_count: proctorStrikes,
+          auto_submitted: proctorAutoSubmitted,
+          last_violation: proctorViolation,
+        },
+      });
       const res = response.data || {};
       const maxScore = currentQuizQuestions.reduce((acc: number, qq: any) => acc + (qq.question?.marks || 0), 0);
       setQuizSubmitResult({
@@ -713,6 +740,8 @@ export const Dashboard: React.FC = () => {
         setPickedQuiz(null);
         fetchQuizzes();
       }
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -1913,6 +1942,15 @@ export const Dashboard: React.FC = () => {
               {/* Quiz in progress */}
               {examStarted && pickedQuiz && currentQuizQuestion && (
                 <div>
+                  {proctorStrikes > 0 && (
+                    <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+                      <span>
+                        Exam monitoring: {proctorStrikes} violation{proctorStrikes === 1 ? '' : 's'} detected
+                        {proctorViolation ? ` (${proctorViolation.event_type.replace(/_/g, ' ')})` : ''}. Do not switch tabs or leave this window — after 3 violations the quiz is auto-submitted.
+                      </span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                     <div>
                       <h3 style={{ fontSize: '1.1rem' }}>{pickedQuiz.title}</h3>

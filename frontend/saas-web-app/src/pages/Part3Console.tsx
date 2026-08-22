@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Sparkles, AlertTriangle, ShieldCheck, Clock, FileText, CheckCircle2, ChevronRight, RefreshCw, Upload, Users, Award, ArrowLeft } from 'lucide-react';
+import { Play, Sparkles, AlertTriangle, ShieldCheck, Clock, FileText, CheckCircle2, ChevronRight, RefreshCw, Upload, Users, Award, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useExamProctoring } from '../hooks/useExamProctoring';
 
 export default function Part3Console() {
   const navigate = useNavigate();
@@ -93,6 +94,18 @@ export default function Part3Console() {
   });
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [testResult, setTestResult] = useState<{ score: number; submittedAt: string } | null>(null);
+
+  // Exam lockdown for the adaptive assessment: detect tab switches / focus
+  // loss, log to the Part-4 proctoring service, auto-submit after 3 strikes.
+  const {
+    strikes: proctorStrikes,
+    lastViolation: proctorViolation,
+  } = useExamProctoring({
+    enabled: examStarted,
+    examId: 'adaptive-exam',
+    maxStrikes: 3,
+    onAutoSubmit: () => handleFinishExam(),
+  });
 
   useEffect(() => {
     if (!examStarted || timeLeft <= 0) return;
@@ -573,6 +586,15 @@ export default function Part3Console() {
               </div>
             ) : (
               <div>
+                {proctorStrikes > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.35)', color: 'var(--accent-rose)', padding: '0.75rem 1rem', borderRadius: '0.5rem', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
+                    <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      Exam monitoring: {proctorStrikes} violation{proctorStrikes === 1 ? '' : 's'} detected
+                      {proctorViolation ? ` (${proctorViolation.event_type.replace(/_/g, ' ')})` : ''}. Do not switch tabs or leave this window — after 3 violations the test is auto-submitted.
+                    </span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', gap: '1.5rem' }}>
                     <div>

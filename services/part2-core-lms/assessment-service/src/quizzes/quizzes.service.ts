@@ -166,7 +166,7 @@ export class QuizzesService {
     return { removed: true, id: quizId };
   }
 
-  async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string) {
+  async submitQuiz(quizId: string, answers: any, userId: string, tenantId: string, proctoring?: any) {
     // 1. One attempt per student per quiz — retakes are not allowed (#retake).
     const existing = await this.prisma.quizSubmission.findFirst({
       where: { quiz_id: quizId, user_id: userId }
@@ -224,6 +224,7 @@ export class QuizzesService {
     }
 
     // 4. Save Submission
+    const proctoringSummary = proctoring && typeof proctoring === 'object' ? proctoring : null;
     return this.prisma.quizSubmission.create({
       data: {
         quiz_id: quizId,
@@ -231,7 +232,10 @@ export class QuizzesService {
         tenant_id: tenantId,
         answers: answers,
         score: needsManualGrading ? null : score,
-        is_graded: !needsManualGrading
+        is_graded: !needsManualGrading,
+        violation_count: Number(proctoringSummary?.violation_count) || 0,
+        auto_submitted: Boolean(proctoringSummary?.auto_submitted),
+        proctoring: proctoringSummary || undefined,
       }
     });
   }

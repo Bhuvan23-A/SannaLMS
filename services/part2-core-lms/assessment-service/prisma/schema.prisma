@@ -84,6 +84,12 @@ model QuizSubmission {
   score         Float?
   feedback      String?
   is_graded     Boolean  @default(false)
+  // Exam-lockdown audit (#exam-lockdown): violation count from the browser
+  // lockdown hook, whether the exam was auto-submitted after too many tab
+  // switches, and the raw proctoring summary for trainer review.
+  violation_count Int     @default(0)
+  auto_submitted   Boolean @default(false)
+  proctoring       Json?   // { violation_count, auto_submitted, last_violation }
   submitted_at  DateTime @default(now())
 
   quiz          Quiz     @relation(fields: [quiz_id], references: [id], onDelete: Cascade)

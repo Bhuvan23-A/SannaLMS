@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.db.database import db_manager
 from app.db.schemas import ProctoringViolationCreate
 
-router = APIRouter(prefix="/api/proctoring", tags=["Browser Lockdown & Violation Logger"])
+router = APIRouter(tags=["Browser Lockdown & Violation Logger"])
 
 def unwrap_param(val):
     """Unwraps FastAPI Query default objects if function is invoked directly in Python."""

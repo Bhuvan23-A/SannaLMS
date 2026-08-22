@@ -479,6 +479,11 @@ export default function QuizzesPage() {
                                 {sub.score !== null && sub.score !== undefined
                                   ? <span className="badge badge-success">Score: {sub.score} / {totalMarks}</span>
                                   : <span className="badge badge-warning">Pending review</span>}
+                                {sub.violation_count > 0 && (
+                                  <span className="badge" style={{ background: 'rgba(244,63,94,0.15)', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', marginLeft: '8px' }}>
+                                    ⚠ {sub.violation_count} tab-switch violation{sub.violation_count === 1 ? '' : 's'}{sub.auto_submitted ? ' · auto-submitted' : ''}
+                                  </span>
+                                )}
                               </span>
                               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                                 {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}

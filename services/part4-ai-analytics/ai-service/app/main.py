@@ -66,7 +66,11 @@ app.include_router(placements_router)    # Day 4: Placement Drive CRUD
 app.include_router(resume_router)        # Day 5: ReportLab Resume Builder
 app.include_router(cert_router)          # Day 6: Cryptographic Certificate & QR
 app.include_router(proctoring_ws_router) # Days 7 & 8: OpenCV Vision & WebSocket Stream
-app.include_router(lockdown_router)      # Day 9: Browser Lockdown Violation Logger
+app.include_router(lockdown_router, prefix="/api/proctoring")      # Day 9: Browser Lockdown Violation Logger
+# Kong routes the LMS apps through /api/v1/proctoring (strip_path: false), so
+# the same lockdown router must also be reachable under the /api/v1 prefix —
+# otherwise student-portal violation POSTs 404 (#exam-lockdown wiring).
+app.include_router(lockdown_router, prefix="/api/v1/proctoring")
 app.include_router(tutor_router)         # Day 10: RAG Gemini AI Tutor
 app.include_router(gamification_router)  # Day 11: Gamification Microservice
 app.include_router(leaderboard_router)   # Day 12: Redis Leaderboard Layer
