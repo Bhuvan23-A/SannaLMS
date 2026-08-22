@@ -33,8 +33,10 @@ export default function SectionsPage() {
   const [modalCollege, setModalCollege] = useState('');
   const modalCollegeObj = activeColleges.find((c: any) => c.id === modalCollege);
   const modalInCollege = (item: any) => !isSuperAdmin || !modalCollege || !item.tenant_id || item.tenant_id === modalCollegeObj?.tenant_id;
-  const modalBranches = branches.filter((b: any) => modalInCollege(b));
-  const modalSessions = sessions.filter((s: any) => modalInCollege(s));
+  const modalBranches = isSuperAdmin && !modalCollege ? [] : branches.filter((b: any) => modalInCollege(b));
+  const modalSessions = isSuperAdmin && !modalCollege ? [] : sessions.filter((s: any) => modalInCollege(s));
+  const selectedBranch = branches.find((b: any) => b.id === branchId);
+  const totalSemesters = selectedBranch?.total_semesters || 8;
 
   // Roster modal
   const [rosterSection, setRosterSection] = useState<any>(null);
@@ -299,7 +301,7 @@ export default function SectionsPage() {
               )}
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Branch / Program *</label>
-                <select required className="input-field" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                <select required className="input-field" value={branchId} onChange={e => { setBranchId(e.target.value); setSemesterNumber('1'); }}>
                   <option value="">Select…</option>
                   {modalBranches.length === 0 ? <option value="" disabled>No branches for this college</option>
                     : modalBranches.map((b: any) => <option key={b.id} value={b.id}>{collegeName(b.tenant_id)}{b.name}</option>)}
@@ -317,7 +319,7 @@ export default function SectionsPage() {
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Semester *</label>
                   <select className="input-field" value={semesterNumber} onChange={e => setSemesterNumber(e.target.value)}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
+                    {Array.from({ length: totalSemesters }, (_, i) => i + 1).map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
                   </select>
                 </div>
                 <div>
