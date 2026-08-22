@@ -54,10 +54,10 @@
       "name": "SannaLMS Backend API",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "bearerOnly": true,
+      "bearerOnly": false,
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "fullScopeAllowed": true,
       "secret": "sannalms-api-svc-local"
