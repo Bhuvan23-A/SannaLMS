@@ -174,7 +174,7 @@ services:
       - REDIS_HOST=redis
       - POSTGRES_HOST=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=SannaLMS_Pass_2026!
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=sannalms_master
     depends_on:
       - postgres
@@ -192,11 +192,11 @@ services:
       - PORT=4005
       - POSTGRES_HOST=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=SannaLMS_Pass_2026!
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=sannalms_master
       - MINIO_ENDPOINT=minio
-      - MINIO_ACCESS_KEY=admin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
     depends_on:
       - postgres
       - minio
@@ -329,8 +329,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sannalms_course?schema=public
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=admin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
     # Course content uploads (topic PDFs/videos + course resources) must
     # survive container rebuilds/recreates — the files live in /app/uploads.
     volumes:

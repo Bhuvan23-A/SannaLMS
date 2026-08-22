@@ -24,16 +24,22 @@ if [ ! -f .env ]; then
     echo "[INFO] Creating default .env file..."
     cat <<EOF > .env
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=SannaLMS_Pass_2026!
+POSTGRES_PASSWORD=postgres
 POSTGRES_DB=sannalms_master
 POSTGRES_PORT=5432
 REDIS_HOST=redis
 REDIS_PORT=6379
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin_secure
+MINIO_ROOT_USER=admin
+MINIO_ROOT_PASSWORD=minioadmin
 MINIO_PORT=9000
 MINIO_CONSOLE_PORT=9001
 JWT_SECRET=sannalms_prod_jwt_secret_2026
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=SannaLMS_KC_2026!
+KONG_PG_USER=kong
+KONG_PG_PASSWORD=kongpass_sannalms_2026
+KONG_PG_DATABASE=kong
+KEYCLOAK_ADMIN_SECRET=sannalms-api-svc-local
 EOF
 fi
 echo "[INFO] Installing frontend dependencies and compiling static bundle..."

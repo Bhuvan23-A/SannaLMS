@@ -1,6 +1,6 @@
 # SannaLMS Deploy Runbook
 
-The ONE safe way to push code to the production server (`103.160.144.225`).
+The ONE safe way to push code to the production server (`195.35.21.204`).
 Use `deploy_helper.py` for every deploy — it prevents the two failure modes
 we've hit in production:
 
@@ -56,17 +56,15 @@ mount with `docker inspect sannalms-nginx`).
 2. **Health check (pre-deploy)** — confirm the site is already healthy.
 3. **Sync changed source files** to `/root/SannaLMS` (SFTP `put` per file).
 4. **Sync frontend builds** with `sync_dist()` (student dist is bind-mounted
-   into nginx; admin-ui is a container build via `docker-compose build`).
+   into nginx; admin-ui is a container build via `docker compose build`).
 5. **Run DB migrations** if the schema changed (see below).
 6. **Rebuild + restart** affected containers:
-   `cd /root/SannaLMS && docker-compose build <svc> && docker-compose up -d <svc>`
+   `cd /root/SannaLMS && docker compose build <svc> && docker compose up -d <svc>`
 7. **Reload Kong after any container recreate** — recreating a service can
    give it a new Docker network IP, and Kong caches the upstream hostname
    resolution, so the gateway returns **502 `Connection refused`** to the old
    IP until the DNS cache expires. Always run:
    `docker exec sannalms-kong kong reload`
-   (confirmed required Aug 2026: college-service moved from `.17` to `.20`
-   and the API gateway 502'd until the reload).
 8. **Health check (post-deploy)** + `expect_healthy()`.
 9. Verify the specific feature live via the API, then commit + push.
 
@@ -92,4 +90,4 @@ so a fresh server install can apply it cleanly with `migrate deploy`.
 3. `docker inspect sannalms-nginx --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'`
    and compare `ls` of the host path vs `docker exec sannalms-nginx ls`.
 4. Fix: recreate the container so it re-binds —
-   `cd /root/SannaLMS && docker-compose up -d --force-recreate nginx`
+   `cd /root/SannaLMS && docker compose up -d --force-recreate nginx`

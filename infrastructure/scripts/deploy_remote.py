@@ -4,9 +4,9 @@ import paramiko
 import time
 
 # Remote Server Config
-HOST = "103.160.144.225"
+HOST = "195.35.21.204"
 USER = "root"
-PASSWORD = "KB6Vn72p2gS`(\\F"
+PASSWORD = "FCx.xfQ9grQg7WdB"
 REMOTE_DIR = "/root/SannaLMS"
 ZIP_FILE_PATH = "f:/SannaLMS/sannalms_deploy.zip"
 REMOTE_ZIP_PATH = "/root/sannalms_deploy.zip"
