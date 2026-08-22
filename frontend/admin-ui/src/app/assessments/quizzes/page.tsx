@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, downloadFile } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
@@ -470,9 +470,20 @@ export default function QuizzesPage() {
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
-                    <a href={`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/quizzes/${q.id}/submissions/export`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ fontSize: '13px', textDecoration: 'none' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '13px' }}
+                      onClick={async () => {
+                        try {
+                          await downloadFile(`/api/v1/quizzes/${q.id}/submissions/export`, `quiz-${q.id}-submissions.csv`);
+                        } catch (err: any) {
+                          alert('Export failed: ' + (err.message || 'Error'));
+                        }
+                      }}
+                    >
                       Export CSV
-                    </a>
+                    </button>
                   )}
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteQuiz(q.id)}>Delete</button>

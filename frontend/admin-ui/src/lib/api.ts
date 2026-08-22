@@ -56,3 +56,41 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
   return response.json();
 }
+
+export async function downloadFile(endpoint: string, fallbackFilename = 'report.csv') {
+  const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') || 'SUPER_ADMIN' : 'SUPER_ADMIN';
+  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') || '' : '';
+  const tenantId = typeof window !== 'undefined' ? localStorage.getItem('tenantId') || '' : '';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : '';
+
+  const defaultHeaders: Record<string, string> = {
+    'X-Tenant-ID': tenantId,
+  };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  } else {
+    defaultHeaders['x-mock-roles'] = role;
+    defaultHeaders['x-mock-user-id'] = userId || 'u-1';
+    defaultHeaders['x-mock-tenant-id'] = tenantId || 't-1';
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    headers: defaultHeaders,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Download failed: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fallbackFilename;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}

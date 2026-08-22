@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, downloadFile } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import GradeCard from '@/components/GradeCard';
@@ -149,9 +149,20 @@ export default function GradebookPage() {
               {calculating ? 'Calculating...' : 'Recalculate Grades'}
             </button>
             {courseId && (
-              <a href={`${process.env.NEXT_PUBLIC_API_URL || ''}/api/v1/gradebook/${courseId}/export`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center' }}
+                onClick={async () => {
+                  try {
+                    await downloadFile(`/api/v1/gradebook/${courseId}/export`, `gradebook-${courseId}.csv`);
+                  } catch (err: any) {
+                    alert('Export failed: ' + (err.message || 'Error'));
+                  }
+                }}
+              >
                 Export CSV
-              </a>
+              </button>
             )}
           </div>
         )}
