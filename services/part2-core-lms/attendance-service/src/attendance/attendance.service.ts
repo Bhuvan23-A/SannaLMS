@@ -172,6 +172,21 @@ export class AttendanceService {
     });
   }
 
+  // ─── Live Class Auto Attendance ─────────────────────────
+  async checkInByLive(sessionId: string, userId: string, tenantId: string) {
+    const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) throw new Error('Session not found');
+    await this.ensureLive(session);
+    if (!(await this.isEnrolled(userId, session.course_id))) {
+      throw new Error('You are not enrolled in this course.');
+    }
+    return this.prisma.attendanceRecord.upsert({
+      where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+      create: { session_id: sessionId, user_id: userId, tenant_id: tenantId, status: 'PRESENT', method: 'LIVECLASS' },
+      update: { status: 'PRESENT', method: 'LIVECLASS', check_in_at: new Date() }
+    });
+  }
+
   // ─── Reports ─────────────────────────────────────────────
   async getSessionRecords(sessionId: string) {
     return this.prisma.attendanceRecord.findMany({ where: { session_id: sessionId } });

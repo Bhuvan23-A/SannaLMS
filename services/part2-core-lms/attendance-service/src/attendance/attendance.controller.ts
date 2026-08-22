@@ -2,8 +2,6 @@ import { Controller, Post, Get, Body, Req, Param, Query, BadRequestException } f
 import { AttendanceService } from './attendance.service';
 import { Roles } from '../roles.guard';
 
-// Plain Error from services (e.g. "Session not found", "You are 500m away...") should
-// surface as clean 4xx responses instead of generic 500s.
 function asHttpError(err: unknown, fallback = 'Check-in failed'): never {
   if (err instanceof Error && err.message && !err.message.includes('Internal server error')) {
     throw new BadRequestException(err.message);
@@ -15,7 +13,6 @@ function asHttpError(err: unknown, fallback = 'Check-in failed'): never {
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  // Sessions
   @Post('sessions')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   createSession(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
@@ -32,7 +29,6 @@ export class AttendanceController {
     return this.attendanceService.getSessions(String(tenantId), courseId);
   }
 
-  // Start a session — opens attendance for check-in (SCHEDULED -> LIVE)
   @Post('sessions/:id/start')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   async startSession(@Param('id') id: string, @Req() req: Record<string, any>) {
@@ -45,7 +41,6 @@ export class AttendanceController {
     }
   }
 
-  // End a session — closes attendance immediately (LIVE -> ENDED)
   @Post('sessions/:id/end')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   async endSession(@Param('id') id: string, @Req() req: Record<string, any>) {
@@ -58,7 +53,6 @@ export class AttendanceController {
     }
   }
 
-  // Manual marking
   @Post('sessions/:id/mark')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   markManual(
@@ -71,7 +65,6 @@ export class AttendanceController {
     return this.attendanceService.markManual(sessionId, body.user_id, body.status || 'PRESENT', String(tenantId));
   }
 
-  // QR check-in (Student self-check-in)
   @Post('checkin/qr')
   @Roles('STUDENT')
   async checkInQR(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
@@ -85,7 +78,6 @@ export class AttendanceController {
     }
   }
 
-  // GPS check-in (Student self-check-in)
   @Post('checkin/gps')
   @Roles('STUDENT')
   async checkInGPS(@Body() body: Record<string, any>, @Req() req: Record<string, any>) {
@@ -99,7 +91,19 @@ export class AttendanceController {
     }
   }
 
-  // Records
+  @Post('sessions/:id/checkin/live')
+  @Roles('STUDENT')
+  async checkInLive(@Param('id') sessionId: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    const userId = req.user?.id || body.user_id || 'u-1';
+    try {
+      return await this.attendanceService.checkInByLive(sessionId, String(userId), String(tenantId));
+    } catch (err) {
+      return asHttpError(err, 'Live class check-in failed');
+    }
+  }
+
   @Get('sessions/:id/records')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   getRecords(@Param('id') sessionId: string) {
