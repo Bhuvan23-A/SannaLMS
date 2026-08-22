@@ -8,8 +8,7 @@ import CollegeCoursePicker from '@/components/CollegeCoursePicker';
 import { useColleges } from '@/hooks/useColleges';
 
 export default function CertificatesPage() {
-  const { isAdmin, isTrainer, role } = useRole();
-  // People resolver (#fix): pick the student by name, never by UUID
+  const { isAdmin, isTrainer } = useRole();
   const { users: studentUsers } = useUserDirectory();
   const students = studentUsers.filter((u: any) => u.role === 'STUDENT');
   const [certificates, setCertificates] = useState<any[]>([]);
@@ -20,20 +19,12 @@ export default function CertificatesPage() {
   const [issueForm, setIssueForm] = useState({ course_id: 'c-1', user_id: '', course_title: '', student_name: '', grade: 'A', cgpa: 4.0 });
   const [showIssueForm, setShowIssueForm] = useState(false);
   const [flash, setFlash] = useState('');
-  // Certificate template upload per course (#17)
   const [courses, setCourses] = useState<any[]>([]);
   const [templateCourseId, setTemplateCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
-  // Issue-form college filter (super admin) — pick any college's students/courses.
   const [issueCollegeId, setIssueCollegeId] = useState('');
-  // Super admin needs college context to tell colleges' courses/students apart
   const { colleges, activeColleges, isSuperAdmin, collegeNameByTenant } = useColleges();
-  const selectedCollege = colleges.find((c: any) => c.id === collegeId);
-  const visibleStudents = isSuperAdmin && selectedCollege
-    ? students.filter((s: any) => !s.tenant_id || s.tenant_id === selectedCollege.tenant_id)
-    : students;
-  // Issue form: filter by the chosen college, or show every college's students
-  // (with college labels) when "All colleges" is selected (#fix).
+
   const issueCollege = colleges.find((c: any) => c.id === issueCollegeId);
   const issueStudents = isSuperAdmin && issueCollege
     ? students.filter((s: any) => !s.tenant_id || s.tenant_id === issueCollege.tenant_id)
@@ -41,16 +32,19 @@ export default function CertificatesPage() {
   const issueCourses = isSuperAdmin && issueCollege
     ? courses.filter((c: any) => !c.tenant_id || c.tenant_id === issueCollege.tenant_id)
     : courses;
+
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [templateUploading, setTemplateUploading] = useState(false);
   const [templateStatus, setTemplateStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Batch issue state
   const [showBatchForm, setShowBatchForm] = useState(false);
   const [batchCourseId, setBatchCourseId] = useState('');
-  const [batchGrade, setBatchGrade] = useState('A');
-  const [batchCgpa, setBatchCgpa] = useState(4.0);
+  const [batchStudentsList, setBatchStudentsList] = useState<any[]>([]);
+  const [batchLoadingRoster, setBatchLoadingRoster] = useState(false);
+  const [batchSelectedIds, setBatchSelectedIds] = useState<string[]>([]);
   const [batchIssuing, setBatchIssuing] = useState(false);
 
   useEffect(() => {
@@ -65,9 +59,6 @@ export default function CertificatesPage() {
 
   const loadCertificates = async () => {
     try {
-      // No setLoading(true) — the full-page flash unmounts the CollegeCoursePicker
-      // and caused an endless reload blink (#fix).
-      // Admins/trainers see the whole college's certificates; students only their own.
       const endpoint = (isAdmin || isTrainer) ? '/api/v1/certificates' : '/api/v1/certificates/my';
       const d = await fetchApi(endpoint);
       setCertificates(d || []);
@@ -87,8 +78,6 @@ export default function CertificatesPage() {
   const issueCert = async (e: any) => {
     e.preventDefault();
     try {
-      // The certificate belongs to the student's college — pass their tenant_id
-      // so a super-admin-issued cert is visible to the college + the student (#fix).
       const selectedStudent = students.find((s: any) => s.id === issueForm.user_id);
       const body = { ...issueForm, tenant_id: selectedStudent?.tenant_id };
       await fetchApi('/api/v1/certificates/issue', { method: 'POST', body: JSON.stringify(body) });
@@ -129,36 +118,89 @@ export default function CertificatesPage() {
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000); };
 
-  // Batch issue certificates for all enrolled students in a course
-  const batchIssueCerts = async () => {
-    if (!batchCourseId) { alert('Select a course first'); return; }
+  // When a course is selected for batch issuance, fetch enrolled students + their Gradebook calculations
+  const loadBatchRoster = async (courseId: string) => {
+    setBatchCourseId(courseId);
+    if (!courseId) {
+      setBatchStudentsList([]);
+      setBatchSelectedIds([]);
+      return;
+    }
     try {
-      setBatchIssuing(true);
-      // Fetch enrolled students for the selected course
-      const enrollments = await fetchApi(`/api/v1/enrollments/course/${batchCourseId}`);
-      if (!Array.isArray(enrollments) || enrollments.length === 0) {
-        alert('No enrolled students found for this course.');
-        return;
-      }
-      const course = courses.find((c: any) => c.id === batchCourseId);
-      const studentsData = enrollments.map((en: any) => {
+      setBatchLoadingRoster(true);
+      const [enrollments, grades] = await Promise.all([
+        fetchApi(`/api/v1/enrollments/course/${courseId}`).catch(() => []),
+        fetchApi(`/api/v1/gradebook/${courseId}`).catch(() => []),
+      ]);
+
+      const enList = Array.isArray(enrollments) ? enrollments : [];
+      const gradeList = Array.isArray(grades) ? grades : [];
+      const gradeByUserId = Object.fromEntries(gradeList.map((g: any) => [g.user_id, g]));
+
+      const course = courses.find((c: any) => c.id === courseId);
+      const mapped = enList.map((en: any) => {
         const user = students.find((s: any) => s.id === en.user_id) || {};
+        const gEntry = gradeByUserId[en.user_id];
+        const studentName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || en.user_id;
+        
+        // Use real Gradebook grade & CGPA if calculated, else default to A (4.0)
+        const calcGrade = gEntry?.grade || 'A';
+        const calcCgpa = gEntry?.cgpa ? Number(gEntry.cgpa) : (gEntry?.total_score && gEntry?.max_score ? Number(((gEntry.total_score / gEntry.max_score) * 4).toFixed(1)) : 4.0);
+
         return {
-          course_id: batchCourseId,
           user_id: en.user_id,
+          course_id: courseId,
           course_title: course?.title || '',
-          student_name: [user.first_name, user.last_name].filter(Boolean).join(' ') || en.user_id,
-          tenant_id: user.tenant_id || '',
-          grade: batchGrade,
-          cgpa: batchCgpa,
+          student_name: studentName,
+          tenant_id: user.tenant_id || course?.tenant_id || '',
+          grade: calcGrade,
+          cgpa: calcCgpa,
+          is_from_gradebook: Boolean(gEntry),
+          total_score: gEntry?.total_score,
+          max_score: gEntry?.max_score,
         };
       });
+
+      setBatchStudentsList(mapped);
+      setBatchSelectedIds(mapped.map((s: any) => s.user_id));
+    } catch {
+      setBatchStudentsList([]);
+      setBatchSelectedIds([]);
+    } finally {
+      setBatchLoadingRoster(false);
+    }
+  };
+
+  const updateStudentBatchField = (userId: string, field: 'grade' | 'cgpa', value: any) => {
+    setBatchStudentsList(prev => prev.map(s => s.user_id === userId ? { ...s, [field]: value } : s));
+  };
+
+  const toggleSelectAllBatch = () => {
+    if (batchSelectedIds.length === batchStudentsList.length) {
+      setBatchSelectedIds([]);
+    } else {
+      setBatchSelectedIds(batchStudentsList.map((s: any) => s.user_id));
+    }
+  };
+
+  const toggleSelectStudentBatch = (userId: string) => {
+    setBatchSelectedIds(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+  };
+
+  // Batch issue certificates with individualized grades and CGPAs
+  const batchIssueCerts = async () => {
+    if (!batchCourseId) { alert('Select a course first'); return; }
+    const toIssue = batchStudentsList.filter((s: any) => batchSelectedIds.includes(s.user_id));
+    if (toIssue.length === 0) { alert('Select at least one student'); return; }
+
+    try {
+      setBatchIssuing(true);
       const res = await fetchApi('/api/v1/certificates/batch-issue', {
         method: 'POST',
-        body: JSON.stringify({ students: studentsData }),
+        body: JSON.stringify({ students: toIssue }),
       });
       setShowBatchForm(false);
-      showFlash(`✅ Batch complete: ${res.issued} issued, ${res.skipped} skipped.`);
+      showFlash(`✅ Batch complete: ${res.issued} certificates issued with individualized grades and CGPAs (${res.skipped} skipped).`);
       loadCertificates();
     } catch (err: any) {
       alert(err.message || 'Failed to batch issue certificates');
@@ -182,7 +224,7 @@ export default function CertificatesPage() {
 
       {templateStatus && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{templateStatus}</div>}
 
-      {/* Template upload form (#17) */}
+      {/* Template upload form */}
       {showTemplateForm && (
         <form onSubmit={uploadTemplate} className="panel" style={{ marginBottom: '30px' }}>
           <h3 style={{ marginBottom: '20px' }}>Upload Certificate Template / Sample</h3>
@@ -206,34 +248,143 @@ export default function CertificatesPage() {
 
       {flash && <div className="panel" style={{ marginBottom: '20px', borderLeft: '4px solid #00c864', background: 'rgba(0,200,100,0.1)', padding: '15px' }}>{flash}</div>}
 
-      {/* Batch Issue Form */}
+      {/* Enhanced Batch Issue Form with Auto-Gradebook Calculation & Student Preview Table */}
       {showBatchForm && (isAdmin || isTrainer) && (
         <div className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>Batch Issue Certificates</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '15px' }}>Issue certificates to ALL enrolled students in a course at once. Each student gets a unique certificate number.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Course</label>
-              <select required className="input-field" value={batchCourseId} onChange={e => setBatchCourseId(e.target.value)}>
-                <option value="">Select course...</option>
-                {courses.map((c: any) => <option key={c.id} value={c.id}>{isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Grade</label>
-              <select className="input-field" value={batchGrade} onChange={e => setBatchGrade(e.target.value)}>
-                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>CGPA</label>
-              <input type="number" step="0.1" min="0" max="4" className="input-field" value={batchCgpa} onChange={e => setBatchCgpa(parseFloat(e.target.value))} />
-            </div>
+          <h3 style={{ marginBottom: '10px', fontSize: '18px', fontWeight: '600' }}>🎓 Batch Issue Certificates</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
+            Select a course to auto-calculate each enrolled student&apos;s <strong>Grade and CGPA</strong> from the Gradebook. Review and adjust grades individually before issuing.
+          </p>
+
+          <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Select Course</label>
+            <select
+              required
+              className="input-field"
+              value={batchCourseId}
+              onChange={e => loadBatchRoster(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">Choose course to load enrolled students…</option>
+              {courses.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}
+                </option>
+              ))}
+            </select>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button className="btn-primary" disabled={batchIssuing} onClick={batchIssueCerts}>{batchIssuing ? 'Issuing...' : 'Issue to All Students'}</button>
-            <button className="btn-secondary" onClick={() => setShowBatchForm(false)}>Cancel</button>
-          </div>
+
+          {batchLoadingRoster && (
+            <p style={{ color: 'var(--text-secondary)', margin: '20px 0' }}>⏳ Loading enrolled students and calculating Gradebook scores…</p>
+          )}
+
+          {!batchLoadingRoster && batchCourseId && batchStudentsList.length === 0 && (
+            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              No enrolled students found for this course. Enroll students first.
+            </div>
+          )}
+
+          {!batchLoadingRoster && batchStudentsList.length > 0 && (
+            <div style={{ marginTop: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>
+                  👥 Enrolled Students ({batchSelectedIds.length} of {batchStudentsList.length} selected)
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={toggleSelectAllBatch}>
+                    {batchSelectedIds.length === batchStudentsList.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto', border: '1px solid var(--panel-border)', borderRadius: '8px', marginBottom: '20px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid var(--panel-border)' }}>
+                      <th style={{ padding: '10px 15px', width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          checked={batchSelectedIds.length === batchStudentsList.length && batchStudentsList.length > 0}
+                          onChange={toggleSelectAllBatch}
+                        />
+                      </th>
+                      <th style={{ padding: '10px 15px' }}>Student Name</th>
+                      <th style={{ padding: '10px 15px' }}>Gradebook Score</th>
+                      <th style={{ padding: '10px 15px' }}>Grade</th>
+                      <th style={{ padding: '10px 15px' }}>CGPA (0 - 4.0)</th>
+                      <th style={{ padding: '10px 15px' }}>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batchStudentsList.map((stu: any) => {
+                      const isSelected = batchSelectedIds.includes(stu.user_id);
+                      return (
+                        <tr key={stu.user_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: isSelected ? 'rgba(59,130,246,0.04)' : 'transparent' }}>
+                          <td style={{ padding: '10px 15px' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectStudentBatch(stu.user_id)}
+                            />
+                          </td>
+                          <td style={{ padding: '10px 15px', fontWeight: '500' }}>
+                            {stu.student_name}
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{stu.user_id.slice(0, 12)}…</div>
+                          </td>
+                          <td style={{ padding: '10px 15px', color: 'var(--text-secondary)' }}>
+                            {stu.total_score != null ? `${stu.total_score} / ${stu.max_score || 100}` : 'No submissions'}
+                          </td>
+                          <td style={{ padding: '8px 15px' }}>
+                            <select
+                              className="input-field"
+                              style={{ padding: '4px 8px', fontSize: '12px', width: '85px' }}
+                              value={stu.grade}
+                              onChange={e => updateStudentBatchField(stu.user_id, 'grade', e.target.value)}
+                            >
+                              {['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F'].map(g => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px 15px' }}>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="4.0"
+                              className="input-field"
+                              style={{ padding: '4px 8px', fontSize: '12px', width: '80px' }}
+                              value={stu.cgpa}
+                              onChange={e => updateStudentBatchField(stu.user_id, 'cgpa', parseFloat(e.target.value) || 0)}
+                            />
+                          </td>
+                          <td style={{ padding: '10px 15px' }}>
+                            {stu.is_from_gradebook ? (
+                              <span className="badge badge-success" style={{ fontSize: '11px' }}>📊 Gradebook</span>
+                            ) : (
+                              <span className="badge" style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)' }}>Default</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={batchIssuing || batchSelectedIds.length === 0}
+                  onClick={batchIssueCerts}
+                >
+                  {batchIssuing ? 'Issuing Certificates…' : `🎓 Issue ${batchSelectedIds.length} Personalized Certificates`}
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setShowBatchForm(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -264,22 +415,22 @@ export default function CertificatesPage() {
         )}
       </div>
 
-      {/* Issue Certificate Form */}
+      {/* Single Issue Certificate Form */}
       {showIssueForm && (isAdmin || isTrainer) && (
         <form onSubmit={issueCert} className="panel" style={{ marginBottom: '30px' }}>
           <h3 style={{ marginBottom: '20px' }}>Issue New Certificate</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-              {isSuperAdmin && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>College</label>
-                  <select className="input-field" value={issueCollegeId} onChange={e => { setIssueCollegeId(e.target.value); setIssueForm({ ...issueForm, user_id: '', student_name: '' }); }}>
-                    <option value="">All colleges</option>
-                    {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-              )}
+            {isSuperAdmin && (
               <div>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
+                <label style={{ display: 'block', marginBottom: '5px' }}>College</label>
+                <select className="input-field" value={issueCollegeId} onChange={e => { setIssueCollegeId(e.target.value); setIssueForm({ ...issueForm, user_id: '', student_name: '' }); }}>
+                  <option value="">All colleges</option>
+                  {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Student</label>
               <select
                 required
                 className="input-field"
@@ -314,7 +465,7 @@ export default function CertificatesPage() {
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Grade</label>
               <select className="input-field" value={issueForm.grade} onChange={e => setIssueForm({ ...issueForm, grade: e.target.value })}>
-                {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}</option>)}
+                {['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D', 'F'].map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
@@ -329,7 +480,7 @@ export default function CertificatesPage() {
         </form>
       )}
 
-      {/* My Certificates */}
+      {/* All Certificates List */}
       <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>
         {(isAdmin || isTrainer) ? 'All Certificates' : 'My Certificates'}
       </h2>
