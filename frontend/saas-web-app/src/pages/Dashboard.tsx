@@ -8,7 +8,7 @@ import {
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
-  MessageSquare, MessagesSquare, Video
+  MessageSquare, MessagesSquare, Video, Download
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -151,6 +151,42 @@ export const Dashboard: React.FC = () => {
   // --- REAL "MY COURSES" (#fix): students see the courses they are enrolled in,
   // with their real curriculum (modules -> lessons -> topics) from course-service.
   const [playerCourseId, setPlayerCourseId] = useState<string>(courses[0]?.id || '');
+  const [courseResources, setCourseResources] = useState<any[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
+
+  const loadCourseResources = async (cId: string) => {
+    if (!cId) { setCourseResources([]); return; }
+    try {
+      setResourcesLoading(true);
+      const resp = await apiClient.get(`/courses/${cId}/resources`);
+      setCourseResources(Array.isArray(resp.data) ? resp.data : []);
+    } catch {
+      setCourseResources([]);
+    } finally {
+      setResourcesLoading(false);
+    }
+  };
+
+  const downloadResource = async (resId: string, filename: string) => {
+    try {
+      const res = await apiClient.get(`/courses/${playerCourseId}/resources/${resId}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to download file');
+    }
+  };
+
+  useEffect(() => {
+    if (playerCourseId) {
+      loadCourseResources(playerCourseId);
+    }
+  }, [playerCourseId]);
 
   const fetchMyCourses = async () => {
     setCoursesLoading(true);
@@ -1776,6 +1812,68 @@ export const Dashboard: React.FC = () => {
                 <button onClick={() => setActiveTab('tutor')} style={{ marginTop: '1rem', border: 'none', background: 'linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan))', color: '#fff', padding: '0.65rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Sparkles size={16} /> Query AI Tutor on this Lesson
                 </button>
+              </div>
+
+              {/* Course Reference Materials & Documents (#6) */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <FileText size={18} color="var(--accent-cyan)" />
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>Course Reference Materials & Documents</h4>
+                  </div>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {courseResources.length} {courseResources.length === 1 ? 'file' : 'files'} available
+                  </span>
+                </div>
+
+                {resourcesLoading ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Loading reference materials…</p>
+                ) : courseResources.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No reference materials uploaded for this course yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {courseResources.map((res: any) => (
+                      <div
+                        key={res.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '1.2rem' }}>📄</span>
+                          <div>
+                            <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{res.title}</p>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{res.file_name}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => downloadResource(res.id, res.file_name || `${res.title}.pdf`)}
+                          style={{
+                            padding: '0.4rem 0.9rem',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(6,182,212,0.4)',
+                            background: 'rgba(6,182,212,0.1)',
+                            color: 'var(--accent-cyan)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                          }}
+                        >
+                          <Download size={14} /> Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

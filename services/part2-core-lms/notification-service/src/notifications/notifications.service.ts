@@ -202,11 +202,31 @@ export class NotificationsService {
   // "history" panel only returned notifications addressed to the caller, so a
   // super admin who sent a notification never saw it appear anywhere (#fix).
   async getSentHistory(userId: string) {
-    return this.prisma.notification.findMany({
+    const raw = await this.prisma.notification.findMany({
       where: { sender_id: userId },
       orderBy: { created_at: 'desc' },
-      take: 50
+      take: 200,
     });
+
+    const grouped: any[] = [];
+    const seen = new Set<string>();
+
+    for (const n of raw) {
+      const timeBucket = Math.floor(new Date(n.created_at).getTime() / 15000);
+      const key = `${n.title}|${n.body}|${n.type}|${timeBucket}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const matching = raw.filter(m => {
+          const mBucket = Math.floor(new Date(m.created_at).getTime() / 15000);
+          return m.title === n.title && m.body === n.body && m.type === n.type && mBucket === timeBucket;
+        });
+        grouped.push({
+          ...n,
+          recipients_count: matching.length,
+        });
+      }
+    }
+    return grouped.slice(0, 50);
   }
 
   async markAsRead(id: string, userId: string) {

@@ -321,9 +321,14 @@ export default function NotificationsPage() {
                 alignItems: 'center'
               }}>
                 <div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '5px' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '5px', flexWrap: 'wrap' }}>
                     <span className="badge badge-info">{item.type}</span>
                     <strong style={{ fontSize: '16px' }}>{item.title}</strong>
+                    {item.recipients_count && item.recipients_count > 1 && (
+                      <span className="badge badge-success" style={{ fontSize: '12px' }}>
+                        👥 Sent to {item.recipients_count} recipients
+                      </span>
+                    )}
                   </div>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: '5px 0' }}>{item.body}</p>
                   <small style={{ color: '#888' }}>{new Date(item.created_at).toLocaleString()} via {item.channel}</small>

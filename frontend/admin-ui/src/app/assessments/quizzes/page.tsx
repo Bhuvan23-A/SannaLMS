@@ -137,6 +137,10 @@ export default function QuizzesPage() {
 
   const createQuiz = async (e: any) => {
     e.preventDefault();
+    if (!form.question_ids || form.question_ids.length === 0) {
+      alert('⚠️ A quiz must have at least 1 question. Please select or add questions from the question list below before creating the quiz.');
+      return;
+    }
     try {
       const assigned_to = assignType === 'ALL'
         ? { type: 'ALL' }

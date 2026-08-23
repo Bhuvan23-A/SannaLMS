@@ -39,8 +39,15 @@ export default function CertificatesPage() {
   const [templateStatus, setTemplateStatus] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Batch issue state
+  // Departments & Branches for cascading selectors
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+
+  // Batch issue state with cascading filters
   const [showBatchForm, setShowBatchForm] = useState(false);
+  const [batchCollegeId, setBatchCollegeId] = useState('');
+  const [batchDeptId, setBatchDeptId] = useState('');
+  const [batchBranchId, setBatchBranchId] = useState('');
   const [batchCourseId, setBatchCourseId] = useState('');
   const [batchStudentsList, setBatchStudentsList] = useState<any[]>([]);
   const [batchLoadingRoster, setBatchLoadingRoster] = useState(false);
@@ -51,9 +58,15 @@ export default function CertificatesPage() {
     loadCertificates();
     (async () => {
       try {
-        const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data)) setCourses(data);
-      } catch { /* course list unavailable */ }
+        const [courseData, deptData, branchData] = await Promise.all([
+          fetchApi('/api/v1/courses').catch(() => []),
+          fetchApi('/api/v1/departments').catch(() => []),
+          fetchApi('/api/v1/branches').catch(() => []),
+        ]);
+        if (Array.isArray(courseData)) setCourses(courseData);
+        if (Array.isArray(deptData)) setDepartments(deptData);
+        if (Array.isArray(branchData)) setBranches(branchData);
+      } catch { /* lookups unavailable */ }
     })();
   }, []);
 
@@ -256,22 +269,101 @@ export default function CertificatesPage() {
             Select a course to auto-calculate each enrolled student&apos;s <strong>Grade and CGPA</strong> from the Gradebook. Review and adjust grades individually before issuing.
           </p>
 
-          <div style={{ marginBottom: '20px', maxWidth: '400px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Select Course</label>
-            <select
-              required
-              className="input-field"
-              value={batchCourseId}
-              onChange={e => loadBatchRoster(e.target.value)}
-              style={{ width: '100%' }}
-            >
-              <option value="">Choose course to load enrolled students…</option>
-              {courses.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}
-                </option>
-              ))}
-            </select>
+          {/* Cascading Filter Bar */}
+          <div style={{ display: 'grid', gridTemplateColumns: isSuperAdmin ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px', marginBottom: '20px', background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {isSuperAdmin && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>1. College</label>
+                <select
+                  className="input-field"
+                  value={batchCollegeId}
+                  onChange={e => {
+                    setBatchCollegeId(e.target.value);
+                    setBatchDeptId('');
+                    setBatchBranchId('');
+                    setBatchCourseId('');
+                    setBatchStudentsList([]);
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">All Colleges</option>
+                  {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>{isSuperAdmin ? '2. Department' : '1. Department'}</label>
+              <select
+                className="input-field"
+                value={batchDeptId}
+                onChange={e => {
+                  setBatchDeptId(e.target.value);
+                  setBatchBranchId('');
+                  setBatchCourseId('');
+                  setBatchStudentsList([]);
+                }}
+                style={{ width: '100%' }}
+              >
+                <option value="">All Departments</option>
+                {departments
+                  .filter((d: any) => {
+                    const selCol = colleges.find((c: any) => c.id === batchCollegeId);
+                    return !isSuperAdmin || !selCol || !d.tenant_id || d.tenant_id === selCol.tenant_id;
+                  })
+                  .map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>{isSuperAdmin ? '3. Branch' : '2. Branch'}</label>
+              <select
+                className="input-field"
+                value={batchBranchId}
+                onChange={e => {
+                  setBatchBranchId(e.target.value);
+                  setBatchCourseId('');
+                  setBatchStudentsList([]);
+                }}
+                style={{ width: '100%' }}
+              >
+                <option value="">All Branches</option>
+                {branches
+                  .filter((b: any) => {
+                    const selCol = colleges.find((c: any) => c.id === batchCollegeId);
+                    if (isSuperAdmin && selCol && b.tenant_id && b.tenant_id !== selCol.tenant_id) return false;
+                    if (batchDeptId && b.department_id !== batchDeptId) return false;
+                    return true;
+                  })
+                  .map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--primary-color)', fontWeight: '600' }}>{isSuperAdmin ? '4. Select Course' : '3. Select Course'}</label>
+              <select
+                required
+                className="input-field"
+                value={batchCourseId}
+                onChange={e => loadBatchRoster(e.target.value)}
+                style={{ width: '100%', borderColor: 'var(--primary-color)' }}
+              >
+                <option value="">Choose course to load students…</option>
+                {courses
+                  .filter((c: any) => {
+                    const selCol = colleges.find((col: any) => col.id === batchCollegeId);
+                    if (isSuperAdmin && selCol && c.tenant_id && c.tenant_id !== selCol.tenant_id) return false;
+                    if (batchBranchId && c.branch_id && c.branch_id !== batchBranchId) return false;
+                    if (batchDeptId && c.department_id && c.department_id !== batchDeptId) return false;
+                    return true;
+                  })
+                  .map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {isSuperAdmin && collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           {batchLoadingRoster && (

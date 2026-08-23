@@ -6,6 +6,12 @@ export class QuizzesService {
   constructor(private prisma: PrismaService) {}
 
   async createQuiz(data: Record<string, any>, tenantId: string) {
+    const hasQuestionIds = Array.isArray(data.question_ids) && data.question_ids.length > 0;
+    const hasInlineQuestions = Array.isArray(data.questions) && data.questions.length > 0;
+    if (!hasQuestionIds && !hasInlineQuestions) {
+      throw new BadRequestException('A quiz must contain at least one question.');
+    }
+
     const quizData: any = {
       tenant_id: tenantId,
       course_id: data.course_id,

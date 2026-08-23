@@ -1,0 +1,41 @@
+email,first_name,last_name,role,department,branch,year
+zn2026.ai.001@zenith.edu,Reyansh,Kapoor,student,School of Computing & AI,B.Tech AI & Data Science,1
+zn2026.ai.002@zenith.edu,Ananya,Iyer,student,School of Computing & AI,B.Tech AI & Data Science,1
+zn2026.ai.003@zenith.edu,Kabir,Deshmukh,student,School of Computing & AI,B.Tech AI & Data Science,2
+zn2026.ai.004@zenith.edu,Diya,Sengupta,student,School of Computing & AI,B.Tech AI & Data Science,2
+zn2026.it.001@zenith.edu,Aarav,Nambiar,student,School of Computing & AI,B.Tech Information Technology,1
+zn2026.it.002@zenith.edu,Myra,Chawla,student,School of Computing & AI,B.Tech Information Technology,1
+zn2026.it.003@zenith.edu,Ishaan,Bose,student,School of Computing & AI,B.Tech Information Technology,2
+zn2026.it.004@zenith.edu,Saanvi,Mehta,student,School of Computing & AI,B.Tech Information Technology,2
+zn2026.robotics.001@zenith.edu,Advait,Joshi,student,School of Computing & AI,B.Tech Robotics & Automation,1
+zn2026.robotics.002@zenith.edu,Pari,Verma,student,School of Computing & AI,B.Tech Robotics & Automation,1
+zn2026.robotics.003@zenith.edu,Vivaan,Kulkarni,student,School of Computing & AI,B.Tech Robotics & Automation,2
+zn2026.robotics.004@zenith.edu,Avani,Shukla,student,School of Computing & AI,B.Tech Robotics & Automation,2
+zn2026.mba.001@zenith.edu,Ayaan,Malhotra,student,School of Management Studies,MBA Executive,1
+zn2026.mba.002@zenith.edu,Zara,Khan,student,School of Management Studies,MBA Executive,1
+zn2026.mba.003@zenith.edu,Arnav,Shetty,student,School of Management Studies,MBA Executive,2
+zn2026.mba.004@zenith.edu,Tara,Bhat,student,School of Management Studies,MBA Executive,2
+zn2026.dm.001@zenith.edu,Yuvraj,Patil,student,School of Management Studies,BBA Digital Marketing,1
+zn2026.dm.002@zenith.edu,Navya,Rao,student,School of Management Studies,BBA Digital Marketing,1
+zn2026.dm.003@zenith.edu,Rohan,Gupta,student,School of Management Studies,BBA Digital Marketing,2
+zn2026.dm.004@zenith.edu,Anika,Trivedi,student,School of Management Studies,BBA Digital Marketing,2
+zn2026.da.001@zenith.edu,Devansh,Chopra,student,School of Applied Sciences,B.Sc Data Analytics,1
+zn2026.da.002@zenith.edu,Shanaya,Sinha,student,School of Applied Sciences,B.Sc Data Analytics,1
+zn2026.da.003@zenith.edu,Hridaan,Gill,student,School of Applied Sciences,B.Sc Data Analytics,2
+zn2026.da.004@zenith.edu,Kiara,Rastogi,student,School of Applied Sciences,B.Sc Data Analytics,2
+zn2026.cf.001@zenith.edu,Rudra,Das,student,School of Applied Sciences,B.Sc Cyber Forensics,1
+zn2026.cf.002@zenith.edu,Meher,Pandey,student,School of Applied Sciences,B.Sc Cyber Forensics,1
+zn2026.cf.003@zenith.edu,Kian,Nair,student,School of Applied Sciences,B.Sc Cyber Forensics,2
+zn2026.cf.004@zenith.edu,Inaya,Mishra,student,School of Applied Sciences,B.Sc Cyber Forensics,2
+zn2026.ux.001@zenith.edu,Atharv,Saxena,student,School of Design & Media,B.Des UI/UX & Interaction Design,1
+zn2026.ux.002@zenith.edu,Kavya,Menon,student,School of Design & Media,B.Des UI/UX & Interaction Design,1
+zn2026.ux.003@zenith.edu,Vihaan,Chaudhary,student,School of Design & Media,B.Des UI/UX & Interaction Design,2
+zn2026.ux.004@zenith.edu,Prisha,Gowda,student,School of Design & Media,B.Des UI/UX & Interaction Design,2
+zenith.ai.trainer@zenith.edu,Dr. Vikram,Singhania,professor,School of Computing & AI,B.Tech AI & Data Science,
+zenith.mgmt.trainer@zenith.edu,Dr. Priya,Sen,professor,School of Management Studies,MBA Executive,
+zenith.science.trainer@zenith.edu,Dr. Rajesh,Nair,professor,School of Applied Sciences,B.Sc Data Analytics,
+zenith.design.trainer@zenith.edu,Dr. Maya,Krishnan,professor,School of Design & Media,B.Des UI/UX & Interaction Design,
+zenith.ai.ta@zenith.edu,Arjun,Varma,teaching_assistant,School of Computing & AI,B.Tech Information Technology,
+zenith.mgmt.ta@zenith.edu,Sneha,Roy,teaching_assistant,School of Management Studies,BBA Digital Marketing,
+zenith.science.ta@zenith.edu,Karthik,Pillai,teaching_assistant,School of Applied Sciences,B.Sc Cyber Forensics,
+zenith.design.ta@zenith.edu,Tanya,Sen,teaching_assistant,School of Design & Media,B.Des UI/UX & Interaction Design,
