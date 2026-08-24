@@ -45,6 +45,45 @@ export class QuizzesService {
     return quiz;
   }
 
+  async updateQuiz(id: string, data: Record<string, any>, tenantId: string) {
+    const existing = await this.prisma.quiz.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Quiz not found');
+    }
+
+    const quizData: any = {};
+    if (data.title !== undefined) quizData.title = data.title;
+    if (data.description !== undefined) quizData.description = data.description;
+    if (data.duration_mins !== undefined) quizData.duration_mins = data.duration_mins;
+    if (data.is_published !== undefined) quizData.is_published = data.is_published;
+    if (data.course_id !== undefined) quizData.course_id = data.course_id;
+    if (data.start_time !== undefined) quizData.start_time = data.start_time ? new Date(data.start_time) : null;
+    if (data.end_time !== undefined) quizData.end_time = data.end_time ? new Date(data.end_time) : null;
+    if (data.assigned_to !== undefined) {
+      quizData.assigned_to = typeof data.assigned_to === 'string' ? data.assigned_to : JSON.stringify(data.assigned_to);
+    }
+
+    const updated = await this.prisma.quiz.update({
+      where: { id },
+      data: quizData,
+    });
+
+    if (Array.isArray(data.question_ids)) {
+      await this.prisma.quizQuestion.deleteMany({ where: { quiz_id: id } });
+      if (data.question_ids.length > 0) {
+        await this.prisma.quizQuestion.createMany({
+          data: data.question_ids.map((qid: string, index: number) => ({
+            quiz_id: id,
+            question_id: qid,
+            order: index,
+          })),
+        });
+      }
+    }
+
+    return updated;
+  }
+
   // courseIds = the viewer's enrolled course ids (students only). The student
   // frontend passes them explicitly because enrollment lives in course-service;
   // without them a student would see every quiz in the college, including ones

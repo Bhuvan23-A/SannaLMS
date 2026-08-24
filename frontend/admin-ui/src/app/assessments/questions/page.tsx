@@ -38,6 +38,119 @@ export default function QuestionsPage() {
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadSampleTemplate = () => {
+    const csvContent = "Question,Type,Marks,Option A,Option B,Option C,Option D,Correct Option,Explanation\n" +
+      "\"What is the time complexity of binary search?\",MCQ,2,\"O(n)\",\"O(log n)\",\"O(n^2)\",\"O(1)\",\"Option B\",\"Binary search divides the search space in half each step.\"\n" +
+      "\"Explain the difference between Supervised and Unsupervised Learning.\",ESSAY,5,\"\",\"\",\"\",\"\",\"\",\"Supervised learning uses labeled datasets while unsupervised discovers hidden patterns.\"\n" +
+      "\"Python lists are immutable.\",MCQ,1,\"True\",\"False\",\"\",\"\",\"Option B\",\"Python lists are mutable sequences.\"\n";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'questions_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const importFromCsvOrExcel = async (e: any) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImporting(true);
+    setImportMessage(null);
+
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length <= 1) {
+        throw new Error('File is empty or contains only headers.');
+      }
+
+      const tenantId = isSuperAdmin && selectedCollege?.tenant_id ? selectedCollege.tenant_id : undefined;
+      let importedCount = 0;
+
+      // Simple CSV line parser supporting quoted cells
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"' || char === "'") {
+            if (inQuotes && line[i + 1] === char) { cur += char; i++; }
+            else inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(cur.trim());
+            cur = '';
+          } else {
+            cur += char;
+          }
+        }
+        result.push(cur.trim());
+        return result;
+      };
+
+      // Skip header row
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        if (!cols[0]) continue;
+
+        const qTitle = cols[0];
+        const qType = (cols[1] || 'MCQ').toUpperCase().includes('ESSAY') ? 'ESSAY' : 'MCQ';
+        const qMarks = parseInt(cols[2], 10) || 1;
+
+        let qOptions: any[] | undefined = undefined;
+        let answerKey: string | null = null;
+
+        if (qType === 'MCQ') {
+          const optTexts = [cols[3], cols[4], cols[5], cols[6]].filter(Boolean);
+          if (optTexts.length > 0) {
+            const rawAns = (cols[7] || '').toUpperCase();
+            let correctIdx = 0;
+            if (rawAns.includes('B') || rawAns === '2') correctIdx = 1;
+            else if (rawAns.includes('C') || rawAns === '3') correctIdx = 2;
+            else if (rawAns.includes('D') || rawAns === '4') correctIdx = 3;
+
+            qOptions = optTexts.map((txt, idx) => ({
+              id: idx + 1,
+              text: txt,
+              isCorrect: idx === correctIdx
+            }));
+            answerKey = String(correctIdx + 1);
+          }
+        }
+
+        const payload: any = {
+          title: qTitle,
+          content: cols[8] ? `${qTitle}\n\nExplanation: ${cols[8]}` : qTitle,
+          type: qType,
+          marks: qMarks,
+          answer_key: answerKey,
+          options: qOptions,
+          subject_id: subjectId || null,
+          course_id: courseId || 'c-1',
+          department_id: deptId || null,
+          branch_id: branchId || null,
+          semester_id: semId || null,
+        };
+        if (tenantId) payload.tenant_id = tenantId;
+
+        await fetchApi('/api/v1/questions', { method: 'POST', body: JSON.stringify(payload) });
+        importedCount++;
+      }
+
+      setImportMessage({ ok: true, text: `✅ Successfully imported ${importedCount} question(s) from spreadsheet!` });
+      loadQuestions();
+    } catch (err: any) {
+      setImportMessage({ ok: false, text: err.message || 'Failed to import spreadsheet file.' });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   // Load reference data once
   useEffect(() => {
@@ -269,12 +382,19 @@ export default function QuestionsPage() {
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={importFromPdf} />
-          <button className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
-            {importing ? '⏳ Importing...' : '📄 Import from PDF'}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} onClick={downloadSampleTemplate}>
+            📥 CSV/Excel Template
           </button>
-          <button className="btn-primary" onClick={() => setShowForm(!showForm)}>+ Add Question</button>
+          <input ref={csvFileInputRef} type="file" accept=".csv,text/csv,application/vnd.ms-excel,.xlsx" style={{ display: 'none' }} onChange={importFromCsvOrExcel} />
+          <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => csvFileInputRef.current?.click()}>
+            {importing ? '⏳ Importing...' : '📊 Import Excel/CSV'}
+          </button>
+          <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={importFromPdf} />
+          <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => fileInputRef.current?.click()}>
+            {importing ? '⏳ Importing...' : '📄 Import PDF'}
+          </button>
+          <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => setShowForm(!showForm)}>+ Add Question</button>
         </div>
       </div>
 

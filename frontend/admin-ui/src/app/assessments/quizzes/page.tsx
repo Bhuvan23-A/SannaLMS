@@ -22,6 +22,7 @@ export default function QuizzesPage() {
   // so the API returns that college's quizzes (not the empty master).
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', duration_mins: 30, start_time: '', end_time: '', question_ids: [] as string[] });
   // Assign-to targeting (#11): whole course or specific enrolled students
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
@@ -135,10 +136,41 @@ export default function QuizzesPage() {
     setSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
   };
 
-  const createQuiz = async (e: any) => {
+  const openEditModal = (q: any) => {
+    setEditingQuizId(q.id);
+    if (q.course_id) setCourseId(q.course_id);
+    const qIds = (q.questions || []).map((x: any) => x.question_id || x.question?.id).filter(Boolean);
+    setForm({
+      title: q.title || '',
+      description: q.description || '',
+      duration_mins: q.duration_mins || 30,
+      start_time: q.start_time ? new Date(q.start_time).toISOString().slice(0, 16) : '',
+      end_time: q.end_time ? new Date(q.end_time).toISOString().slice(0, 16) : '',
+      question_ids: qIds,
+    });
+    if (q.assigned_to) {
+      let parsed = q.assigned_to;
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { parsed = { type: 'ALL' }; }
+      }
+      if (parsed.type === 'INDIVIDUALS' && Array.isArray(parsed.user_ids)) {
+        setAssignType('INDIVIDUALS');
+        setSelectedStudents(parsed.user_ids);
+      } else {
+        setAssignType('ALL');
+        setSelectedStudents([]);
+      }
+    } else {
+      setAssignType('ALL');
+      setSelectedStudents([]);
+    }
+    setShowForm(true);
+  };
+
+  const saveQuiz = async (e: any) => {
     e.preventDefault();
     if (!form.question_ids || form.question_ids.length === 0) {
-      alert('⚠️ A quiz must have at least 1 question. Please select or add questions from the question list below before creating the quiz.');
+      alert('⚠️ A quiz must have at least 1 question. Please select or add questions from the question list below before saving.');
       return;
     }
     try {
@@ -154,12 +186,19 @@ export default function QuizzesPage() {
       else delete body.end_time;
       const selectedCollege = colleges.find((c: any) => c.id === collegeId);
       if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
-      await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify(body) });
+
+      if (editingQuizId) {
+        await fetchApi(`/api/v1/quizzes/${editingQuizId}`, { method: 'PUT', body: JSON.stringify(body) });
+      } else {
+        await fetchApi('/api/v1/quizzes', { method: 'POST', body: JSON.stringify(body) });
+      }
+
       setShowForm(false);
+      setEditingQuizId(null);
       setForm({ title: '', description: '', duration_mins: 30, start_time: '', end_time: '', question_ids: [] });
       setAssignType('ALL'); setSelectedStudents([]);
       loadData();
-    } catch { alert('Failed to create quiz'); }
+    } catch { alert(editingQuizId ? 'Failed to update quiz' : 'Failed to create quiz'); }
   };
 
   const toggleQuestion = (id: string) => {
@@ -322,8 +361,8 @@ export default function QuizzesPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={createQuiz} className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>New Quiz</h3>
+        <form onSubmit={saveQuiz} className="panel" style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '20px' }}>{editingQuizId ? '✏️ Edit Quiz / Assessment' : 'New Quiz'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Quiz Title</label>
@@ -445,8 +484,8 @@ export default function QuizzesPage() {
             </div>
           )}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" className="btn-primary">Create Quiz</button>
-            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">{editingQuizId ? 'Save Changes' : 'Create Quiz'}</button>
+            <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingQuizId(null); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -468,6 +507,16 @@ export default function QuizzesPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  {(isAdmin || isTrainer) && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '13px', color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                      onClick={() => openEditModal(q)}
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(q.id)}>
                       {submissionsQuizId === q.id ? 'Hide Submissions' : 'View Submissions'}
