@@ -41,6 +41,7 @@ export default function Sidebar() {
     { name: '🎓 Academic Sessions', href: '/academic-sessions' },
     { name: '🗂️ Sections', href: '/sections' },
     { name: '📚 Courses', href: '/courses' },
+    { name: '📎 Reference Materials', href: '/resources' },
     { divider: 'Assessment' },
     { name: '📝 Assessments', href: '/assessments' },
     { name: '📊 Question Bank', href: '/assessments/questions' },
@@ -72,6 +73,7 @@ export default function Sidebar() {
     { name: '🎓 Academic Sessions', href: '/academic-sessions' },
     { name: '🗂️ Sections', href: '/sections' },
     { name: '📚 Courses', href: '/courses' },
+    { name: '📎 Reference Materials', href: '/resources' },
     { divider: 'Assessment' },
     { name: '📝 Assessments', href: '/assessments' },
     { name: '📊 Question Bank', href: '/assessments/questions' },
@@ -95,6 +97,7 @@ export default function Sidebar() {
     { name: '💬 Forums', href: '/forums' },
     { name: '🗨️ Chat', href: '/chat' },
     { name: '📚 Courses', href: '/courses' },
+    { name: '📎 Reference Materials', href: '/resources' },
     { divider: 'Assessment' },
     { name: '🧪 Quizzes', href: '/assessments/quizzes' },
     { name: '📋 Assignments', href: '/assessments/assignments' },
@@ -111,6 +114,7 @@ export default function Sidebar() {
   // certificates or analytics (#fix).
   const trainerLinks = [
     { name: '📚 My Courses', href: '/courses' },
+    { name: '📎 Reference Materials', href: '/resources' },
     { name: '🔔 Notifications', href: '/notifications' },
     { name: '📅 Calendar', href: '/calendar' },
     { name: '💬 Forums', href: '/forums' },

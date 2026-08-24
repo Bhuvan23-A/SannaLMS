@@ -55,6 +55,37 @@ export default function QuestionsPage() {
     document.body.removeChild(link);
   };
 
+  const exportAllQuestions = () => {
+    if (questions.length === 0) {
+      alert('No questions available to export.');
+      return;
+    }
+    let csv = 'Question,Type,Marks,Option A,Option B,Option C,Option D,Correct Option,Explanation\n';
+    questions.forEach((qn: any) => {
+      const title = `"${(qn.title || '').replace(/"/g, '""')}"`;
+      const type = qn.type || 'MCQ';
+      const marks = qn.marks || 1;
+      let opts = ['', '', '', ''];
+      let correct = qn.answer_key || '';
+      if (Array.isArray(qn.options)) {
+        qn.options.forEach((o: any, idx: number) => {
+          if (idx < 4) opts[idx] = `"${(o.text || '').replace(/"/g, '""')}"`;
+          if (o.isCorrect) correct = `Option ${String.fromCharCode(65 + idx)}`;
+        });
+      }
+      const explanation = `"${(qn.content || '').replace(/"/g, '""')}"`;
+      csv += `${title},${type},${marks},${opts[0]},${opts[1]},${opts[2]},${opts[3]},${correct},${explanation}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'question_bank_export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const importFromCsvOrExcel = async (e: any) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -65,7 +96,7 @@ export default function QuestionsPage() {
 
     try {
       const text = await file.text();
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const lines = text.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
       if (lines.length <= 1) {
         throw new Error('File is empty or contains only headers.');
       }
@@ -393,6 +424,9 @@ export default function QuestionsPage() {
           <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={importFromPdf} />
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => fileInputRef.current?.click()}>
             {importing ? '⏳ Importing...' : '📄 Import PDF'}
+          </button>
+          <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} onClick={exportAllQuestions}>
+            📊 Export Questions (CSV)
           </button>
           <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => setShowForm(!showForm)}>+ Add Question</button>
         </div>

@@ -28,6 +28,16 @@ export default function QuizzesPage() {
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
+  // Hierarchy & Batch filtering (#batch-targeting)
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [semesters, setSemesters] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [filterDept, setFilterDept] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [filterSem, setFilterSem] = useState('');
+  const [filterSection, setFilterSection] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
   // Submissions review (#10)
   const [submissionsQuizId, setSubmissionsQuizId] = useState<string | null>(null);
   const [submissionsData, setSubmissionsData] = useState<any[]>([]);
@@ -48,16 +58,56 @@ export default function QuizzesPage() {
   const [submitted, setSubmitted] = useState<any>(null);
 
   // People resolver (#fix): show student names instead of raw Keycloak UUIDs
-  const { nameOf, emailOf } = useUserDirectory();
+  const { users, nameOf, emailOf } = useUserDirectory();
+
+  const exportQuizQuestions = (q: any) => {
+    const qList = (q.questions || []).map((x: any) => x.question).filter(Boolean);
+    if (qList.length === 0) {
+      alert('This quiz has no questions to export.');
+      return;
+    }
+    let csv = 'Question,Type,Marks,Option A,Option B,Option C,Option D,Correct Option,Explanation\n';
+    qList.forEach((qn: any) => {
+      const title = `"${(qn.title || '').replace(/"/g, '""')}"`;
+      const type = qn.type || 'MCQ';
+      const marks = qn.marks || 1;
+      let opts = ['', '', '', ''];
+      let correct = qn.answer_key || '';
+      if (Array.isArray(qn.options)) {
+        qn.options.forEach((o: any, idx: number) => {
+          if (idx < 4) opts[idx] = `"${(o.text || '').replace(/"/g, '""')}"`;
+          if (o.isCorrect) correct = `Option ${String.fromCharCode(65 + idx)}`;
+        });
+      }
+      const explanation = `"${(qn.content || '').replace(/"/g, '""')}"`;
+      csv += `${title},${type},${marks},${opts[0]},${opts[1]},${opts[2]},${opts[3]},${correct},${explanation}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `quiz-${(q.title || 'quiz').replace(/[^a-z0-9]/gi, '_')}-questions.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await fetchApi('/api/v1/courses');
-        if (Array.isArray(data)) setCourses(data);
-      } catch { /* course list unavailable */ }
-      // No courses yet (new college) or API failure — resolve loading so the
-      // page shows an empty state instead of hanging on "Loading..." forever.
+        const [cData, dData, bData, semData, secData] = await Promise.all([
+          fetchApi('/api/v1/courses').catch(() => []),
+          fetchApi('/api/v1/departments').catch(() => []),
+          fetchApi('/api/v1/branches').catch(() => []),
+          fetchApi('/api/v1/semesters').catch(() => []),
+          fetchApi('/api/v1/sections').catch(() => [])
+        ]);
+        if (Array.isArray(cData)) setCourses(cData);
+        if (Array.isArray(dData)) setDepartments(dData);
+        if (Array.isArray(bData)) setBranches(bData);
+        if (Array.isArray(semData)) setSemesters(semData);
+        if (Array.isArray(secData)) setSections(secData);
+      } catch { /* data unavailable */ }
       setLoading(false);
     })();
   }, []);
@@ -390,32 +440,134 @@ export default function QuizzesPage() {
             </div>
           </div>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Assign To</label>
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Assign To</label>
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '12px', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
                 <input type="radio" name="assign-to" checked={assignType === 'ALL'} onChange={() => setAssignType('ALL')} />
                 Whole course (all enrolled students)
               </label>
               <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
                 <input type="radio" name="assign-to" checked={assignType === 'INDIVIDUALS'} onChange={() => setAssignType('INDIVIDUALS')} />
-                Specific students
+                Specific Batch / Semester / Students ({selectedStudents.length} selected)
               </label>
             </div>
-            {assignType === 'INDIVIDUALS' && (
-              <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', marginBottom: '10px' }}>
-                {enrolledStudents.length === 0 ? (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No enrolled students found for this course yet.</p>
-                ) : enrolledStudents.map((en: any) => (
-                  <label key={en.user_id} style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '6px', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={selectedStudents.includes(en.user_id)} onChange={() => toggleStudent(en.user_id)} />
-                    <span style={{ fontSize: '13px' }}>
-                      {nameOf(en.user_id)}
-                      {emailOf(en.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '12px' }}>{emailOf(en.user_id)}</span>}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )}
+            {assignType === 'INDIVIDUALS' && (() => {
+              const currentTenant = isSuperAdmin && selectedCollege?.tenant_id ? selectedCollege.tenant_id : undefined;
+              const allStudents = users.filter((u: any) => {
+                const isStud = String(u.role || '').toUpperCase() === 'STUDENT';
+                if (!isStud) return false;
+                if (currentTenant && u.tenant_id && u.tenant_id !== currentTenant) return false;
+                return true;
+              });
+              const pool = allStudents.length > 0 ? allStudents : enrolledStudents.map((e: any) => ({ id: e.user_id, ...e }));
+
+              const filtered = pool.filter((st: any) => {
+                const uid = st.id || st.user_id;
+                const userObj = users.find((u: any) => u.id === uid) || st;
+                if (filterDept && userObj.department_id && userObj.department_id !== filterDept) return false;
+                if (filterBranch && userObj.branch_id && userObj.branch_id !== filterBranch) return false;
+                if (filterSem && String(userObj.semester_number || userObj.semester_id) !== String(filterSem)) return false;
+                if (filterSection && userObj.section_id && userObj.section_id !== filterSection) return false;
+                if (studentSearch) {
+                  const q = studentSearch.toLowerCase();
+                  const name = `${userObj.first_name || ''} ${userObj.last_name || ''}`.toLowerCase();
+                  const email = (userObj.email || '').toLowerCase();
+                  if (!name.includes(q) && !email.includes(q)) return false;
+                }
+                return true;
+              });
+
+              const selectAllFiltered = () => {
+                const idsToAdd = filtered.map((s: any) => s.id || s.user_id).filter(Boolean);
+                setSelectedStudents(prev => Array.from(new Set([...prev, ...idsToAdd])));
+              };
+
+              const clearFiltered = () => {
+                const idsToRemove = new Set(filtered.map((s: any) => s.id || s.user_id));
+                setSelectedStudents(prev => prev.filter(id => !idsToRemove.has(id)));
+              };
+
+              return (
+                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '14px', marginBottom: '10px' }}>
+                  {/* Filters Header */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Department</label>
+                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                        <option value="">All Departments</option>
+                        {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Branch</label>
+                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
+                        <option value="">All Branches</option>
+                        {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Semester / Batch</label>
+                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
+                        <option value="">All Semesters</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
+                        {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name || `Semester ${s.number}`}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Section</label>
+                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterSection} onChange={e => setFilterSection(e.target.value)}>
+                        <option value="">All Sections</option>
+                        {sections.map((sec: any) => <option key={sec.id} value={sec.id}>{sec.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Search Student</label>
+                      <input className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} placeholder="Name or email..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {/* Quick Select Bar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ fontSize: '13px' }}>
+                      Showing <strong>{filtered.length}</strong> matching students · <span style={{ color: 'var(--primary-color)' }}><strong>{selectedStudents.length}</strong> total assigned</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px' }} onClick={selectAllFiltered}>
+                        ✓ Select All Filtered ({filtered.length})
+                      </button>
+                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
+                        ✕ Deselect Filtered
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Student Checkbox List */}
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px' }}>
+                    {filtered.length === 0 ? (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', padding: '15px' }}>No students match the selected batch / semester filters.</p>
+                    ) : filtered.map((st: any) => {
+                      const uid = st.id || st.user_id;
+                      const userObj = users.find((u: any) => u.id === uid) || st;
+                      const deptName = departments.find((d: any) => d.id === userObj.department_id)?.name;
+                      const semNumber = userObj.semester_number || semesters.find((s: any) => s.id === userObj.semester_id)?.number;
+                      return (
+                        <label key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', background: selectedStudents.includes(uid) ? 'rgba(0,168,255,0.12)' : 'transparent', marginBottom: '2px' }}>
+                          <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px' }}>
+                            <input type="checkbox" checked={selectedStudents.includes(uid)} onChange={() => toggleStudent(uid)} />
+                            <strong>{nameOf(uid)}</strong>
+                            {emailOf(uid) && <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({emailOf(uid)})</span>}
+                          </span>
+                          <span style={{ display: 'flex', gap: '6px', fontSize: '11px' }}>
+                            {deptName && <span className="badge badge-secondary">{deptName}</span>}
+                            {semNumber && <span className="badge badge-info">Sem {semNumber}</span>}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -518,6 +670,16 @@ export default function QuizzesPage() {
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '13px' }}
+                      onClick={() => exportQuizQuestions(q)}
+                    >
+                      📊 Export Questions (CSV)
+                    </button>
+                  )}
+                  {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(q.id)}>
                       {submissionsQuizId === q.id ? 'Hide Submissions' : 'View Submissions'}
                     </button>
@@ -535,7 +697,7 @@ export default function QuizzesPage() {
                         }
                       }}
                     >
-                      Export CSV
+                      Export Submissions (CSV)
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
