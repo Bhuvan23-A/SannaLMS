@@ -24,6 +24,28 @@ export class AssignmentsService {
     });
   }
 
+  async updateAssignment(id: string, data: Record<string, any>, tenantId: string) {
+    const existing = await this.prisma.assignment.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.due_date !== undefined) updateData.due_date = data.due_date ? new Date(data.due_date) : null;
+    if (data.max_marks !== undefined) updateData.max_marks = Number(data.max_marks) || 100;
+    if (data.course_id !== undefined) updateData.course_id = data.course_id;
+    if (data.assigned_to !== undefined) {
+      updateData.assigned_to = typeof data.assigned_to === 'string' ? data.assigned_to : JSON.stringify(data.assigned_to);
+    }
+
+    return this.prisma.assignment.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
   // courseIds = the student's enrolled course ids (passed by the student
   // frontend, since enrollment lives in course-service). Students must only
   // see assignments for courses they are enrolled in (#scoping).

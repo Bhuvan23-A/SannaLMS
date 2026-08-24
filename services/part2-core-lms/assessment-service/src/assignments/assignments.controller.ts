@@ -51,6 +51,14 @@ export class AssignmentsController {
     return this.assignmentsService.createAssignment(body, String(tenantId));
   }
 
+  @Put(':id')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
+  update(@Param('id') id: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {
+    const isSuperAdmin = req.user?.roles?.includes('superadmin');
+    const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
+    return this.assignmentsService.updateAssignment(id, body, String(tenantId));
+  }
+
   @Get()
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   findAll(@Query('course_id') courseId: string, @Query('course_ids') courseIds: string, @Query('tenant_id') tenantParam: string, @Req() req: Record<string, any>) {

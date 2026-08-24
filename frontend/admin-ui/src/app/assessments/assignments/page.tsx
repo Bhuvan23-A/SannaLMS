@@ -22,6 +22,7 @@ export default function AssignmentsPage() {
   // so the API returns that college's assignments (not the empty master).
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', due_date: '', max_marks: 100 });
   // Assign-to targeting (#12): whole course or specific enrolled students
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
@@ -78,65 +79,66 @@ export default function AssignmentsPage() {
   };
 
   const openCreateForm = async () => {
-    setShowForm(!showForm);
-    if (!showForm) {
+    setEditingAssignmentId(null);
+    setForm({ title: '', description: '', due_date: '', max_marks: 100 });
+    setAssignType('ALL');
+    setSelectedStudents([]);
+    setShowForm(true);
+    loadEnrolledStudents();
+  };
+
+  const openEditModal = (a: any) => {
+    setEditingAssignmentId(a.id);
+    if (a.course_id) setCourseId(a.course_id);
+    setForm({
+      title: a.title || '',
+      description: a.description || '',
+      due_date: a.due_date ? new Date(a.due_date).toISOString().slice(0, 16) : '',
+      max_marks: a.max_marks || 100,
+    });
+    if (a.assigned_to) {
+      let parsed = a.assigned_to;
+      if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { parsed = { type: 'ALL' }; }
+      }
+      if (parsed.type === 'INDIVIDUALS' && Array.isArray(parsed.user_ids)) {
+        setAssignType('INDIVIDUALS');
+        setSelectedStudents(parsed.user_ids);
+      } else {
+        setAssignType('ALL');
+        setSelectedStudents([]);
+      }
+    } else {
       setAssignType('ALL');
       setSelectedStudents([]);
-      loadEnrolledStudents();
     }
+    setShowForm(true);
+    loadEnrolledStudents();
   };
 
-  const loadSubmissions = async (assignmentId: string) => {
-    if (submissionsAssignmentId === assignmentId) { setSubmissionsAssignmentId(null); return; }
-    setSubmissionsAssignmentId(assignmentId);
-    setSubmissionsLoading(true);
-    try {
-      const d = await fetchApi(`/api/v1/assignments/${assignmentId}/submissions`);
-      setSubmissionsData(Array.isArray(d) ? d : []);
-    } catch { setSubmissionsData([]); } finally { setSubmissionsLoading(false); }
-  };
-
-  const toggleStudent = (uid: string) => {
-    setSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
-  };
-
-  // Feedback per submission (#grading) — the trainer's written remarks are
-  // stored on the submission and shown back to the student with their score.
-  const [feedbackInputs, setFeedbackInputs] = useState<Record<string, string>>({});
-
-  const gradeSubmission = async (submissionId: string, maxMarks: number) => {
-    const score = parseFloat(gradeInputs[submissionId]);
-    if (isNaN(score) || score < 0) { alert('Enter a valid score'); return; }
-    if (score > maxMarks) { alert(`Score cannot exceed ${maxMarks}`); return; }
-    try {
-      await fetchApi(`/api/v1/assignments/submissions/${submissionId}/grade`, {
-        method: 'PUT',
-        body: JSON.stringify({ score, feedback: feedbackInputs[submissionId] || '' })
-      });
-      alert('✅ Grade saved');
-      loadSubmissions(submissionsAssignmentId || submissionId);
-    } catch (err: any) { alert(err.message || 'Failed to grade'); }
-  };
-
-  const createAssignment = async (e: any) => {
+  const saveAssignment = async (e: any) => {
     e.preventDefault();
     try {
-      // datetime-local gives "2026-08-10T12:00" (no timezone) — convert to ISO
-      // with timezone so the backend's new Date() parses it correctly.
       const due_date = form.due_date ? new Date(form.due_date).toISOString() : null;
       const assigned_to = assignType === 'ALL'
         ? { type: 'ALL' }
         : { type: 'INDIVIDUALS', user_ids: selectedStudents };
-      // Super admin: scope the assignment to the selected college's tenant so
-      // the college's students actually see it (otherwise it lands in 'master').
       const body: any = { ...form, due_date, course_id: courseId, assigned_to };
       const selectedCollege = colleges.find((c: any) => c.id === collegeId);
       if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
-      await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify(body) });
-      setShowForm(false); setForm({ title: '', description: '', due_date: '', max_marks: 100 });
+
+      if (editingAssignmentId) {
+        await fetchApi(`/api/v1/assignments/${editingAssignmentId}`, { method: 'PUT', body: JSON.stringify(body) });
+      } else {
+        await fetchApi('/api/v1/assignments', { method: 'POST', body: JSON.stringify(body) });
+      }
+
+      setShowForm(false);
+      setEditingAssignmentId(null);
+      setForm({ title: '', description: '', due_date: '', max_marks: 100 });
       setAssignType('ALL'); setSelectedStudents([]);
       loadAssignments();
-    } catch { alert('Failed to create assignment'); }
+    } catch { alert(editingAssignmentId ? 'Failed to update assignment' : 'Failed to create assignment'); }
   };
 
   // Delete an assignment (#fix): a wrongly-created assignment can be removed;
@@ -180,8 +182,8 @@ export default function AssignmentsPage() {
       {submitted && <div className="panel" style={{ marginBottom: '20px', background: 'rgba(0,200,100,0.1)', borderLeft: '4px solid #00c864', padding: '15px' }}>✅ Assignment submitted successfully!</div>}
 
       {showForm && (
-        <form onSubmit={createAssignment} className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>New Assignment</h3>
+        <form onSubmit={saveAssignment} className="panel" style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '20px' }}>{editingAssignmentId ? '✏️ Edit Assignment' : 'New Assignment'}</h3>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Title</label>
             <input required className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
@@ -229,8 +231,8 @@ export default function AssignmentsPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" className="btn-primary">Create Assignment</button>
-            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="btn-primary">{editingAssignmentId ? 'Save Changes' : 'Create Assignment'}</button>
+            <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingAssignmentId(null); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -273,6 +275,16 @@ export default function AssignmentsPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  {(isAdmin || isTrainer) && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '13px', color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                      onClick={() => openEditModal(a)}
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(a.id)}>
                       {submissionsAssignmentId === a.id ? 'Hide Submissions' : '📊 View Submissions'}
