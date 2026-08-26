@@ -13,7 +13,9 @@
    * `🌐 All (Staff & Students)`: Publicly viewable and downloadable by everyone enrolled.
    * `🎓 Students Only`: Dedicated learning handouts and study guides.
    * `🔒 Faculty Only (Staff)`: Hidden from students; reserved for faculty rubrics and solution keys.
-4. **1-Click Download**: Direct token-authenticated download.
+4. **Batch & Semester Targeting**:
+   * Choose **`🌐 All Batches`** or **`🎓 Specific Batch / Semester`** (Semester 1–8, Department, Branch, and Section) when uploading documents.
+   * Batch badges on all material cards and quick filters by Semester/Department.
 
 ---
 
@@ -44,11 +46,6 @@ When creating or editing a quiz or assignment:
 3. **Exporting Quiz Submissions**:
    * Click **`Export Submissions (CSV)`** to download student test marks, completion times, and integrity/tab-switch violation flags.
 
-### Importing Questions (Excel, CSV, and PDF)
-* **`📥 CSV/Excel Template`**: Download pre-formatted spreadsheet template.
-* **`📊 Import Excel/CSV`**: Upload filled spreadsheet to batch-insert questions.
-* **`📄 Import PDF`**: Auto-extract questions from question paper PDFs.
-
 ---
 
 ## 4. Editing Assessments & Timing Changes
@@ -61,16 +58,25 @@ When creating or editing a quiz or assignment:
    * Modifies: **Title, Description, Due Date/Time, Max Marks, and Assigned Students**.
 3. **Question Bank** (`/assessments/questions`):
    * Every question card features a **`✏️ Edit`** button.
-   * Modifies: **Title, Options, Correct Answer, Explanation, Marks, and Diagrams**.
 
 ---
 
-## 5. WordPress Deployment & Site Migration: `edulateral.com`
+## 5. Multi-Site WordPress Hosting on Production Server (`195.35.21.204`)
 
-* **Server IP**: `195.35.21.204` (Hostinger Mumbai)
+### Site 1: `jyothifabtechnology.com` (LIVE & SECURE)
+* **Domain**: `https://jyothifabtechnology.com` and `https://www.jyothifabtechnology.com`
+* **Status**: **100% Live on New Server with Let's Encrypt SSL (`HTTP 200 OK`)**
+* **Directory on Server**: `/var/www/sites/jyothifab/`
+* **Internal Port**: `8096`
+* **Database**: MariaDB 10.11 (`jyothifab-mariadb`, database `jyothifab_wp`)
+* **Theme**: `Hello Elementor`
+* **Plugins**: `Elementor`, `Elementor Pro`, `ElementsKit`, `Header Footer Elementor`, `Click to Chat for WhatsApp`, `TablePress`
+* **SSL Certificate**: Let's Encrypt (auto-renews via Certbot)
+
+### Site 2: `edulateral.com` (READY ON SERVER — PENDING DNS)
+* **Domain**: `https://edulateral.com`
 * **Directory on Server**: `/var/www/sites/edulateral/`
-* **Internal Port**: `8095` (Mapped to host `http://127.0.0.1:8095`)
+* **Internal Port**: `8095`
 * **Database**: MariaDB 10.11 (`edulateral-mariadb`)
 * **Backup File**: `/var/www/sites/edulateral/wp_data/wp-content/ai1wm-backups/edulateral_backup.wpress` (1.68 GB)
-* **DNS Setting Required**:
-  - In **GoDaddy / Hostinger Domains**: Set A-record `@` $\rightarrow$ `195.35.21.204` and `www` $\rightarrow$ `195.35.21.204`. (Remove default parking A & AAAA records).
+* **DNS Requirement**: Set A-record `@` $\rightarrow$ `195.35.21.204` and `www` $\rightarrow$ `195.35.21.204` in GoDaddy/Hostinger.
