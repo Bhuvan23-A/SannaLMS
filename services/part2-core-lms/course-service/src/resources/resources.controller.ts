@@ -40,10 +40,20 @@ export class ResourcesController {
     @Body() body: Record<string, any>,
     @Req() req: any
   ) {
-    if (!file) throw new BadRequestException('No file uploaded. Use multipart field "file".');
+    if (!file && !body.link_url) {
+      throw new BadRequestException('Please upload a file or provide a Google Drive / resource link.');
+    }
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.resourcesService.createResource(courseId, String(tenantId), file, body.title, body.visibility, body.assigned_to);
+    return this.resourcesService.createResource(
+      courseId,
+      String(tenantId),
+      file,
+      body.title,
+      body.visibility,
+      body.assigned_to,
+      body.link_url
+    );
   }
 
   @Get()
@@ -51,13 +61,17 @@ export class ResourcesController {
   list(@Param('courseId') courseId: string, @Req() req: any) {
     const roles = (req.user?.roles || []).map((r: string) => r.toUpperCase());
     const isStudent = roles.includes('STUDENT');
-    return this.resourcesService.listResources(courseId, isStudent);
+    const userId = req.user?.id || '';
+    return this.resourcesService.listResources(courseId, isStudent, userId);
   }
 
   @Get(':id/download')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   async download(@Param('id') id: string, @Res() res: any) {
     const resource = await this.resourcesService.getResource(id);
+    if (resource.link_url || resource.content_type === 'link' || resource.file_path?.startsWith('http')) {
+      return res.redirect(resource.link_url || resource.file_path);
+    }
     if (!existsSync(resource.file_path)) {
       throw new BadRequestException('File not found on disk');
     }

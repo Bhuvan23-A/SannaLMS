@@ -8,7 +8,7 @@ import {
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
-  MessageSquare, MessagesSquare, Video, Download
+  MessageSquare, MessagesSquare, Video, Download, ExternalLink
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -1832,46 +1832,72 @@ export const Dashboard: React.FC = () => {
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No reference materials uploaded for this course yet.</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                    {courseResources.map((res: any) => (
-                      <div
-                        key={res.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '0.75rem 1rem',
-                          borderRadius: '8px',
-                          background: 'rgba(255,255,255,0.02)',
-                          border: '1px solid rgba(255,255,255,0.05)',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
-                          <span style={{ fontSize: '1.2rem' }}>📄</span>
-                          <div>
-                            <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{res.title}</p>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{res.file_name}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => downloadResource(res.id, res.file_name || `${res.title}.pdf`)}
+                    {courseResources.map((res: any) => {
+                      const isLink = Boolean(res.link_url || res.content_type === 'link' || res.file_path?.startsWith('http'));
+                      return (
+                        <div
+                          key={res.id}
                           style={{
-                            padding: '0.4rem 0.9rem',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(6,182,212,0.4)',
-                            background: 'rgba(6,182,212,0.1)',
-                            color: 'var(--accent-cyan)',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
                             display: 'flex',
+                            justifyContent: 'space-between',
                             alignItems: 'center',
-                            gap: '0.4rem',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.05)',
                           }}
                         >
-                          <Download size={14} /> Download
-                        </button>
-                      </div>
-                    ))}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '1.2rem' }}>{isLink ? '🔗' : '📄'}</span>
+                            <div>
+                              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{res.title}</p>
+                              <span style={{ fontSize: '0.75rem', color: isLink ? '#10b981' : 'var(--text-secondary)' }}>
+                                {isLink ? 'Google Drive / Cloud Resource' : res.file_name}
+                              </span>
+                            </div>
+                          </div>
+                          {isLink ? (
+                            <button
+                              onClick={() => window.open(res.link_url || res.file_path, '_blank', 'noopener,noreferrer')}
+                              style={{
+                                padding: '0.4rem 0.9rem',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(16,185,129,0.4)',
+                                background: 'rgba(16,185,129,0.1)',
+                                color: '#10b981',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <ExternalLink size={14} /> Open Link
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => downloadResource(res.id, res.file_name || `${res.title}.pdf`)}
+                              style={{
+                                padding: '0.4rem 0.9rem',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(6,182,212,0.4)',
+                                background: 'rgba(6,182,212,0.1)',
+                                color: 'var(--accent-cyan)',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                              }}
+                            >
+                              <Download size={14} /> Download
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
