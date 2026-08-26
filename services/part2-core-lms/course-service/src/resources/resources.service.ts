@@ -5,8 +5,9 @@ import { PrismaService } from '../prisma.service';
 export class ResourcesService {
   constructor(private prisma: PrismaService) {}
 
-  async createResource(courseId: string, tenantId: string, file: Express.Multer.File, title?: string, visibility?: string) {
+  async createResource(courseId: string, tenantId: string, file: Express.Multer.File, title?: string, visibility?: string, assignedTo?: any) {
     if (!file) throw new NotFoundException('No file uploaded');
+    const assignedToString = assignedTo ? (typeof assignedTo === 'object' ? JSON.stringify(assignedTo) : String(assignedTo)) : null;
     return this.prisma.courseResource.create({
       data: {
         tenant_id: tenantId,
@@ -17,6 +18,7 @@ export class ResourcesService {
         file_size: file.size,
         content_type: file.mimetype,
         visibility: visibility || 'ALL',
+        assigned_to: assignedToString,
       },
     });
   }

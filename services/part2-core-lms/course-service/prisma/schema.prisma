@@ -149,6 +149,8 @@ model CourseResource {
   file_size    Int      @default(0)
   content_type String?
   visibility   String   @default("ALL") // ALL, STUDENT_ONLY, STAFF_ONLY
+  assigned_to  String?  // JSON or string metadata for batch/semester targeting
+  link_url     String?
   created_at   DateTime @default(now())
 
   course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)

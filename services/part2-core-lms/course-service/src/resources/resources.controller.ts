@@ -43,7 +43,7 @@ export class ResourcesController {
     if (!file) throw new BadRequestException('No file uploaded. Use multipart field "file".');
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? 'master' : (req.user?.tenantId || 'test-tenant');
-    return this.resourcesService.createResource(courseId, String(tenantId), file, body.title, body.visibility);
+    return this.resourcesService.createResource(courseId, String(tenantId), file, body.title, body.visibility, body.assigned_to);
   }
 
   @Get()

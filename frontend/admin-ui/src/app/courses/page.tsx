@@ -108,11 +108,18 @@ export default function CoursesPage() {
     }
   };
 
+  const [resourceBatchType, setResourceBatchType] = useState<'ALL' | 'BATCH'>('ALL');
+  const [resourceSem, setResourceSem] = useState('');
+  const [resourceDept, setResourceDept] = useState('');
+
   const openResources = async (course: any) => {
     setResourcesCourse(course);
     setResourcesList([]);
     setResourceTitle('');
     setResourceFile(null);
+    setResourceBatchType('ALL');
+    setResourceSem('');
+    setResourceDept('');
     if (resourceFileRef.current) resourceFileRef.current.value = '';
     try {
       const d = await fetchApi(`/api/v1/courses/${course.id}/resources`);
@@ -128,9 +135,17 @@ export default function CoursesPage() {
       const formData = new FormData();
       formData.append('file', resourceFile);
       if (resourceTitle.trim()) formData.append('title', resourceTitle.trim());
+      const assigned_to = resourceBatchType === 'ALL'
+        ? JSON.stringify({ type: 'ALL' })
+        : JSON.stringify({ type: 'BATCH', semester: resourceSem || undefined, department_id: resourceDept || undefined });
+      formData.append('assigned_to', assigned_to);
+
       await fetchApi(`/api/v1/courses/${resourcesCourse.id}/resources`, { method: 'POST', body: formData });
       setResourceTitle('');
       setResourceFile(null);
+      setResourceBatchType('ALL');
+      setResourceSem('');
+      setResourceDept('');
       if (resourceFileRef.current) resourceFileRef.current.value = '';
       openResources(resourcesCourse);
     } catch (err: any) { alert(err.message || 'Failed to upload resource'); } finally { setResourceUploading(false); }
@@ -541,7 +556,34 @@ export default function CoursesPage() {
               <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setResourcesCourse(null)}>✕ Close</button>
             </div>
             <form onSubmit={uploadResource} style={{ marginBottom: '16px' }}>
-              <input className="input-field" placeholder="Title (optional)" style={{ marginBottom: '8px' }} value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} />
+              <input className="input-field" placeholder="Title (e.g. Unit 1 Reference Material)" style={{ marginBottom: '8px' }} value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} />
+              
+              {/* Batch selection */}
+              <div style={{ marginBottom: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '10px' }}>
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '8px' }}>
+                  <label style={{ display: 'flex', gap: '5px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
+                    <input type="radio" name="res-batch" checked={resourceBatchType === 'ALL'} onChange={() => setResourceBatchType('ALL')} />
+                    🌐 All Batches
+                  </label>
+                  <label style={{ display: 'flex', gap: '5px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
+                    <input type="radio" name="res-batch" checked={resourceBatchType === 'BATCH'} onChange={() => setResourceBatchType('BATCH')} />
+                    🎓 Specific Batch / Semester
+                  </label>
+                </div>
+                {resourceBatchType === 'BATCH' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <select className="input-field" style={{ padding: '5px 8px', fontSize: '12px' }} value={resourceSem} onChange={e => setResourceSem(e.target.value)}>
+                      <option value="">Choose Semester…</option>
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
+                    </select>
+                    <select className="input-field" style={{ padding: '5px 8px', fontSize: '12px' }} value={resourceDept} onChange={e => setResourceDept(e.target.value)}>
+                      <option value="">All Departments</option>
+                      {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input ref={resourceFileRef} type="file" className="input-field" style={{ flex: 1 }} onChange={e => setResourceFile(e.target.files?.[0] || null)} />
                 <button type="submit" className="btn-primary" disabled={resourceUploading}>{resourceUploading ? 'Uploading...' : 'Upload'}</button>
@@ -551,15 +593,33 @@ export default function CoursesPage() {
               <p style={{ color: 'var(--text-secondary)' }}>No resources yet. Upload a PDF or document above.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {resourcesList.map((r: any) => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{r.file_name} · {Math.round(r.file_size / 1024)} KB</div>
+                {resourcesList.map((r: any) => {
+                  let parsedBatch: any = null;
+                  if (r.assigned_to) {
+                    try { parsedBatch = typeof r.assigned_to === 'string' ? JSON.parse(r.assigned_to) : r.assigned_to; } catch {}
+                  }
+
+                  return (
+                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                          {parsedBatch && parsedBatch.type === 'BATCH' ? (
+                            <span className="badge" style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>
+                              🎓 {parsedBatch.semester ? `Sem ${parsedBatch.semester}` : 'Batch'}
+                            </span>
+                          ) : (
+                            <span className="badge" style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
+                              🌐 All Batches
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{r.file_name} · {Math.round(r.file_size / 1024)} KB</div>
+                      </div>
+                      <button className="btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteResource(r.id)}>Delete</button>
                     </div>
-                    <button className="btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteResource(r.id)}>Delete</button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
