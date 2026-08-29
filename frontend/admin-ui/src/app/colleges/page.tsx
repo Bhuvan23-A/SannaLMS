@@ -64,7 +64,7 @@ export default function CollegesPage() {
         body: JSON.stringify({ name: editName, subdomain: editSubdomain }),
       });
       setEditing(null);
-      showFlash('✅ College updated');
+      showFlash('College updated');
       loadColleges();
     } catch (err: any) {
       setEditError(err.message);
@@ -78,7 +78,7 @@ export default function CollegesPage() {
     try {
       setBusy(college.id);
       await fetchApi(`/api/v1/colleges/${college.id}/hold`, { method: 'POST' });
-      showFlash(`⏸ "${college.name}" held — all logins blocked, data kept`);
+      showFlash(` "${college.name}" held — all logins blocked, data kept`);
       loadColleges();
     } catch (err: any) {
       alert(err.message || 'Failed to hold college');
@@ -92,7 +92,7 @@ export default function CollegesPage() {
     try {
       setBusy(college.id);
       await fetchApi(`/api/v1/colleges/${college.id}/restore`, { method: 'POST' });
-      showFlash(`✅ "${college.name}" restored`);
+      showFlash(`"${college.name}" restored`);
       loadColleges();
     } catch (err: any) {
       alert(err.message || 'Failed to restore college');
@@ -102,13 +102,13 @@ export default function CollegesPage() {
   };
 
   const deleteCollegeForever = async (college: any) => {
-    if (!window.confirm(`⚠️ PERMANENTLY DELETE "${college.name}"?\n\nThis deletes the college, ALL its data (departments, branches, semesters, courses, students, grades, attendance, question banks, notifications) and permanently removes every user account.\n\nThis CANNOT be undone. Type the college name to confirm:\n\n"${college.name}"`)) return;
+    if (!window.confirm(`PERMANENTLY DELETE "${college.name}"?\n\nThis deletes the college, ALL its data (departments, branches, semesters, courses, students, grades, attendance, question banks, notifications) and permanently removes every user account.\n\nThis CANNOT be undone. Type the college name to confirm:\n\n"${college.name}"`)) return;
     const typed = window.prompt(`Type "${college.name}" to confirm permanent deletion:`);
     if (typed !== college.name) { alert('Deletion cancelled — name did not match.'); return; }
     try {
       setBusy(college.id);
       await fetchApi(`/api/v1/colleges/${college.id}`, { method: 'DELETE' });
-      showFlash(`🗑 "${college.name}" permanently deleted`);
+      showFlash(`"${college.name}" permanently deleted`);
       loadColleges();
     } catch (err: any) {
       alert(err.message || 'Failed to delete college');
@@ -206,7 +206,7 @@ export default function CollegesPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                     {college.name}{" "}
                     {held ? (
-                      <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>⏸ ON HOLD</span>
+                      <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}> ON HOLD</span>
                     ) : (
                       <span style={{ background: 'rgba(0,200,100,0.12)', color: '#00c864', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600 }}>● ACTIVE</span>
                     )}
@@ -223,26 +223,26 @@ export default function CollegesPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {held ? (
                       <>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => restoreCollege(college)} disabled={isBusy}>✅ Restore</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => restoreCollege(college)} disabled={isBusy}>Restore</button>
                         <button
                           className="btn-secondary"
                           style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
                           onClick={() => deleteCollegeForever(college)}
                           disabled={isBusy}
-                        >🗑 Delete Forever</button>
+                        >Delete Forever</button>
                       </>
                     ) : (
                       <>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>✏️ Edit</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>👤 Admin</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>🔑 Reset Pwd</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => holdCollege(college)} disabled={isBusy}>⏸ Hold</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>Edit</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>Admin</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>Reset Pwd</button>
+                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => holdCollege(college)} disabled={isBusy}> Hold</button>
                         <button
                           className="btn-secondary"
                           style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
                           onClick={() => deleteCollegeForever(college)}
                           disabled={isBusy}
-                        >🗑 Delete Forever</button>
+                        >Delete Forever</button>
                       </>
                     )}
                   </td>
@@ -274,8 +274,8 @@ export default function CollegesPage() {
         }}>
           <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>👤 College Admin Access</h2>
-              <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <h2 style={{ margin: 0 }}>College Admin Access</h2>
+              <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}></button>
             </div>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               College: <strong>{assignAdminCollege.name}</strong>
@@ -285,7 +285,7 @@ export default function CollegesPage() {
             )}
             {assignAdminResult ? (
               <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', marginBottom: '8px' }}>✅ Admin created / linked. Share these credentials with the college admin:</div>
+                <div style={{ fontSize: '14px', marginBottom: '8px' }}>Admin created / linked. Share these credentials with the college admin:</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{assignAdminResult.admin_username}</strong>
                 </div>
@@ -320,8 +320,8 @@ export default function CollegesPage() {
         }}>
           <div className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>🔑 Reset Admin Password</h2>
-              <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <h2 style={{ margin: 0 }}>Reset Admin Password</h2>
+              <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}></button>
             </div>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               College: <strong>{resetPasswordCollege.name}</strong>
@@ -331,7 +331,7 @@ export default function CollegesPage() {
             )}
             {resetPasswordResult ? (
               <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', marginBottom: '8px' }}>✅ Password reset. Share these credentials with the college admin:</div>
+                <div style={{ fontSize: '14px', marginBottom: '8px' }}>Password reset. Share these credentials with the college admin:</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{resetPasswordResult.admin_username}</strong>
                 </div>
@@ -363,8 +363,8 @@ export default function CollegesPage() {
             background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>✏️ Edit College</h2>
-              <button type="button" onClick={() => setEditing(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <h2 style={{ margin: 0 }}>Edit College</h2>
+              <button type="button" onClick={() => setEditing(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}></button>
             </div>
             {editError && (
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>

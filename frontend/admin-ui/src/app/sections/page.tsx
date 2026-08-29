@@ -117,7 +117,7 @@ export default function SectionsPage() {
       });
       setSelectedStudents([]);
       await openRoster(rosterSection);
-      alert(`✅ ${res.memberships} added to roster · ${res.enrollments} auto-enrolled in offerings`);
+      alert(`${res.memberships} added to roster · ${res.enrollments} auto-enrolled in offerings`);
     } catch (err: any) { alert(err.message || 'Failed'); } finally { setRosterBusy(false); }
   };
 
@@ -180,7 +180,7 @@ export default function SectionsPage() {
           to_section_id: promoteTarget.to.id,
         }),
       });
-      alert(`✅ Promoted ${res.student_count} students — ${res.enrollments_created} new enrollments created.`);
+      alert(`Promoted ${res.student_count} students — ${res.enrollments_created} new enrollments created.`);
       setPromoteTarget(null);
       setPromotePreview(null);
       load();
@@ -263,14 +263,14 @@ export default function SectionsPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{s.semester_number}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{s.name || '—'}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openRoster(s)}>👥 Roster</button>
+                    <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openRoster(s)}>Roster</button>
                     <button
                       className="btn-secondary"
                       style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px', color: '#00c864', borderColor: '#00c864' }}
                       onClick={() => startPromote(s)}
                       title={nextSection(s) ? `Promote cohort to ${sectionLabel(nextSection(s)!)}` : 'Create the next semester section first'}
                     >
-                      🎓 Promote
+                      Promote
                     </button>
                     <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSection(s.id)}>Delete</button>
                   </td>
@@ -343,7 +343,7 @@ export default function SectionsPage() {
       {promoteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !promoting && setPromoteTarget(null)}>
           <div className="glass-panel" style={{ maxWidth: '540px', width: '100%', padding: '24px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>🎓 Promote Cohort</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>Promote Cohort</h3>
             {!promotePreview ? (
               <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>Checking students in {sectionLabel(promoteTarget.from)}...</p>
             ) : (
@@ -378,8 +378,8 @@ export default function SectionsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div className="glass-panel animate-fade-in" style={{ width: '620px', maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', padding: '26px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>👥 Roster — {sectionLabel(rosterSection)}</h2>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setRosterSection(null)}>✕ Close</button>
+              <h2 style={{ margin: 0, fontSize: '20px' }}>Roster — {sectionLabel(rosterSection)}</h2>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setRosterSection(null)}> Close</button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
               Students added here are auto-enrolled in every course (offering) this section runs.

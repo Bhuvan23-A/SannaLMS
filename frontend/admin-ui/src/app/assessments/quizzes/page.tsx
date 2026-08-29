@@ -177,7 +177,7 @@ export default function QuizzesPage() {
         method: 'PUT',
         body: JSON.stringify({ score, feedback: quizFeedbackInputs[submissionId] || '' })
       });
-      alert('✅ Grade saved');
+      alert('Grade saved');
       loadSubmissions(submissionsQuizId || '');
     } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
   };
@@ -220,7 +220,7 @@ export default function QuizzesPage() {
   const saveQuiz = async (e: any) => {
     e.preventDefault();
     if (!form.question_ids || form.question_ids.length === 0) {
-      alert('⚠️ A quiz must have at least 1 question. Please select or add questions from the question list below before saving.');
+      alert('A quiz must have at least 1 question. Please select or add questions from the question list below before saving.');
       return;
     }
     try {
@@ -384,7 +384,7 @@ export default function QuizzesPage() {
     return (
       <div className="fade-in">
         <div className="panel" style={{ textAlign: 'center', padding: '60px' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎉</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}></div>
           <h2 style={{ fontSize: '28px', marginBottom: '15px' }}>Quiz Submitted!</h2>
           {submitted.score !== null && submitted.score !== undefined ? (
             <p style={{ fontSize: '20px', color: 'var(--primary-color)' }}>Your Score: <strong>{submitted.score}</strong></p>
@@ -412,7 +412,7 @@ export default function QuizzesPage() {
 
       {showForm && (
         <form onSubmit={saveQuiz} className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>{editingQuizId ? '✏️ Edit Quiz / Assessment' : 'New Quiz'}</h3>
+          <h3 style={{ marginBottom: '20px' }}>{editingQuizId ? 'Edit Quiz / Assessment' : 'New Quiz'}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px' }}>Quiz Title</label>
@@ -533,10 +533,10 @@ export default function QuizzesPage() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px' }} onClick={selectAllFiltered}>
-                        ✓ Select All Filtered ({filtered.length})
+                         Select All Filtered ({filtered.length})
                       </button>
                       <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
-                        ✕ Deselect Filtered
+                         Deselect Filtered
                       </button>
                     </div>
                   </div>
@@ -573,7 +573,7 @@ export default function QuizzesPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <label style={{ display: 'block' }}>Select Questions</label>
               <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setQuickAdd(!quickAdd)}>
-                {quickAdd ? '✕ Cancel' : '➕ New Question'}
+                {quickAdd ? ' Cancel' : '+ New Question'}
               </button>
             </div>
 
@@ -608,7 +608,7 @@ export default function QuizzesPage() {
                   <input type="checkbox" checked={form.question_ids.includes(q.id)} onChange={() => toggleQuestion(q.id)} />
                   <span>
                     <strong>{q.title}</strong> <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : 'badge-warning'}`}>{q.type}</span> ({q.marks}M)
-                    {q.image_url && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '12px' }}>🖼️ has image</span>}
+                    {q.image_url && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px', fontSize: '12px' }}>️ has image</span>}
                   </span>
                 </label>
               ))}
@@ -618,7 +618,7 @@ export default function QuizzesPage() {
               add can be undone right here, not just by unchecking. */}
           {form.question_ids.length > 0 && (
             <div style={{ marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Added to quiz ({form.question_ids.length}) — click ✕ to remove:</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Added to quiz ({form.question_ids.length}) — click  to remove:</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {form.question_ids.map(qid => {
                   const q = questions.find((x: any) => x.id === qid);
@@ -628,7 +628,7 @@ export default function QuizzesPage() {
                         <strong>{q?.title || qid}</strong>
                         {q && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>({q.marks}M · {q.type})</span>}
                       </span>
-                      <button type="button" className="btn-secondary" style={{ padding: '2px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)', flexShrink: 0 }} onClick={() => removeFromQuiz(qid)}>✕ Remove</button>
+                      <button type="button" className="btn-secondary" style={{ padding: '2px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)', flexShrink: 0 }} onClick={() => removeFromQuiz(qid)}> Remove</button>
                     </div>
                   );
                 })}
@@ -652,7 +652,7 @@ export default function QuizzesPage() {
                   <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px' }}>{q.description}</p>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <span className="badge badge-info">{q.questions?.length || 0} Questions</span>
-                    {q.duration_mins && <span className="badge badge-success">⏱ {q.duration_mins} mins</span>}
+                    {q.duration_mins && <span className="badge badge-success">{q.duration_mins} mins</span>}
                     {q.start_time && <span className="badge badge-warning">Opens: {new Date(q.start_time).toLocaleString()}</span>}
                     {q.end_time && <span className="badge" style={{ background: 'rgba(244,63,94,0.15)', color: 'var(--danger-color)' }}>Closes: {new Date(q.end_time).toLocaleString()}</span>}
                     {q.assigned_to && <span className="badge badge-warning">Assigned to specific students</span>}
@@ -666,7 +666,7 @@ export default function QuizzesPage() {
                       style={{ fontSize: '13px', color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
                       onClick={() => openEditModal(q)}
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
@@ -676,7 +676,7 @@ export default function QuizzesPage() {
                       style={{ fontSize: '13px' }}
                       onClick={() => exportQuizQuestions(q)}
                     >
-                      📊 Export Questions (CSV)
+                      Export Questions (CSV)
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
@@ -730,7 +730,7 @@ export default function QuizzesPage() {
                                   : <span className="badge badge-warning">Pending review</span>}
                                 {sub.violation_count > 0 && (
                                   <span className="badge" style={{ background: 'rgba(244,63,94,0.15)', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', marginLeft: '8px' }}>
-                                    ⚠ {sub.violation_count} tab-switch violation{sub.violation_count === 1 ? '' : 's'}{sub.auto_submitted ? ' · auto-submitted' : ''}
+                                     {sub.violation_count} tab-switch violation{sub.violation_count === 1 ? '' : 's'}{sub.auto_submitted ? ' · auto-submitted' : ''}
                                   </span>
                                 )}
                               </span>
@@ -762,7 +762,7 @@ export default function QuizzesPage() {
                             )}
                             {sub.score !== null && sub.score !== undefined ? (
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {sub.feedback ? `💬 Feedback: ${sub.feedback}` : 'No written feedback.'}
+                                {sub.feedback ? `Feedback: ${sub.feedback}` : 'No written feedback.'}
                               </div>
                             ) : (
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>

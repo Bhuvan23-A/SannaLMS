@@ -163,10 +163,10 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
       );
       const data = await res.json();
       if (res.ok) {
-        alert(`✅ ${data.type} uploaded! Asset ID: ${data.asset_id}`);
+        alert(`${data.type} uploaded! Asset ID: ${data.asset_id}`);
         loadCourse();
       } else {
-        alert(`❌ Upload failed: ${data.message}`);
+        alert(`Upload failed: ${data.message}`);
       }
     } finally {
       setUploadingTopic(null);
@@ -196,10 +196,10 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
   };
 
   const tabs = [
-    { id: 'builder', label: '🏗️ Course Builder' },
-    { id: 'trainers', label: '👨‍🏫 Trainers' },
-    { id: 'prerequisites', label: '📋 Prerequisites' },
-    { id: 'enrollments', label: '👥 Enrollments' },
+    { id: 'builder', label: 'Course Builder' },
+    { id: 'trainers', label: 'Trainers' },
+    { id: 'prerequisites', label: 'Prerequisites' },
+    { id: 'enrollments', label: 'Enrollments' },
   ];
 
   return (
@@ -207,7 +207,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '4px' }}>
-            {course ? `📚 ${course.title}` : 'Course Management'}
+            {course ? `${course.title}` : 'Course Management'}
           </h1>
           <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary-color)' }}>{courseId}</span>
           {course && <span className={`badge badge-${course.status === 'PUBLISHED' ? 'success' : 'warning'}`} style={{ marginLeft: '12px' }}>{course.status}</span>}
@@ -217,12 +217,12 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
               style={{ marginLeft: '12px', padding: '6px 14px', fontSize: '13px' }}
               onClick={togglePublish}
             >
-              {course.status === 'PUBLISHED' ? '↩ Unpublish' : '🚀 Publish'}
+              {course.status === 'PUBLISHED' ? '↩ Unpublish' : 'Publish'}
             </button>
           )}
           {course?.subject && (
             <span className="badge badge-info" style={{ marginLeft: '12px', background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
-              📚 {course.subject.code} · {course.subject.name}
+              {course.subject.code} · {course.subject.name}
             </span>
           )}
         </div>
@@ -247,7 +247,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
         <div>
           {canEditCurriculum && (
             <div className="panel" style={{ marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>➕ Add Module</h3>
+              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>+ Add Module</h3>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
                   className="form-input" style={{ flex: 1 }}
@@ -264,7 +264,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
           {loading ? <p style={{ color: 'var(--text-secondary)' }}>Loading curriculum...</p> : (
             modules.length === 0 ? (
               <div className="panel" style={{ textAlign: 'center', padding: '60px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
                 <h3>No modules yet</h3>
                 <p style={{ color: 'var(--text-secondary)' }}>Add a module above to start building your course curriculum.</p>
               </div>
@@ -341,7 +341,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                               {topic.asset && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    📄 {topic.asset.original_name || topic.asset.type}
+                                    {topic.asset.original_name || topic.asset.type}
                                   </span>
                                   {topic.asset.file_size ? <span>· {Math.round(topic.asset.file_size / 1024)} KB</span> : null}
                                   {topic.asset.status === 'READY' && publicAssetUrl(topic.asset) && (
@@ -360,7 +360,7 @@ export default function CourseDetailsPage({ params }: { params: Promise<{ id: st
                                     disabled={uploadingTopic === topic.id}
                                   />
                                   <span className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', display: 'inline-block' }}>
-                                    {uploadingTopic === topic.id ? '⏳ Uploading...' : '📤 Upload'}
+                                    {uploadingTopic === topic.id ? 'Uploading...' : 'Upload'}
                                   </span>
                                 </label>
                                 <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteTopic(topic.id)}>Delete</button>

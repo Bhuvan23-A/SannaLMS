@@ -24,7 +24,7 @@ export default function RoleGuard({
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
       <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', maxWidth: '460px' }}>
-        <div style={{ fontSize: '42px', marginBottom: '12px' }}>🔒</div>
+        <div style={{ fontSize: '42px', marginBottom: '12px' }}></div>
         <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Access Restricted</h3>
         <p style={{ fontSize: '14px', margin: '0 0 22px', lineHeight: 1.6 }}>
           This section is available only to <strong>{allowedRoles.map(getRoleLabel).join(' / ')}</strong>.

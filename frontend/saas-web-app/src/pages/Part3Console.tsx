@@ -517,7 +517,7 @@ export default function Part3Console() {
                 >
                   {sandboxStatus && (
                     <div style={{ color: 'var(--accent-cyan)', borderBottom: '1px dashed rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '0.5rem', fontSize: '0.8rem' }}>
-                      ⚙️ Execution Status: <strong style={{ color: '#fff' }}>{sandboxStatus}</strong>
+                      Execution Status: <strong style={{ color: '#fff' }}>{sandboxStatus}</strong>
                     </div>
                   )}
                   {sandboxOutput && <div>{sandboxOutput}</div>}
@@ -843,7 +843,7 @@ export default function Part3Console() {
                           <div>
                             <div style={{ fontWeight: 700, color: '#fff' }}>{sub.studentName}</div>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                              📄 {sub.fileName} • Submitted at {sub.submittedAt}
+                              {sub.fileName} • Submitted at {sub.submittedAt}
                             </div>
                           </div>
 

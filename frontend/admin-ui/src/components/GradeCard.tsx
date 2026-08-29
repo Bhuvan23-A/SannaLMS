@@ -86,7 +86,7 @@ export default function GradeCard({ grades, courses, semesters, studentName }: {
         return (
           <div key={key} className="panel" style={{ marginBottom: '20px', padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '16px', margin: 0 }}>📘 {sessionTitle(key)}</h3>
+              <h3 style={{ fontSize: '16px', margin: 0 }}>{sessionTitle(key)}</h3>
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 Semester GPA: <strong style={{ color: 'var(--primary-color)' }}>{semGpa != null ? semGpa.toFixed(2) : '—'}</strong>
               </span>

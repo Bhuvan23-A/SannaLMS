@@ -93,7 +93,7 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
 
       {forum?.is_locked && (
         <div className="panel" style={{ marginBottom: '30px', borderLeft: '4px solid #fbbf24', background: 'rgba(251,191,36,0.08)', padding: '15px' }}>
-          🔒 <strong>This forum is closed.</strong> No new threads or replies can be posted. Use the forum list to reopen it.
+          <strong>This forum is closed.</strong> No new threads or replies can be posted. Use the forum list to reopen it.
         </div>
       )}
 
@@ -118,7 +118,7 @@ export default function ThreadsPage({ params }: { params: Promise<{ id: string }
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 {t.is_solved && <span className="badge badge-success">Solved</span>}
                 {(isAdmin || isTrainer) && !t.is_solved && (
-                  <button className="btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: '#00c864', borderColor: '#00c864' }} onClick={() => markSolved(t.id)}>✓ Mark Solved</button>
+                  <button className="btn-secondary" style={{ fontSize: '12px', padding: '3px 10px', color: '#00c864', borderColor: '#00c864' }} onClick={() => markSolved(t.id)}> Mark Solved</button>
                 )}
               </div>
             </div>

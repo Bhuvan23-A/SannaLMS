@@ -60,7 +60,7 @@ export default function LiveClassesPage() {
   const startClass = async (id: string) => {
     try {
       await fetchApi(`/api/v1/liveclasses/${id}/start`, { method: 'PUT' });
-      showFlash('🔴 Class is now LIVE!');
+      showFlash('Class is now LIVE!');
       loadClasses();
     } catch { alert('Failed to start class'); }
   };
@@ -68,7 +68,7 @@ export default function LiveClassesPage() {
   const endClass = async (id: string) => {
     try {
       await fetchApi(`/api/v1/liveclasses/${id}/end`, { method: 'PUT', body: JSON.stringify({}) });
-      showFlash('⏹️ Class ended.');
+      showFlash('️ Class ended.');
       loadClasses();
     } catch { alert('Failed to end class'); }
   };
@@ -88,7 +88,7 @@ export default function LiveClassesPage() {
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎥 Live Classes</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>Live Classes</h1>
           <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
           </div>
@@ -102,12 +102,12 @@ export default function LiveClassesPage() {
       {joiningClass && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="panel" style={{ width: '500px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎥</div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
             <h2 style={{ marginBottom: '10px' }}>Ready to Join!</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '5px' }}>Room Name:</p>
             <code style={{ display: 'block', padding: '10px', background: 'rgba(0,0,0,0.4)', borderRadius: '8px', marginBottom: '20px', wordBreak: 'break-all' }}>{joiningClass.room_name}</code>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
-              You will be joined as a <strong>{joiningClass.is_host ? '👑 Host (Moderator)' : '👤 Participant'}</strong>.
+              You will be joined as a <strong>{joiningClass.is_host ? 'Host (Moderator)' : 'Participant'}</strong>.
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <a
@@ -118,7 +118,7 @@ export default function LiveClassesPage() {
                 style={{ textDecoration: 'none', padding: '12px 24px' }}
                 onClick={() => setJoiningClass(null)}
               >
-                🚀 Launch Jitsi Meet
+                Launch Jitsi Meet
               </a>
               <button className="btn-secondary" onClick={() => setJoiningClass(null)}>Cancel</button>
             </div>
@@ -159,7 +159,7 @@ export default function LiveClassesPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {classes.length === 0 ? (
           <div className="panel" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📺</div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
             <p>No live classes scheduled yet. {(isAdmin || isTrainer) ? 'Click "+ Schedule Class" to create one.' : 'Check back later.'}</p>
           </div>
         ) : classes.map(c => (
@@ -168,29 +168,29 @@ export default function LiveClassesPage() {
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
                 {c.is_live && <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#ff4757', animation: 'pulse 1.5s infinite' }} />}
                 <h3 style={{ fontSize: '18px' }}>{c.title}</h3>
-                {c.is_live && <span className="badge" style={{ background: '#ff4757', color: 'white' }}>🔴 LIVE</span>}
-                {c.ended_at && <span className="badge badge-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}>⏹ Ended</span>}
+                {c.is_live && <span className="badge" style={{ background: '#ff4757', color: 'white' }}>LIVE</span>}
+                {c.ended_at && <span className="badge badge-secondary" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }}> Ended</span>}
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '10px' }}>{c.description}</p>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <span className="badge badge-info">📅 {new Date(c.scheduled_at).toLocaleString()}</span>
-                <span className="badge badge-warning">⏱ {c.duration_mins} mins</span>
+                <span className="badge badge-info">{new Date(c.scheduled_at).toLocaleString()}</span>
+                <span className="badge badge-warning">{c.duration_mins} mins</span>
                 {c.ended_at && <span className="badge badge-secondary">Ended: {new Date(c.ended_at).toLocaleString()}</span>}
-                {c.recording_url && <a href={c.recording_url} target="_blank" rel="noreferrer" className="badge badge-success" style={{ textDecoration: 'none' }}>🎬 Recording</a>}
+                {c.recording_url && <a href={c.recording_url} target="_blank" rel="noreferrer" className="badge badge-success" style={{ textDecoration: 'none' }}>Recording</a>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
               {/* A class that has ended can never go live again (#bugfix) */}
               {(isAdmin || isTrainer) && !c.is_live && !c.ended_at && (
                 <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #ff4757, #c0392b)' }} onClick={() => startClass(c.id)}>
-                  ▶ Go Live
+                   Go Live
                 </button>
               )}
               {(isAdmin || isTrainer) && c.is_live && (
-                <button className="btn-secondary" onClick={() => endClass(c.id)}>⏹ End Class</button>
+                <button className="btn-secondary" onClick={() => endClass(c.id)}> End Class</button>
               )}
               <button className="btn-primary" onClick={() => joinClass(c.id)}>
-                {c.is_live ? '🔴 Join Now' : '👁 Preview'}
+                {c.is_live ? 'Join Now' : ' Preview'}
               </button>
             </div>
           </div>

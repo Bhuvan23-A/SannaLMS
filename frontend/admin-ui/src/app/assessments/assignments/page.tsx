@@ -185,7 +185,7 @@ export default function AssignmentsPage() {
         method: 'PUT',
         body: JSON.stringify({ score, feedback: feedbackInputs[submissionId] || '' })
       });
-      alert('✅ Grade saved');
+      alert('Grade saved');
       loadSubmissions(submissionsAssignmentId || '');
     } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
   };
@@ -228,11 +228,11 @@ export default function AssignmentsPage() {
         {(isAdmin || isTrainer) && <button className="btn-primary" onClick={openCreateForm}>+ Create Assignment</button>}
       </div>
 
-      {submitted && <div className="panel" style={{ marginBottom: '20px', background: 'rgba(0,200,100,0.1)', borderLeft: '4px solid #00c864', padding: '15px' }}>✅ Assignment submitted successfully!</div>}
+      {submitted && <div className="panel" style={{ marginBottom: '20px', background: 'rgba(0,200,100,0.1)', borderLeft: '4px solid #00c864', padding: '15px' }}>Assignment submitted successfully!</div>}
 
       {showForm && (
         <form onSubmit={saveAssignment} className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>{editingAssignmentId ? '✏️ Edit Assignment' : 'New Assignment'}</h3>
+          <h3 style={{ marginBottom: '20px' }}>{editingAssignmentId ? 'Edit Assignment' : 'New Assignment'}</h3>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Title</label>
             <input required className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
@@ -335,10 +335,10 @@ export default function AssignmentsPage() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px' }} onClick={selectAllFiltered}>
-                        ✓ Select All Filtered ({filtered.length})
+                         Select All Filtered ({filtered.length})
                       </button>
                       <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
-                        ✕ Deselect Filtered
+                         Deselect Filtered
                       </button>
                     </div>
                   </div>
@@ -421,7 +421,7 @@ export default function AssignmentsPage() {
                     {a.due_date && <span className="badge badge-info">Due: {new Date(a.due_date).toLocaleDateString()}</span>}
                     {a.assigned_to && <span className="badge badge-warning">Assigned to specific students</span>}
                     {courses.find((c: any) => c.id === a.course_id) && (
-                      <span className="badge badge-info">📚 {courses.find((c: any) => c.id === a.course_id)?.title}</span>
+                      <span className="badge badge-info">{courses.find((c: any) => c.id === a.course_id)?.title}</span>
                     )}
                   </div>
                 </div>
@@ -433,12 +433,12 @@ export default function AssignmentsPage() {
                       style={{ fontSize: '13px', color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
                       onClick={() => openEditModal(a)}
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
                     <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(a.id)}>
-                      {submissionsAssignmentId === a.id ? 'Hide Submissions' : '📊 View Submissions'}
+                      {submissionsAssignmentId === a.id ? 'Hide Submissions' : 'View Submissions'}
                     </button>
                   )}
                   {(isAdmin || isTrainer) && (
@@ -482,15 +482,15 @@ export default function AssignmentsPage() {
                                 {sub.file_url.startsWith('http') || sub.file_url.startsWith('/') ? (
                                   <a href={sub.file_url.startsWith('http') ? sub.file_url : `https://admin.sannalms.sannainnovations.com${sub.file_url}`}
                                      target="_blank" rel="noopener noreferrer"
-                                     style={{ fontSize: '12px', color: 'var(--primary-color)' }}>📎 Submitted file: {sub.file_url.split('/').pop()}</a>
+                                     style={{ fontSize: '12px', color: 'var(--primary-color)' }}>Submitted file: {sub.file_url.split('/').pop()}</a>
                                 ) : (
-                                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>📎 Submitted file: {sub.file_url} — file not attached (older submission without an uploaded file)</span>
+                                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Submitted file: {sub.file_url} — file not attached (older submission without an uploaded file)</span>
                                 )}
                               </div>
                             )}
                             {sub.score !== null && sub.score !== undefined ? (
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {sub.feedback ? `💬 Feedback: ${sub.feedback}` : 'No written feedback.'}
+                                {sub.feedback ? `Feedback: ${sub.feedback}` : 'No written feedback.'}
                               </div>
                             ) : (
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>

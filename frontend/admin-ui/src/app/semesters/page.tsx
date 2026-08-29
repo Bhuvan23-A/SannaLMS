@@ -158,7 +158,7 @@ export default function SemestersPage() {
           tenant_id: promoteTarget.from.tenant_id,
         }),
       });
-      alert(`✅ Promoted ${res.student_count} students from ${promoteTarget.from.name} to ${promoteTarget.to.name} (${res.enrollments_created} new enrollments created).`);
+      alert(`Promoted ${res.student_count} students from ${promoteTarget.from.name} to ${promoteTarget.to.name} (${res.enrollments_created} new enrollments created).`);
       setPromoteTarget(null);
       setPromotePreview(null);
       loadSemesters();
@@ -189,7 +189,7 @@ export default function SemestersPage() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
             className="input-field"
-            placeholder="🔍 Search semesters..."
+            placeholder="Search semesters..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '180px' }}
@@ -271,7 +271,7 @@ export default function SemestersPage() {
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(semester)}>✏️ Edit</button>
+                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(semester)}>Edit</button>
                           <button
                             className="btn-secondary"
                             style={{ fontSize: '13px', padding: '5px 12px', color: isFinalSemester(semester) ? 'var(--text-secondary)' : '#00c864', borderColor: isFinalSemester(semester) ? 'rgba(255,255,255,0.2)' : '#00c864' }}
@@ -282,9 +282,9 @@ export default function SemestersPage() {
                                 ? `Final semester of the ${branchTotal(semester)}-semester program`
                                 : `Add Semester ${semNumber(semester) + 1} first to enable promotion`}
                           >
-                            🎓 {isFinalSemester(semester) ? 'Final' : 'Promote'}
+                            {isFinalSemester(semester) ? 'Final' : 'Promote'}
                           </button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSemester(semester)}>🗑 Delete</button>
+                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSemester(semester)}>Delete</button>
                         </div>
                       </td>
                     </>
@@ -309,7 +309,7 @@ export default function SemestersPage() {
       {promoteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => !promoting && setPromoteTarget(null)}>
           <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '24px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>🎓 Promote Students</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>Promote Students</h3>
             {!promotePreview ? (
               <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>Checking students in {promoteTarget.from.name}...</p>
             ) : (

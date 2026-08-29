@@ -819,7 +819,7 @@ export const Dashboard: React.FC = () => {
       setChatHistory(prev => [...prev, { sender: 'bot', text: answer }]);
     } catch (err: any) {
       const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Tutor service unreachable';
-      setChatHistory(prev => [...prev, { sender: 'bot', text: `⚠️ ${message}` }]);
+      setChatHistory(prev => [...prev, { sender: 'bot', text: `${message}` }]);
     } finally {
       setIsTutorLoading(false);
     }
@@ -844,7 +844,7 @@ export const Dashboard: React.FC = () => {
     }
     const assignmentId = selectedAssignmentId || assignmentList[0]?.id;
     if (!assignmentId) {
-      alert('⚠️ No assignment selected.');
+      alert('No assignment selected.');
       return;
     }
     setReplacingFile(true);
@@ -865,9 +865,9 @@ export const Dashboard: React.FC = () => {
         file_url: fileUrl || null,
       });
       await fetchMySubmission(assignmentId);
-      alert('✅ File replaced! Your trainer will re-review the updated submission.');
+      alert('File replaced! Your trainer will re-review the updated submission.');
     } catch (err: any) {
-      alert(`⚠️ Replace failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
+      alert(`Replace failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
     } finally {
       setReplacingFile(false);
       e.target.value = '';
@@ -892,21 +892,21 @@ export const Dashboard: React.FC = () => {
       const reader = new FileReader();
       reader.onload = () => setUploadedCodeContent(String(reader.result || '').slice(0, 50000));
       reader.readAsText(f);
-      setPickedFileInfo(`📄 ${f.name} (${kb} KB) — loaded into the editor below.`);
+      setPickedFileInfo(`${f.name} (${kb} KB) — loaded into the editor below.`);
     } else {
-      setPickedFileInfo(`📎 ${f.name} (${kb} KB) — uploaded as-is (${ext.toUpperCase()} preview not available here).`);
+      setPickedFileInfo(`${f.name} (${kb} KB) — uploaded as-is (${ext.toUpperCase()} preview not available here).`);
     }
   };
   const handleSubmitAssignment = async () => {
     // Submit against the real assignment (created by the trainer) so it lands in the gradebook
     const assignmentId = selectedAssignmentId || assignmentList[0]?.id;
     if (!assignmentId) {
-      alert('⚠️ No assignment selected. Please pick an assignment from the list first.');
+      alert('No assignment selected. Please pick an assignment from the list first.');
       return;
     }
     const code = uploadedCodeContent.trim();
     if (!code && !pickedFile) {
-      alert('⚠️ Add your answer as code/text OR attach a file (or both) before submitting.');
+      alert('Add your answer as code/text OR attach a file (or both) before submitting.');
       return;
     }
     try {
@@ -934,9 +934,9 @@ export const Dashboard: React.FC = () => {
       setPickedFileInfo('');
       setUploadedCodeContent('');
       setUploadedFileName('');
-      alert('✅ Assignment submitted successfully! Your trainer will review and grade it.');
+      alert('Assignment submitted successfully! Your trainer will review and grade it.');
     } catch (err: any) {
-      alert(`⚠️ Submission failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
+      alert(`Submission failed: ${err?.response?.data?.message || err?.message || 'unknown error'}`);
     }
   };
 
@@ -1035,7 +1035,7 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleGPSCheckIn = async () => {
-    if (!selectedSessionId) { setCheckInMessage('❌ Please pick a session first.'); return; }
+    if (!selectedSessionId) { setCheckInMessage('Please pick a session first.'); return; }
     setCheckingIn(true);
     setCheckInMessage('');
     try {
@@ -1044,12 +1044,12 @@ export const Dashboard: React.FC = () => {
         lat: parseFloat(gpsLatitude),
         lng: parseFloat(gpsLongitude)
       });
-      setCheckInMessage('✅ GPS Check-in Successful! Location verified.');
+      setCheckInMessage('GPS Check-in Successful! Location verified.');
       awardXp('perfect_attendance');
       await refreshAttendance();
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
-      setCheckInMessage(`❌ Check-in Failed: ${message}`);
+      setCheckInMessage(`Check-in Failed: ${message}`);
     } finally {
       setCheckingIn(false);
     }
@@ -1058,19 +1058,19 @@ export const Dashboard: React.FC = () => {
   const handleQRCheckIn = async (tokenOverride?: string) => {
     const token = (tokenOverride || qrCodeInput || '').trim();
     if (!token) {
-      setCheckInMessage('❌ Please select a session or paste a QR token first.');
+      setCheckInMessage('Please select a session or paste a QR token first.');
       return;
     }
     setCheckingIn(true);
     setCheckInMessage('');
     try {
       await apiClient.post('/attendance/checkin/qr', { qr_token: token });
-      setCheckInMessage('✅ QR Code Check-in Successful!');
+      setCheckInMessage('QR Code Check-in Successful!');
       awardXp('perfect_attendance');
       await refreshAttendance();
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Check-in failed';
-      setCheckInMessage(`❌ QR Check-in Failed: ${message}`);
+      setCheckInMessage(`QR Check-in Failed: ${message}`);
     } finally {
       setCheckingIn(false);
     }
@@ -1216,7 +1216,7 @@ export const Dashboard: React.FC = () => {
       const r = await apiClient.get(`/chat/dm/${id}`);
       const data = Array.isArray(r.data) ? r.data : [];
       setDmConvo(data);
-      // Auto-mark incoming DMs as read so the sender sees ✓✓ (#fix).
+      // Auto-mark incoming DMs as read so the sender sees  (#fix).
       data.filter((m: any) => m.from_user === id && m.to_user === studentUserId && !m.is_read)
         .forEach((m: any) => apiClient.put(`/chat/dm/${m.id}/read`).catch(() => {}));
       setTimeout(() => dmMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -1573,7 +1573,7 @@ export const Dashboard: React.FC = () => {
                         onError={(e) => {
                           // Blocked/missing image (ad blocker, firewall): swap in a
                           // local placeholder instead of a broken icon (#fix).
-                          (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" rx="8" fill="#1e293b"/><text x="60" y="47" font-size="22" text-anchor="middle">📚</text></svg>');
+                          (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" rx="8" fill="#1e293b"/><text x="60" y="47" font-size="22" text-anchor="middle"></text></svg>');
                         }} />
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
@@ -1746,7 +1746,7 @@ export const Dashboard: React.FC = () => {
                   />
                 ) : isPlayingVideo && videoError ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8))', color: '#cbd5e1', textAlign: 'center', padding: '1.5rem' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎬</div>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}></div>
                     <p style={{ fontSize: '0.9rem', maxWidth: '360px', lineHeight: 1.5 }}>
                       This video is unavailable on your network. Read the lesson transcript below instead.
                     </p>
@@ -1759,7 +1759,7 @@ export const Dashboard: React.FC = () => {
                       </button>
                     ) : activeLesson.asset?.type === 'DOCUMENT' && activeLesson.asset?.status === 'READY' ? (
                       <a href={activeLesson.asset.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', padding: '0.7rem 1.4rem', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '0.95rem' }}>
-                        <FileText size={20} /> 📄 Open PDF
+                        <FileText size={20} /> Open PDF
                       </a>
                     ) : (
                       <FileText size={40} color="var(--text-secondary)" />
@@ -2056,7 +2056,7 @@ export const Dashboard: React.FC = () => {
                       return (
                       <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
                         <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>{done.score != null ? `✓ Completed ${done.score}/${done.maxScore}` : '✓ Submitted'}</span>}</h4>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>{done.score != null ? ` Completed ${done.score}/${done.maxScore}` : ' Submitted'}</span>}</h4>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {(quiz.questions || []).length} questions · {quiz.duration_mins || 10} min · {quiz.description || 'No description'}
                           </span>
@@ -2352,20 +2352,20 @@ export const Dashboard: React.FC = () => {
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                   <h4 style={{ fontSize: '1rem' }}>Verification Result — {verifyResult.no}</h4>
-                  <button onClick={() => setVerifyResult(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                  <button onClick={() => setVerifyResult(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}></button>
                 </div>
                 {verifyResult.error ? (
-                  <p style={{ color: '#f87171', fontSize: '0.9rem' }}>❌ {verifyResult.error}</p>
+                  <p style={{ color: '#f87171', fontSize: '0.9rem' }}>{verifyResult.error}</p>
                 ) : verifyResult.data ? (
                   verifyResult.data.is_revoked ? (
                     <div style={{ fontSize: '0.9rem', color: '#f87171', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <span>🚫 This certificate has been revoked{verifyResult.data.revoke_reason ? ` — ${verifyResult.data.revoke_reason}` : ''}.</span>
+                      <span>This certificate has been revoked{verifyResult.data.revoke_reason ? ` — ${verifyResult.data.revoke_reason}` : ''}.</span>
                       <span>Holder: {verifyResult.data.student_name}</span>
                       <span>Course: {verifyResult.data.course_title}</span>
                     </div>
                   ) : (
                     <div style={{ fontSize: '0.9rem', color: 'var(--accent-emerald)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <span>✅ Certificate is valid.</span>
+                      <span>Certificate is valid.</span>
                       <span>Holder: {verifyResult.data.student_name}</span>
                       <span>Course: {verifyResult.data.course_title}</span>
                       {verifyResult.data.issued_at && <span>Issued: {new Date(verifyResult.data.issued_at).toLocaleDateString()}</span>}
@@ -2470,9 +2470,9 @@ export const Dashboard: React.FC = () => {
                         {mySubmission.submission.file_url && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                             {mySubmission.submission.file_url.startsWith('http') || mySubmission.submission.file_url.startsWith('/') ? (
-                              <a href={mySubmission.submission.file_url.startsWith('http') ? mySubmission.submission.file_url : `${window.location.origin}${mySubmission.submission.file_url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>📎 {mySubmission.submission.file_url.split('/').pop()}</a>
+                              <a href={mySubmission.submission.file_url.startsWith('http') ? mySubmission.submission.file_url : `${window.location.origin}${mySubmission.submission.file_url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>{mySubmission.submission.file_url.split('/').pop()}</a>
                             ) : (
-                              <span style={{ color: 'var(--text-secondary)' }}>📎 {mySubmission.submission.file_url} (file not attached — older submission)</span>
+                              <span style={{ color: 'var(--text-secondary)' }}>{mySubmission.submission.file_url} (file not attached — older submission)</span>
                             )}
                             <div style={{ marginTop: '0.5rem' }}>
                               <input type="file" id="assignment-replace-input" style={{ display: 'none' }} onChange={handleReplaceFile} />
@@ -2495,7 +2495,7 @@ export const Dashboard: React.FC = () => {
                             )}
                           </div>
                         ) : (
-                          <div style={{ fontSize: '0.85rem', color: '#fbbf24', marginTop: '0.4rem' }}>⏳ Submitted — awaiting trainer review & marks</div>
+                          <div style={{ fontSize: '0.85rem', color: '#fbbf24', marginTop: '0.4rem' }}>Submitted — awaiting trainer review & marks</div>
                         )}
                       </div>
                     )}
@@ -2566,7 +2566,7 @@ export const Dashboard: React.FC = () => {
                           <td style={{ padding: '8px', textAlign: 'center' }}>{m.is_graded ? `${m.score} / ${m.max_marks}` : '—'}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>
                             {m.is_graded ? (
-                              <span style={{ color: '#34d399', fontWeight: 700 }}>✓ Graded{m.feedback ? ` — ${m.feedback}` : ''}</span>
+                              <span style={{ color: '#34d399', fontWeight: 700 }}> Graded{m.feedback ? ` — ${m.feedback}` : ''}</span>
                             ) : (
                               <span style={{ color: '#fbbf24' }}>Submitted — pending review</span>
                             )}
@@ -2654,7 +2654,7 @@ export const Dashboard: React.FC = () => {
                     >
                       <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>
                         {f.title}
-                        {f.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>}
+                        {f.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>Closed</span>}
                       </h3>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{f.description}</p>
                     </div>
@@ -2665,7 +2665,7 @@ export const Dashboard: React.FC = () => {
               <>
                 {selectedForum.is_locked && (
                   <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#fbbf24' }}>
-                    🔒 <strong>This forum is closed.</strong> No new threads or replies can be posted.
+                    <strong>This forum is closed.</strong> No new threads or replies can be posted.
                   </div>
                 )}
                 <form onSubmit={createForumThread} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center', opacity: selectedForum.is_locked ? 0.5 : 1, pointerEvents: selectedForum.is_locked ? 'none' : 'auto' }}>
@@ -2780,7 +2780,7 @@ export const Dashboard: React.FC = () => {
                     />
                     <button className="btn-secondary" style={{ padding: '0 1rem' }} onClick={() => loadDmConversation()}>{dmLoading ? 'Loading...' : 'Load Conversation'}</button>
                   </div>
-                  {dmError && <p style={{ fontSize: '0.8rem', color: '#f87171', margin: '0 0 0.5rem' }}>⚠ {dmError}</p>}
+                  {dmError && <p style={{ fontSize: '0.8rem', color: '#f87171', margin: '0 0 0.5rem' }}> {dmError}</p>}
                   <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.75rem', marginBottom: '1rem' }}>
                     {dmConvo.length === 0 ? (
                       <p style={{ color: 'var(--text-secondary)', textAlign: 'center', margin: 'auto' }}>
@@ -2791,7 +2791,7 @@ export const Dashboard: React.FC = () => {
                         <div style={{ maxWidth: '65%', padding: '0.6rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.9rem', background: m.from_user === studentUserId ? 'rgba(59,130,246,0.35)' : 'rgba(255,255,255,0.06)' }}>
                           <div>{m.content}</div>
                           <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '0.25rem' }}>
-                            {m.from_user === studentUserId ? 'You' : (dmConversations.find((c: any) => c.user_id === m.from_user)?.name || 'Peer')} · {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''} {m.from_user === studentUserId ? (m.is_read ? '✓✓' : '✓') : ''}
+                            {m.from_user === studentUserId ? 'You' : (dmConversations.find((c: any) => c.user_id === m.from_user)?.name || 'Peer')} · {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''} {m.from_user === studentUserId ? (m.is_read ? '' : '') : ''}
                           </div>
                         </div>
                       </div>
@@ -2829,7 +2829,7 @@ export const Dashboard: React.FC = () => {
                     >
                       <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', marginBottom: '0.4rem' }}>
                         #{room.name}
-                        {room.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>}
+                        {room.is_locked && <span style={{ fontSize: '0.65rem', marginLeft: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(251,191,36,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>Closed</span>}
                       </h3>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
                         {room._count?.members ?? 0} members · {room._count?.messages ?? 0} messages
@@ -2901,8 +2901,8 @@ export const Dashboard: React.FC = () => {
                       <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>{ev.title}</h3>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0.5rem 0 1rem' }}>{ev.description || 'No description.'}</p>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        <div>📅 {start.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                        <div>🕐 {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div>{start.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                        <div>{start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
                     </div>
                   );
@@ -2930,18 +2930,18 @@ export const Dashboard: React.FC = () => {
                     <div style={{ flex: 1, minWidth: '240px' }}>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap' }}>
                         <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>{c.title}</h3>
-                        {status === 'live' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>🔴 LIVE</span>}
-                        {status === 'ended' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}>⏹ Ended</span>}
+                        {status === 'live' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>LIVE</span>}
+                        {status === 'ended' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(148,163,184,0.15)', color: '#94a3b8' }}> Ended</span>}
                         {status === 'upcoming' && <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 9px', borderRadius: '12px', background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>Upcoming</span>}
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>{c.description || 'No description.'}</p>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        📅 {c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : ''} · ⏱ {c.duration_mins} mins
+                        {c.scheduled_at ? new Date(c.scheduled_at).toLocaleString() : ''} · {c.duration_mins} mins
                       </div>
                     </div>
                     {status !== 'ended' && (
                       <button className="btn-primary" onClick={() => joinLiveClass(c)}>
-                        {status === 'live' ? '🔴 Join Now' : 'Join Class'}
+                        {status === 'live' ? 'Join Now' : 'Join Class'}
                       </button>
                     )}
                   </div>
@@ -2966,7 +2966,7 @@ export const Dashboard: React.FC = () => {
               <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '1rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Requirement</span>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.75rem', color: attendanceStats.percentage >= 75 ? 'var(--accent-emerald)' : '#f87171' }}>
-                  {attendanceStats.percentage >= 75 ? '✓ Meet Threshold (>= 75%)' : '⚠ Low Attendance Warning'}
+                  {attendanceStats.percentage >= 75 ? ' Meet Threshold (>= 75%)' : ' Low Attendance Warning'}
                 </h3>
               </div>
             </div>
@@ -2996,16 +2996,16 @@ export const Dashboard: React.FC = () => {
 
                 {selectedAttendanceSession && (
                   <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px', padding: '0.7rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
-                    📍 You are checking into: <strong>{selectedAttendanceCourse?.title || 'Course'}</strong> — <strong>{selectedAttendanceSession.title || selectedAttendanceSession.course_id}</strong>
+                    You are checking into: <strong>{selectedAttendanceCourse?.title || 'Course'}</strong> — <strong>{selectedAttendanceSession.title || selectedAttendanceSession.course_id}</strong>
                     <span style={{ color: 'var(--text-secondary)' }}>{selectedAttendanceSession.date ? ` (${new Date(selectedAttendanceSession.date).toLocaleString()})` : ''}</span>
                   </div>
                 )}
                 
                 {checkInMessage && (
                   <div style={{ 
-                    background: checkInMessage.includes('❌') ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+                    background: checkInMessage.includes('') ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
                     border: '1px solid',
-                    borderColor: checkInMessage.includes('❌') ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
+                    borderColor: checkInMessage.includes('') ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
                     padding: '0.75rem 1rem', 
                     borderRadius: '8px', 
                     marginBottom: '1.5rem',
@@ -3032,14 +3032,14 @@ export const Dashboard: React.FC = () => {
                     </select>
                     {!selectedIsLive && (
                       <p style={{ fontSize: '0.72rem', color: '#fbbf24', marginBottom: '0.6rem' }}>
-                        ⏳ Check-in is only allowed while the session is <strong>LIVE</strong> — ask your trainer to start it.
+                        Check-in is only allowed while the session is <strong>LIVE</strong> — ask your trainer to start it.
                       </p>
                     )}
                     <button
                       onClick={() => {
                         const s = attendanceSessionOptions.find((x: any) => x.id === selectedSessionId);
                         if (s?.qr_token) handleQRCheckIn(s.qr_token);
-                        else setCheckInMessage('❌ Selected session has no QR token yet.');
+                        else setCheckInMessage('Selected session has no QR token yet.');
                       }}
                       disabled={checkingIn || !selectedIsLive}
                       style={{ border: 'none', background: selectedIsLive ? 'var(--accent-cyan)' : 'rgba(255,255,255,0.12)', color: '#fff', padding: '0.5rem 1rem', borderRadius: '4px', cursor: selectedIsLive ? 'pointer' : 'not-allowed', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
@@ -3099,7 +3099,7 @@ export const Dashboard: React.FC = () => {
                     </select>
                     {!selectedIsLive && (
                       <p style={{ fontSize: '0.72rem', color: '#fbbf24', marginBottom: '0.6rem' }}>
-                        ⏳ GPS check-in is only allowed while the session is <strong>LIVE</strong>.
+                        GPS check-in is only allowed while the session is <strong>LIVE</strong>.
                       </p>
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>

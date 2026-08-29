@@ -174,7 +174,7 @@ export default function QuestionsPage() {
         importedCount++;
       }
 
-      setImportMessage({ ok: true, text: `✅ Successfully imported ${importedCount} question(s) from spreadsheet!` });
+      setImportMessage({ ok: true, text: `Successfully imported ${importedCount} question(s) from spreadsheet!` });
       loadQuestions();
     } catch (err: any) {
       setImportMessage({ ok: false, text: err.message || 'Failed to import spreadsheet file.' });
@@ -342,7 +342,7 @@ export default function QuestionsPage() {
 
   if (!isAdmin && !isTrainer) return (
     <div className="fade-in panel" style={{ textAlign: 'center', padding: '60px' }}>
-      <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+      <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
       <h2>Access Restricted</h2>
       <p style={{ color: 'var(--text-secondary)' }}>Only Trainers and Admins can manage the Question Bank.</p>
     </div>
@@ -415,18 +415,18 @@ export default function QuestionsPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} onClick={downloadSampleTemplate}>
-            📥 CSV/Excel Template
+            CSV/Excel Template
           </button>
           <input ref={csvFileInputRef} type="file" accept=".csv,text/csv,application/vnd.ms-excel,.xlsx" style={{ display: 'none' }} onChange={importFromCsvOrExcel} />
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => csvFileInputRef.current?.click()}>
-            {importing ? '⏳ Importing...' : '📊 Import Excel/CSV'}
+            {importing ? 'Importing...' : 'Import Excel/CSV'}
           </button>
           <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: 'none' }} onChange={importFromPdf} />
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => fileInputRef.current?.click()}>
-            {importing ? '⏳ Importing...' : '📄 Import PDF'}
+            {importing ? 'Importing...' : 'Import PDF'}
           </button>
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} onClick={exportAllQuestions}>
-            📊 Export Questions (CSV)
+            Export Questions (CSV)
           </button>
           <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => setShowForm(!showForm)}>+ Add Question</button>
         </div>
@@ -479,7 +479,7 @@ export default function QuestionsPage() {
             )}
           </div>
           <div style={{ marginBottom: '15px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-            📍 Will be saved under: <strong>{selectedSubject ? `${selectedSubject.code ? selectedSubject.code + ' · ' : ''}${selectedSubject.name}` : (courses.find((c: any) => c.id === courseId)?.title || 'subject')}</strong>
+            Will be saved under: <strong>{selectedSubject ? `${selectedSubject.code ? selectedSubject.code + ' · ' : ''}${selectedSubject.name}` : (courses.find((c: any) => c.id === courseId)?.title || 'subject')}</strong>
             {isSuperAdmin && selectedCollege && <> · <strong>{selectedCollege.name}</strong></>}
             {deptId && <> · Dept: <strong>{visibleDepartments.find((d: any) => d.id === deptId)?.name}</strong></>}
             {branchId && <> · Branch: <strong>{visibleBranches.find((b: any) => b.id === branchId)?.name}</strong></>}
@@ -530,7 +530,7 @@ export default function QuestionsPage() {
                       <strong>{q.title}</strong>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>({q.marks} mark{q.marks > 1 ? 's' : ''})</span>
                       {(q.department_id || q.branch_id || q.semester_id) && (
-                        <span className="badge badge-secondary" style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd' }}>📍 scoped</span>
+                        <span className="badge badge-secondary" style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd' }}>scoped</span>
                       )}
                     </div>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{q.content}</p>
@@ -544,15 +544,15 @@ export default function QuestionsPage() {
                       <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {(q.options as any[]).map((o: any) => (
                           <span key={o.id} style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '13px', background: o.isCorrect ? 'rgba(0,200,100,0.2)' : 'rgba(255,255,255,0.05)', border: o.isCorrect ? '1px solid #00c864' : '1px solid rgba(255,255,255,0.1)', color: o.isCorrect ? '#00c864' : 'inherit' }}>
-                            {o.isCorrect ? '✓ ' : ''}{o.text}
+                            {o.isCorrect ? ' ' : ''}{o.text}
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px' }} onClick={() => startEdit(q)}>✏️ Edit</button>
-                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => handleDelete(q)}>🗑 Delete</button>
+                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px' }} onClick={() => startEdit(q)}>Edit</button>
+                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => handleDelete(q)}>Delete</button>
                   </div>
                 </div>
               </div>

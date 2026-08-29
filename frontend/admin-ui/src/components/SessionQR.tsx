@@ -39,8 +39,7 @@ export default function SessionQR({ token, size = 56 }: { token: string; size?: 
           flexShrink: 0,
         }}
       >
-        🔒
-      </div>
+        </div>
     );
   }
 

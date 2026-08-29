@@ -178,7 +178,7 @@ export default function CoursesPage() {
       setStudentAdding(true);
       await fetchApi('/api/v1/enrollments', { method: 'POST', body: JSON.stringify({ user_id: studentUserId.trim(), course_id: studentCourse.id }) });
       setStudentUserId('');
-      setStudentMsg('✅ Student added to course');
+      setStudentMsg('Student added to course');
       const d = await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}`).catch(() => []);
       setStudentEnrollments(Array.isArray(d) ? d : []);
     } catch (err: any) { alert(err.message || 'Failed to add student'); } finally { setStudentAdding(false); }
@@ -190,7 +190,7 @@ export default function CoursesPage() {
     try {
       setStudentRemoving(en.user_id);
       await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}/user/${en.user_id}`, { method: 'DELETE' });
-      setStudentMsg('🗑️ Student removed from course');
+      setStudentMsg('Student removed from course');
       const d = await fetchApi(`/api/v1/enrollments/course/${studentCourse.id}`).catch(() => []);
       setStudentEnrollments(Array.isArray(d) ? d : []);
     } catch (err: any) { alert(err.message || 'Failed to remove student'); } finally { setStudentRemoving(null); }
@@ -218,7 +218,7 @@ export default function CoursesPage() {
       });
       setTrainerUserId('');
       openAssignTrainer(trainerCourse);
-      alert('✅ Trainer assigned to course');
+      alert('Trainer assigned to course');
     } catch (err: any) { alert(err.message || 'Failed to assign trainer'); } finally { setTrainerAdding(false); }
   };
 
@@ -360,7 +360,7 @@ export default function CoursesPage() {
           {/* Only the college admin creates courses in their college (#fix) */}
           {isCollegeAdmin && (
             <>
-              <button className="btn-secondary" onClick={openBulkEnroll}>⚡ Bulk Enroll</button>
+              <button className="btn-secondary" onClick={openBulkEnroll}>Bulk Enroll</button>
               <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>
             </>
           )}
@@ -443,18 +443,18 @@ export default function CoursesPage() {
                       {(isAdmin || isTrainer) ? 'Manage' : 'View'}
                     </Link>
                     {(isAdmin || isTrainer) && (
-                      <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>📎 Resources</button>
+                      <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>Resources</button>
                     )}
                     {(isCollegeAdmin) && (
                       <>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignTrainer(course)}>👨‍🏫 Assign Trainer</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>➕ Add Student</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignTrainer(course)}>Assign Trainer</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>+ Add Student</button>
                       </>
                     )}
                     {isAdmin && (
                       <>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => toggleCoursePublish(course)}>
-                          {course.status === 'PUBLISHED' ? '↩ Unpublish' : '🚀 Publish'}
+                          {course.status === 'PUBLISHED' ? '↩ Unpublish' : 'Publish'}
                         </button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>
                       </>
@@ -482,8 +482,8 @@ export default function CoursesPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
           <div className="panel" style={{ width: '640px', maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0 }}>⚡ Bulk Enroll Students</h3>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setBulkOpen(false)}>✕ Close</button>
+              <h3 style={{ margin: 0 }}>Bulk Enroll Students</h3>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setBulkOpen(false)}> Close</button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
               Pick a branch + semester, then select students — every student is enrolled into all{' '}
@@ -510,7 +510,7 @@ export default function CoursesPage() {
 
             {bulkTargetCourses.length > 0 && (
               <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                📚 Target courses: {bulkTargetCourses.map((c: any) => c.title).join(', ')}
+                Target courses: {bulkTargetCourses.map((c: any) => c.title).join(', ')}
               </div>
             )}
 
@@ -532,7 +532,7 @@ export default function CoursesPage() {
 
             {bulkResult && (
               <div className="panel" style={{ padding: '12px', marginBottom: '14px', background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)' }}>
-                ✅ <strong>{bulkResult.enrolled}</strong> new enrollment(s) created · <strong>{bulkResult.skipped}</strong> already enrolled
+                <strong>{bulkResult.enrolled}</strong> new enrollment(s) created · <strong>{bulkResult.skipped}</strong> already enrolled
                 {bulkResult.failed > 0 && ` · ${bulkResult.failed} failed`}
               </div>
             )}
@@ -552,8 +552,8 @@ export default function CoursesPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="panel" style={{ width: '560px', maxWidth: '92vw', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0 }}>📎 Resources — {resourcesCourse.title}</h3>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setResourcesCourse(null)}>✕ Close</button>
+              <h3 style={{ margin: 0 }}>Resources — {resourcesCourse.title}</h3>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setResourcesCourse(null)}> Close</button>
             </div>
             <form onSubmit={uploadResource} style={{ marginBottom: '16px' }}>
               <input className="input-field" placeholder="Title (e.g. Unit 1 Reference Material)" style={{ marginBottom: '8px' }} value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} />
@@ -563,11 +563,11 @@ export default function CoursesPage() {
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '8px' }}>
                   <label style={{ display: 'flex', gap: '5px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
                     <input type="radio" name="res-batch" checked={resourceBatchType === 'ALL'} onChange={() => setResourceBatchType('ALL')} />
-                    🌐 All Batches
+                    All Batches
                   </label>
                   <label style={{ display: 'flex', gap: '5px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
                     <input type="radio" name="res-batch" checked={resourceBatchType === 'BATCH'} onChange={() => setResourceBatchType('BATCH')} />
-                    🎓 Specific Batch / Semester
+                    Specific Batch / Semester
                   </label>
                 </div>
                 {resourceBatchType === 'BATCH' && (
@@ -606,11 +606,11 @@ export default function CoursesPage() {
                           <span style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
                           {parsedBatch && parsedBatch.type === 'BATCH' ? (
                             <span className="badge" style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>
-                              🎓 {parsedBatch.semester ? `Sem ${parsedBatch.semester}` : 'Batch'}
+                              {parsedBatch.semester ? `Sem ${parsedBatch.semester}` : 'Batch'}
                             </span>
                           ) : (
                             <span className="badge" style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
-                              🌐 All Batches
+                              All Batches
                             </span>
                           )}
                         </div>
@@ -632,8 +632,8 @@ export default function CoursesPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <form onSubmit={addStudent} className="panel" style={{ width: '460px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ margin: 0 }}>➕ Add Student</h3>
-              <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setStudentCourse(null)}>✕ Close</button>
+              <h3 style={{ margin: 0 }}>+ Add Student</h3>
+              <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setStudentCourse(null)}> Close</button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{studentCourse.title}</strong></p>
             {studentMsg && (
@@ -690,7 +690,7 @@ export default function CoursesPage() {
       {trainerCourse && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <form onSubmit={assignTrainer} className="panel" style={{ width: '440px', maxWidth: '92vw', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '8px' }}>👨‍🏫 Assign Trainer</h3>
+            <h3 style={{ marginBottom: '8px' }}>Assign Trainer</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Course: <strong>{trainerCourse.title}</strong></p>
             <label style={{ display: 'block', marginBottom: '5px' }}>Trainer / TA</label>
             <select required className="input-field" style={{ marginBottom: '12px' }} value={trainerUserId} onChange={e => setTrainerUserId(e.target.value)}>

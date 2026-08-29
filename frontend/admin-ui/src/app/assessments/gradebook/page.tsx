@@ -226,7 +226,7 @@ export default function GradebookPage() {
                     <td style={{ padding: '12px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                         <button className="btn-secondary" style={{ fontSize: '12px', padding: '5px 10px' }} onClick={() => openGradeCard(g)}>
-                          🎓 Grade Card
+                          Grade Card
                         </button>
                         <button className="btn-secondary" style={{ fontSize: '12px', padding: '5px 10px' }} onClick={() => recalculate(g.user_id)}>
                           Recalc
@@ -247,7 +247,7 @@ export default function GradebookPage() {
           <div className="glass-panel" style={{ maxWidth: '860px', width: '100%', maxHeight: '90vh', overflow: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '18px' }}>Grade Card</h3>
-              <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => setCardStudent(null)}>✕ Close</button>
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => setCardStudent(null)}> Close</button>
             </div>
             {cardLoading ? (
               <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>Loading grade card...</p>

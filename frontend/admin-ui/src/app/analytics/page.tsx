@@ -51,13 +51,13 @@ export default function AnalyticsPage() {
       ]);
       const fmt = (n: number | null) => n === null ? '—' : n.toLocaleString();
       setStats([
-        { label: 'Courses', value: fmt(coursesData), color: '#00a8ff', icon: '📚' },        {label: isCollegeAdmin ? 'My College' : 'Colleges', value: fmt(colleges), color: '#00c864', icon: '🏛️' },
-        { label: 'Departments', value: fmt(departments), color: '#8b5cf6', icon: '🏢' },
-        { label: 'Live Classes', value: fmt(liveclasses), color: '#ff4757', icon: '🎥' },
-        { label: 'Forum Topics', value: fmt(forums), color: '#1e90ff', icon: '💬' },
-        { label: 'Quizzes', value: fmt(quizzes), color: '#ff6348', icon: '🧪' },
-        { label: 'Certificates', value: fmt(certificates), color: '#2ed573', icon: '🎓' },
-        { label: 'Enrollments', value: fmt(enrollments), color: '#ffa502', icon: '📝' },
+        { label: 'Courses', value: fmt(coursesData), color: '#00a8ff', icon: '' },        {label: isCollegeAdmin ? 'My College' : 'Colleges', value: fmt(colleges), color: '#00c864', icon: '' },
+        { label: 'Departments', value: fmt(departments), color: '#8b5cf6', icon: '' },
+        { label: 'Live Classes', value: fmt(liveclasses), color: '#ff4757', icon: '' },
+        { label: 'Forum Topics', value: fmt(forums), color: '#1e90ff', icon: '' },
+        { label: 'Quizzes', value: fmt(quizzes), color: '#ff6348', icon: '' },
+        { label: 'Certificates', value: fmt(certificates), color: '#2ed573', icon: '' },
+        { label: 'Enrollments', value: fmt(enrollments), color: '#ffa502', icon: '' },
       ]);
       try {
         const data = await fetchApi('/api/v1/courses');
@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
 
   if (!isAdmin && !isTrainer) return (
     <div className="fade-in panel" style={{ textAlign: 'center', padding: '60px' }}>
-      <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+      <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
       <h2>Access Restricted</h2>
       <p style={{ color: 'var(--text-secondary)' }}>Analytics are only available to Admins and Trainers.</p>
     </div>
@@ -91,7 +91,7 @@ export default function AnalyticsPage() {
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>📊 Analytics Dashboard</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>Analytics Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '5px' }}>
             {isCollegeAdmin ? 'Counts for your college from live services' : 'Platform-wide counts from live services'}
           </p>
@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
 
       {/* Top Courses */}
       <div className="panel" style={{ padding: '24px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>📚 Recently Created Courses</h2>
+        <h2 style={{ fontSize: '18px', marginBottom: '20px' }}>Recently Created Courses</h2>
         {courses.length === 0 ? (
           <p style={{ color: 'var(--text-secondary)' }}>No courses yet.</p>
         ) : (

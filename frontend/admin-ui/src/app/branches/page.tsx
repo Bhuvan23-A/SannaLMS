@@ -100,7 +100,7 @@ export default function BranchesPage() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
             className="input-field"
-            placeholder="🔍 Search branches..."
+            placeholder="Search branches..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '200px' }}
@@ -179,8 +179,8 @@ export default function BranchesPage() {
                       </td>
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(branch)}>✏️ Edit</button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteBranch(branch)}>🗑 Delete</button>
+                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(branch)}>Edit</button>
+                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteBranch(branch)}>Delete</button>
                         </div>
                       </td>
                     </>

@@ -105,7 +105,7 @@ export default function BulkImportPage() {
 
   return (
     <div className="fade-in">
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>👥 Bulk Import Users</h1>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>Bulk Import Users</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
         Upload a CSV to create students, professors, and teaching assistants in bulk. Users get a Keycloak account with the right role, your college&apos;s tenant, and department/branch/year attributes.
       </p>
@@ -118,8 +118,8 @@ export default function BulkImportPage() {
         </select>
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-          <button className="btn-secondary" onClick={() => fileRef.current?.click()}>📄 Upload CSV File</button>
-          <button className="btn-secondary" onClick={() => setCsvText(SAMPLE_CSV)}>📋 Load Sample CSV</button>
+          <button className="btn-secondary" onClick={() => fileRef.current?.click()}>Upload CSV File</button>
+          <button className="btn-secondary" onClick={() => setCsvText(SAMPLE_CSV)}>Load Sample CSV</button>
           <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleFile} />
         </div>
         {fileName && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>File: {fileName}</p>}
@@ -135,7 +135,7 @@ export default function BulkImportPage() {
             <input className="input-field" style={{ width: '160px' }} value={defaultPassword} onChange={e => setDefaultPassword(e.target.value)} />
           </label>
           <button className="btn-primary" disabled={importing} onClick={runImport}>
-            {importing ? 'Importing...' : `🚀 Import ${parseCsv(csvText).length || ''} Users`}
+            {importing ? 'Importing...' : `Import ${parseCsv(csvText).length || ''} Users`}
           </button>
         </div>
 
@@ -180,7 +180,7 @@ export default function BulkImportPage() {
             </table>
           )}
           <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            Created users get a temporary password and must change it at first login. You can now enroll them in courses via the Courses page (➕ Add Student) or with the attendance/assign features.
+            Created users get a temporary password and must change it at first login. You can now enroll them in courses via the Courses page (+ Add Student) or with the attendance/assign features.
           </p>
         </div>
       )}

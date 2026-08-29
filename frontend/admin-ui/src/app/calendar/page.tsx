@@ -124,8 +124,8 @@ export default function CalendarPage() {
               </p>
               
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '15px' }}>
-                <div>📅 <b>Start:</b> {new Date(ev.start_time).toLocaleString()}</div>
-                <div>📅 <b>End:</b> {new Date(ev.end_time).toLocaleString()}</div>
+                <div><b>Start:</b> {new Date(ev.start_time).toLocaleString()}</div>
+                <div><b>End:</b> {new Date(ev.end_time).toLocaleString()}</div>
               </div>
 
               {isAdmin && (

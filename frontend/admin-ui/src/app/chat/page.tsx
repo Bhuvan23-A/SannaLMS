@@ -56,7 +56,7 @@ export default function ChatPage() {
     if (!id) return;
     const data = await fetchApi(`/api/v1/chat/dm/${id}`).catch(() => []);
     setDmConvo(data || []);
-    // Auto-mark incoming DMs as read so the sender sees ✓✓ (#fix).
+    // Auto-mark incoming DMs as read so the sender sees  (#fix).
     const me = myUserId || 'u-1';
     (data || [])
       .filter((m: any) => m.from_user === id && m.to_user === me && !m.is_read)
@@ -172,7 +172,7 @@ export default function ChatPage() {
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>💬 Chat</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Chat</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className={view === 'rooms' ? 'btn-primary' : 'btn-secondary'} onClick={() => setView('rooms')}>Group Chat</button>
           <button className={view === 'dm' ? 'btn-primary' : 'btn-secondary'} onClick={() => { setView('dm'); loadDMs(); }}>Direct Messages</button>
@@ -197,9 +197,9 @@ export default function ChatPage() {
                 <div style={{ marginTop: '10px' }}>
                   <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '5px' }}>Visible to</label>
                   <select className="form-input" style={{ width: '100%', marginBottom: '6px' }} value={audienceType} onChange={e => setAudienceType(e.target.value)}>
-                    <option value="ALL">🏛️ Whole college (anyone can join)</option>
-                    <option value="COURSE">📚 Only a course's students & trainers</option>
-                    <option value="USERS">👤 Only specific users</option>
+                    <option value="ALL">Whole college (anyone can join)</option>
+                    <option value="COURSE">Only a course's students & trainers</option>
+                    <option value="USERS">Only specific users</option>
                   </select>
                   {audienceType === 'COURSE' && (
                     <select className="form-input" style={{ width: '100%' }} value={audienceCourseId}
@@ -248,7 +248,7 @@ export default function ChatPage() {
                 style={{ cursor: 'pointer', border: selectedRoom?.id === room.id ? '1px solid var(--primary-color)' : undefined }}>
                 <div style={{ fontWeight: '600', marginBottom: '4px' }}>
                   #{room.name}
-                  {room.is_locked && <span style={{ fontSize: '10px', marginLeft: '6px', padding: '2px 7px', borderRadius: '10px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24' }}>🔒 Closed</span>}
+                  {room.is_locked && <span style={{ fontSize: '10px', marginLeft: '6px', padding: '2px 7px', borderRadius: '10px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24' }}>Closed</span>}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   {room._count.members} members · {room._count.messages} messages
@@ -258,9 +258,9 @@ export default function ChatPage() {
                   {canManageRoom(room) && (
                     <>
                       <button className="btn-secondary" style={{ fontSize: '10px', padding: '2px 8px', color: room.is_locked ? '#00c864' : '#fbbf24', borderColor: room.is_locked ? '#00c864' : '#fbbf24' }} onClick={e => { e.stopPropagation(); toggleRoomLock(room); }}>
-                        {room.is_locked ? '🔓 Reopen' : '🔒 Close'}
+                        {room.is_locked ? 'Reopen' : 'Close'}
                       </button>
-                      <button className="btn-secondary" style={{ fontSize: '10px', padding: '2px 8px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={e => { e.stopPropagation(); deleteRoom(room); }}>🗑 Delete</button>
+                      <button className="btn-secondary" style={{ fontSize: '10px', padding: '2px 8px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={e => { e.stopPropagation(); deleteRoom(room); }}>Delete</button>
                     </>
                   )}
                 </div>
@@ -272,7 +272,7 @@ export default function ChatPage() {
           <div className="panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {!selectedRoom ? (
               <div style={{ textAlign: 'center', margin: 'auto', color: 'var(--text-secondary)' }}>
-                <div style={{ fontSize: '48px', marginBottom: '12px' }}>💬</div>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
                 <p>Select a room to start chatting</p>
               </div>
             ) : (
@@ -280,7 +280,7 @@ export default function ChatPage() {
                 <div style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3>
                     #{selectedRoom.name}
-                    {selectedRoom.is_locked && <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 9px', borderRadius: '10px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24' }}>🔒 Closed — read only</span>}
+                    {selectedRoom.is_locked && <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 9px', borderRadius: '10px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24' }}>Closed — read only</span>}
                   </h3>
                   <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 12px' }} onClick={() => joinRoom(selectedRoom.id)}>Join</button>
                 </div>
@@ -297,7 +297,7 @@ export default function ChatPage() {
                       <div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '3px' }}>{nameOf(msg.user_id)} · {new Date(msg.created_at).toLocaleTimeString()}</div>
                         <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px', fontSize: '14px' }}>{msg.content}</div>
-                        {msg.file_url && <a href={msg.file_url} target="_blank" style={{ fontSize: '12px', color: 'var(--primary-color)' }}>📎 Attachment</a>}
+                        {msg.file_url && <a href={msg.file_url} target="_blank" style={{ fontSize: '12px', color: 'var(--primary-color)' }}>Attachment</a>}
                       </div>
                     </div>
                   ))}
@@ -363,9 +363,9 @@ export default function ChatPage() {
                     background: mine ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
                   }}>
                     <div>{dm.content}</div>
-                    {dm.file_url && <a href={dm.file_url} target="_blank" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>📎 File</a>}
+                    {dm.file_url && <a href={dm.file_url} target="_blank" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>File</a>}
                     <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
-                      {new Date(dm.created_at).toLocaleTimeString()} {dm.is_read ? '✓✓' : '✓'}
+                      {new Date(dm.created_at).toLocaleTimeString()} {dm.is_read ? '' : ''}
                     </div>
                   </div>
                 </div>

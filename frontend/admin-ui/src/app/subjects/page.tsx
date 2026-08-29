@@ -250,7 +250,7 @@ export default function SubjectsPage() {
             </select>
           )}
           <button className="btn-secondary" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? '✓ Showing Archived' : '🗄 View Archived'}
+            {showArchived ? ' Showing Archived' : 'View Archived'}
           </button>
           <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setDepartmentId(''); setBranchId(''); setModalOpen(true); }}>+ Add Subject</button>
         </div>
@@ -306,15 +306,15 @@ export default function SubjectsPage() {
                     {s.deleted_at ? (
                       <>
                         <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
-                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>✏ Edit</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>🗑 Delete Forever</button>
+                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>Delete Forever</button>
                       </>
                     ) : (
                       <>
-                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>📚 Syllabus</button>
-                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>✏ Edit</button>
+                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>Syllabus</button>
+                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
                         <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>🗑 Delete</button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>Delete</button>
                       </>
                     )}
                   </td>
@@ -330,8 +330,8 @@ export default function SubjectsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="glass-panel animate-fade-in" style={{ width: '720px', maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', padding: '26px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>📚 Syllabus — {syllabusSubject.code} · {syllabusSubject.name}</h2>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setSyllabusSubject(null)}>✕ Close</button>
+              <h2 style={{ margin: 0, fontSize: '20px' }}>Syllabus — {syllabusSubject.code} · {syllabusSubject.name}</h2>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setSyllabusSubject(null)}> Close</button>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '14px' }}>
               This syllabus is owned by the <strong>subject</strong> — every section/batch that offers {syllabusSubject.name} shares it. Build it once here.
@@ -357,7 +357,7 @@ export default function SubjectsPage() {
                         </div>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px' }} onClick={() => addSyllabusLesson(mod.id, modIdx)}>+ Lesson</button>
-                          <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSyllabusModule(mod.id)}>🗑</button>
+                          <button className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSyllabusModule(mod.id)}></button>
                         </div>
                       </div>
                       {(mod.lessons || []).map((lesson: any) => (

@@ -100,7 +100,7 @@ export default function CoursePrerequisitesTab({ courseId }: { courseId: string 
             {prerequisites.map((p) => (
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                 <span style={{ fontSize: '14px' }}>
-                  📋 <strong>{titleOf(p.required_course_id)}</strong>
+                  <strong>{titleOf(p.required_course_id)}</strong>
                 </span>
                 {isAdmin && (
                   <button

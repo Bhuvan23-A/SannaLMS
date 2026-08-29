@@ -83,7 +83,7 @@ export default function CertificatesPage() {
     if (reason === null) return;
     try {
       await fetchApi(`/api/v1/certificates/${id}/revoke`, { method: 'POST', body: JSON.stringify({ reason: reason || 'No reason given' }) });
-      showFlash('🚫 Certificate revoked.');
+      showFlash('Certificate revoked.');
       loadCertificates();
     } catch { alert('Failed to revoke certificate'); }
   };
@@ -95,7 +95,7 @@ export default function CertificatesPage() {
       const body = { ...issueForm, tenant_id: selectedStudent?.tenant_id };
       await fetchApi('/api/v1/certificates/issue', { method: 'POST', body: JSON.stringify(body) });
       setShowIssueForm(false);
-      showFlash('✅ Certificate issued successfully!');
+      showFlash('Certificate issued successfully!');
       loadCertificates();
     } catch { alert('Failed to issue certificate'); }
   };
@@ -122,7 +122,7 @@ export default function CertificatesPage() {
       setShowTemplateForm(false);
       setTemplateFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      setTemplateStatus(`✅ Template saved for course ${templateCourseId}`);
+      setTemplateStatus(`Template saved for course ${templateCourseId}`);
       setTimeout(() => setTemplateStatus(''), 4000);
     } catch (err: any) {
       alert(err.message || 'Failed to upload template');
@@ -213,7 +213,7 @@ export default function CertificatesPage() {
         body: JSON.stringify({ students: toIssue }),
       });
       setShowBatchForm(false);
-      showFlash(`✅ Batch complete: ${res.issued} certificates issued with individualized grades and CGPAs (${res.skipped} skipped).`);
+      showFlash(`Batch complete: ${res.issued} certificates issued with individualized grades and CGPAs (${res.skipped} skipped).`);
       loadCertificates();
     } catch (err: any) {
       alert(err.message || 'Failed to batch issue certificates');
@@ -225,7 +225,7 @@ export default function CertificatesPage() {
   return (
     <div className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>🎓 Certificates</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>Certificates</h1>
         {(isAdmin || isTrainer) && (
           <div style={{ display: 'flex', gap: '10px' }}>
             <button className="btn-secondary" onClick={() => setShowTemplateForm(!showTemplateForm)}>Upload Course Template</button>
@@ -264,7 +264,7 @@ export default function CertificatesPage() {
       {/* Enhanced Batch Issue Form with Auto-Gradebook Calculation & Student Preview Table */}
       {showBatchForm && (isAdmin || isTrainer) && (
         <div className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '10px', fontSize: '18px', fontWeight: '600' }}>🎓 Batch Issue Certificates</h3>
+          <h3 style={{ marginBottom: '10px', fontSize: '18px', fontWeight: '600' }}>Batch Issue Certificates</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
             Select a course to auto-calculate each enrolled student&apos;s <strong>Grade and CGPA</strong> from the Gradebook. Review and adjust grades individually before issuing.
           </p>
@@ -367,7 +367,7 @@ export default function CertificatesPage() {
           </div>
 
           {batchLoadingRoster && (
-            <p style={{ color: 'var(--text-secondary)', margin: '20px 0' }}>⏳ Loading enrolled students and calculating Gradebook scores…</p>
+            <p style={{ color: 'var(--text-secondary)', margin: '20px 0' }}>Loading enrolled students and calculating Gradebook scores…</p>
           )}
 
           {!batchLoadingRoster && batchCourseId && batchStudentsList.length === 0 && (
@@ -380,7 +380,7 @@ export default function CertificatesPage() {
             <div style={{ marginTop: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <span style={{ fontSize: '14px', fontWeight: '600' }}>
-                  👥 Enrolled Students ({batchSelectedIds.length} of {batchStudentsList.length} selected)
+                  Enrolled Students ({batchSelectedIds.length} of {batchStudentsList.length} selected)
                 </span>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={toggleSelectAllBatch}>
@@ -452,7 +452,7 @@ export default function CertificatesPage() {
                           </td>
                           <td style={{ padding: '10px 15px' }}>
                             {stu.is_from_gradebook ? (
-                              <span className="badge badge-success" style={{ fontSize: '11px' }}>📊 Gradebook</span>
+                              <span className="badge badge-success" style={{ fontSize: '11px' }}>Gradebook</span>
                             ) : (
                               <span className="badge" style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)' }}>Default</span>
                             )}
@@ -471,7 +471,7 @@ export default function CertificatesPage() {
                   disabled={batchIssuing || batchSelectedIds.length === 0}
                   onClick={batchIssueCerts}
                 >
-                  {batchIssuing ? 'Issuing Certificates…' : `🎓 Issue ${batchSelectedIds.length} Personalized Certificates`}
+                  {batchIssuing ? 'Issuing Certificates…' : `Issue ${batchSelectedIds.length} Personalized Certificates`}
                 </button>
                 <button type="button" className="btn-secondary" onClick={() => setShowBatchForm(false)}>Cancel</button>
               </div>
@@ -482,7 +482,7 @@ export default function CertificatesPage() {
 
       {/* Public Verify Panel */}
       <div className="panel" style={{ marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>🔍 Verify a Certificate</h2>
+        <h2 style={{ fontSize: '20px', marginBottom: '15px' }}>Verify a Certificate</h2>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '14px' }}>Enter a certificate number to verify its authenticity.</p>
         <form onSubmit={verifyCert} style={{ display: 'flex', gap: '10px' }}>
           <input required className="input-field" style={{ flex: 1 }} placeholder="e.g. LMS-2026-12345" value={verifyNo} onChange={e => setVerifyNo(e.target.value)} />
@@ -492,16 +492,16 @@ export default function CertificatesPage() {
           <div style={{ marginTop: '20px', padding: '20px', borderRadius: '8px', background: verifyResult && !verifyResult.is_revoked ? 'rgba(0,200,100,0.1)' : 'rgba(255,71,87,0.1)', border: `1px solid ${verifyResult && !verifyResult.is_revoked ? '#00c864' : '#ff4757'}` }}>
             {verifyResult && !verifyResult.is_revoked ? (
               <div>
-                <div style={{ fontSize: '24px', marginBottom: '10px' }}>✅ Valid Certificate</div>
+                <div style={{ fontSize: '24px', marginBottom: '10px' }}>Valid Certificate</div>
                 <p><strong>Student:</strong> {verifyResult.student_name}</p>
                 <p><strong>Course:</strong> {verifyResult.course_title}</p>
                 <p><strong>Grade:</strong> {verifyResult.grade} (CGPA: {verifyResult.cgpa?.toFixed(1)})</p>
                 <p><strong>Issued:</strong> {new Date(verifyResult.issued_at).toLocaleDateString()}</p>
               </div>
             ) : verifyResult?.is_revoked ? (
-              <div style={{ color: '#ff4757' }}>❌ This certificate has been revoked: {verifyResult.revoke_reason}</div>
+              <div style={{ color: '#ff4757' }}>This certificate has been revoked: {verifyResult.revoke_reason}</div>
             ) : (
-              <div style={{ color: '#ff4757' }}>❌ Certificate not found. It may be invalid.</div>
+              <div style={{ color: '#ff4757' }}>Certificate not found. It may be invalid.</div>
             )}
           </div>
         )}
@@ -578,7 +578,7 @@ export default function CertificatesPage() {
       </h2>
       {certificates.length === 0 ? (
         <div className="panel" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎓</div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
           <p>No certificates issued yet. Complete a course to earn one!</p>
         </div>
       ) : (
@@ -592,7 +592,7 @@ export default function CertificatesPage() {
             }}>
               {/* Decorative seal */}
               <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(139,92,246,0.2)', border: '2px solid rgba(139,92,246,0.4)' }} />
-              <div style={{ position: 'absolute', top: '0px', right: '0px', fontSize: '40px', opacity: 0.3 }}>🏅</div>
+              <div style={{ position: 'absolute', top: '0px', right: '0px', fontSize: '40px', opacity: 0.3 }}></div>
 
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
@@ -608,7 +608,7 @@ export default function CertificatesPage() {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                   {c.grade && <span className="badge badge-success">Grade: {c.grade}</span>}
                   {c.cgpa && <span className="badge badge-info">CGPA: {c.cgpa.toFixed(1)}</span>}
-                  {c.is_revoked && <span className="badge" style={{ background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>🚫 Revoked</span>}
+                  {c.is_revoked && <span className="badge" style={{ background: 'rgba(255,71,87,0.15)', color: '#ff4757' }}>Revoked</span>}
                   <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>#{c.certificate_no}</span>
                 </div>
                 {isAdmin && !c.is_revoked && (
@@ -617,7 +617,7 @@ export default function CertificatesPage() {
                     style={{ marginTop: '12px', width: '100%', borderColor: 'var(--danger-color)', color: 'var(--danger-color)', fontSize: '12px', padding: '6px' }}
                     onClick={() => revokeCert(c.id)}
                   >
-                    🚫 Revoke Certificate
+                    Revoke Certificate
                   </button>
                 )}
               </div>

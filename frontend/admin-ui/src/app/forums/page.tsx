@@ -104,7 +104,7 @@ export default function ForumsPage() {
                 <h2 style={{ fontSize: '20px', color: 'var(--primary-color)', marginBottom: '5px' }}>
                   {f.title}
                   {f.is_locked && (
-                    <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>🔒 Closed</span>
+                    <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255,165,0,0.15)', color: '#fbbf24', verticalAlign: 'middle' }}>Closed</span>
                   )}
                   {role === 'SUPER_ADMIN' && f.target_tenants && f.target_tenants.length > 0 && (
                     <span style={{ fontSize: '11px', marginLeft: '8px', padding: '3px 8px', borderRadius: '4px', background: 'rgba(0,200,255,0.1)', color: 'var(--primary-color)' }}>
@@ -120,7 +120,7 @@ export default function ForumsPage() {
                   style={{ flexShrink: 0, fontSize: '12px', padding: '5px 12px', color: f.is_locked ? '#00c864' : '#fbbf24', borderColor: f.is_locked ? '#00c864' : '#fbbf24' }}
                   onClick={() => toggleLock(f)}
                 >
-                  {f.is_locked ? '🔓 Reopen' : '🔒 Close'}
+                  {f.is_locked ? 'Reopen' : 'Close'}
                 </button>
               )}
             </div>

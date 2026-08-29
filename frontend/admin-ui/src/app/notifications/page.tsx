@@ -139,7 +139,7 @@ export default function NotificationsPage() {
         method: 'POST',
         body: JSON.stringify({ ...sendForm, channels: ['WEB'], target })
       });
-      setSendMsg({ ok: true, text: `✅ Notification sent to ${res.recipients || 0} recipient(s).` });
+      setSendMsg({ ok: true, text: `Notification sent to ${res.recipients || 0} recipient(s).` });
       setSendForm({ title: '', body: '', type: 'SYSTEM' });
       loadData();
     } catch (err: any) {
@@ -201,7 +201,7 @@ export default function NotificationsPage() {
                 <select className="input-field" value={targetType} onChange={e => setTargetType(e.target.value as TargetType)}>
                   {allowedTargets.map(t => (
                     <option key={t} value={t}>
-                      {t === 'COLLEGE' ? '🏛️ Whole college' : t === 'DEPARTMENT' ? '🏢 Department' : t === 'BRANCH' ? '🌿 Branch' : t === 'SEMESTER' ? '📆 Semester' : t === 'COURSE' ? '📚 Course (students + trainers)' : t === 'ROLE' ? '👥 Role' : '👤 Specific users'}
+                      {t === 'COLLEGE' ? 'Whole college' : t === 'DEPARTMENT' ? 'Department' : t === 'BRANCH' ? 'Branch' : t === 'SEMESTER' ? 'Semester' : t === 'COURSE' ? 'Course (students + trainers)' : t === 'ROLE' ? 'Role' : 'Specific users'}
                     </option>
                   ))}
                 </select>
@@ -276,7 +276,7 @@ export default function NotificationsPage() {
               <textarea className="input-field" required rows={3} placeholder="Message body..." value={sendForm.body}
                 onChange={e => setSendForm({ ...sendForm, body: e.target.value })} />
               <button type="submit" className="btn-primary" disabled={sending}>
-                {sending ? 'Sending...' : '📨 Send'}
+                {sending ? 'Sending...' : 'Send'}
               </button>
             </form>
 
@@ -326,7 +326,7 @@ export default function NotificationsPage() {
                     <strong style={{ fontSize: '16px' }}>{item.title}</strong>
                     {item.recipients_count && item.recipients_count > 1 && (
                       <span className="badge badge-success" style={{ fontSize: '12px' }}>
-                        👥 Sent to {item.recipients_count} recipients
+                        Sent to {item.recipients_count} recipients
                       </span>
                     )}
                   </div>

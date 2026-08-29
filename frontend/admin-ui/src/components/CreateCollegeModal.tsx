@@ -53,7 +53,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
           boxShadow: '0 0 40px rgba(59, 130, 246, 0.25), 0 24px 60px rgba(0,0,0,0.6)',
           background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto'
         }}>
-          <div style={{ fontSize: '44px', textAlign: 'center', marginBottom: '12px' }}>✅</div>
+          <div style={{ fontSize: '44px', textAlign: 'center', marginBottom: '12px' }}></div>
           <h2 style={{ textAlign: 'center', marginBottom: '6px' }}>College Created!</h2>
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
             <strong>{result.name}</strong> is ready. Its college admin can log in right now with these credentials.
@@ -70,7 +70,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
                 <code style={{ fontSize: '15px', wordBreak: 'break-all' }}>{creds.admin_password}</code>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '12px' }}>
-                ⚠️ Save this now — the password is only shown once at creation.
+                Save this now — the password is only shown once at creation.
               </p>
             </div>
           ) : (
@@ -87,7 +87,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
 
           {result.admin_error && (
             <div style={{ padding: '10px', background: 'rgba(239,68,68,0.15)', color: '#fca5a5', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
-              ⚠️ College created, but the admin account could not be created: {result.admin_error}
+              College created, but the admin account could not be created: {result.admin_error}
             </div>
           )}
 
@@ -113,12 +113,12 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
         background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <h2 style={{ margin: 0 }}>🏛️ Create College</h2>
+          <h2 style={{ margin: 0 }}>Create College</h2>
           <button
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}
             aria-label="Close"
-          >✕</button>
+          ></button>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
           Registers the college as a separate tenant. If you supply an admin email, the college admin account is created automatically.
@@ -164,7 +164,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
           </div>
 
           <div style={{ marginTop: '2px', padding: '10px', background: 'rgba(59,130,246,0.15)', borderRadius: '8px', border: '1px dashed rgba(59,130,246,0.3)', fontSize: '12px', color: 'var(--text-secondary)' }}>
-            💡 <strong>College Admin:</strong> If you provide an admin email, we create the college admin automatically in Keycloak (role: tenantadmin) with the <code>tenant_id</code> attribute. Their temporary login is <strong>username = admin email</strong> and <strong>password = <code>Test@1234</code></strong> (shown once after creation) — no manual setup needed.
+            <strong>College Admin:</strong> If you provide an admin email, we create the college admin automatically in Keycloak (role: tenantadmin) with the <code>tenant_id</code> attribute. Their temporary login is <strong>username = admin email</strong> and <strong>password = <code>Test@1234</code></strong> (shown once after creation) — no manual setup needed.
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>

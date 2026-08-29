@@ -8,7 +8,7 @@ export default function AssessmentsPage() {
 
   const modules = [
     {
-      icon: '📚',
+      icon: '',
       title: 'Question Bank',
       description: 'Create and manage MCQ, Coding, and Essay questions for your courses.',
       href: '/assessments/questions',
@@ -17,7 +17,7 @@ export default function AssessmentsPage() {
       restricted: !isAdmin && !isTrainer
     },
     {
-      icon: '📝',
+      icon: '',
       title: 'Quiz Builder',
       description: 'Build quizzes from your question bank and publish them to students.',
       href: '/assessments/quizzes',
@@ -26,7 +26,7 @@ export default function AssessmentsPage() {
       restricted: false
     },
     {
-      icon: '📋',
+      icon: '',
       title: 'Assignments',
       description: 'Create assignments, review submissions, and provide feedback.',
       href: '/assessments/assignments',
@@ -35,7 +35,7 @@ export default function AssessmentsPage() {
       restricted: false
     },
     {
-      icon: '🏆',
+      icon: '',
       title: 'Gradebook',
       description: 'View consolidated grades, CGPA, and semester results for all students.',
       href: '/assessments/gradebook',
