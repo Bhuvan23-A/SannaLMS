@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakarta = Plus_Jakarta_Sans({ 
+  subsets: ["latin"],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-plus-jakarta'
+});
 
 export const metadata: Metadata = {
-  title: "LMS Admin Dashboard",
-  description: "Next Generation Learning Management System",
+  title: "Sanna LMS Admin Platform",
+  description: "Enterprise Multi-Tenant Learning Management System",
 };
 
 export default function RootLayout({
@@ -17,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={plusJakarta.className}>
         <div className="app-container">
           <Sidebar />
           <main className="main-content">

@@ -1,16 +1,17 @@
 :root {
-  --bg-color: #0b0f19;
-  --panel-bg: rgba(22, 30, 46, 0.6);
-  --panel-border: rgba(255, 255, 255, 0.1);
+  --bg-color: #070a11;
+  --panel-bg: rgba(15, 23, 42, 0.7);
+  --panel-border: rgba(255, 255, 255, 0.08);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-glow: rgba(59, 130, 246, 0.5);
-  --danger-color: #ef4444;
+  --accent-color: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.4);
+  --danger-color: #f43f5e;
   --success-color: #10b981;
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --glass-blur: blur(12px);
+  --warning-color: #f59e0b;
+  --font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --glass-blur: blur(16px);
 }
 
 * {
@@ -19,11 +20,30 @@
   padding: 0;
 }
 
+/* Custom Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 body {
   background-color: var(--bg-color);
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 25%);
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12), transparent 25%),
+    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.1), transparent 25%);
   color: var(--text-primary);
   font-family: var(--font-family);
   min-height: 100vh;
@@ -31,17 +51,13 @@ body {
 }
 
 /* Glassmorphism Utilities */
-/* `.panel` is used by 20+ pages for modals, cards and dialogs but was never
-   defined — every element with className="panel" rendered as an unstyled,
-   invisible box (no background/border/padding). Same card look as
-   glass-panel so modals are clearly visible on the dark theme (#fix). */
 .panel {
   background: var(--panel-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.35);
   padding: 24px;
   color: var(--text-primary);
 }
@@ -51,23 +67,23 @@ body {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--panel-border);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.35);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
-  padding: 24px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  padding: 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .glass-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px -10px var(--accent-glow);
-  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px var(--accent-glow);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 /* Typography */
@@ -75,6 +91,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   letter-spacing: -0.02em;
   margin-bottom: 0.5em;
+  color: var(--text-primary);
 }
 
 p {
@@ -82,37 +99,82 @@ p {
   line-height: 1.6;
 }
 
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge-info {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge-secondary {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-color), #8b5cf6);
+  background: linear-gradient(135deg, var(--accent-color), #4f46e5);
   color: white;
-  border: none;
-  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
   border-radius: 8px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px 0 var(--accent-glow);
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px 0 rgba(99, 102, 241, 0.3);
 }
 
 .btn-primary:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 20px var(--accent-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-secondary {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
-  border: 1px solid var(--panel-border);
-  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
   border-radius: 8px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
@@ -123,41 +185,43 @@ p {
 }
 
 .sidebar {
-  width: 280px;
+  width: 270px;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  padding: 24px;
+  padding: 20px 16px;
   border-right: 1px solid var(--panel-border);
-  background: rgba(11, 15, 25, 0.8);
+  background: rgba(11, 15, 25, 0.95);
   backdrop-filter: blur(20px);
   z-index: 100;
 }
 
 .main-content {
   flex: 1;
-  margin-left: 280px;
-  padding: 32px;
+  margin-left: 270px;
+  padding: 28px 36px;
+  min-width: 0;
 }
 
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 /* Forms */
 .input-field {
   width: 100%;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--panel-border);
   color: var(--text-primary);
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
   outline: none;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  transition: all 0.15s ease;
   font-family: inherit;
 }
 
@@ -166,30 +230,25 @@ p {
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-/* Dropdowns (selects) — consistent sizing, custom chevron caret and smooth
-   transitions across every page. Previously each <select> used the browser's
-   default (outdated) caret, varied padding per page, and snapped instantly
-   on focus/hover (#dropdown-style). `appearance: none` strips the native
-   arrow so the shared SVG chevron below renders uniformly in every browser. */
 select.input-field,
 select.form-input,
 select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  padding: 12px 38px 12px 16px;
+  padding: 10px 34px 10px 14px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 14px center;
-  background-size: 12px 8px;
+  background-position: right 12px center;
+  background-size: 10px 6px;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 select.input-field:hover,
 select.form-input:hover,
 select:hover {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 select.input-field:focus,
@@ -200,18 +259,16 @@ select:focus {
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-/* `.form-input` is used by chat/course-builder pages but was never defined,
-   so those inputs/selects rendered unstyled. Alias it to the input-field look
-   so every control shares the same base + the dropdown caret above. */
 .form-input {
   width: 100%;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--panel-border);
   color: var(--text-primary);
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
   outline: none;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  transition: all 0.15s ease;
   font-family: inherit;
 }
 
@@ -221,16 +278,11 @@ select:focus {
 }
 
 /* Animations */
-/* fadeIn is opacity-only on purpose (#fix): the page root carries
-   `animation-fill-mode: forwards`, which would otherwise leave a permanent
-   `transform` on the wrapper. Any transformed ancestor becomes the containing
-   block for `position: fixed` descendants, so every modal would center against
-   the whole page instead of the viewport and render off-screen at the bottom. */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.4s ease forwards;
+  animation: fadeIn 0.3s ease forwards;
 }

@@ -4,6 +4,29 @@ import { fetchApi, downloadFile } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
+import {
+  FolderOpen,
+  FileText,
+  ExternalLink,
+  Download,
+  Trash2,
+  Plus,
+  X,
+  Search,
+  Check,
+  Users,
+  GraduationCap,
+  Lock,
+  Globe,
+  AlertCircle,
+  Info,
+  FileSpreadsheet,
+  FileArchive,
+  Image as ImageIcon,
+  File as FileIcon,
+  UploadCloud,
+  Layers3
+} from 'lucide-react';
 
 export default function ResourcesPage() {
   const { role, isAdmin, isTrainer } = useRole();
@@ -17,10 +40,12 @@ export default function ResourcesPage() {
   const [resourcesList, setResourcesList] = useState<any[]>([]);
   const [resourcesLoading, setResourcesLoading] = useState(false);
 
+  // Top Filter State
   const [filterSemester, setFilterSemester] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadSourceType, setUploadSourceType] = useState<'LINK' | 'FILE'>('LINK');
   const [uploadTitle, setUploadTitle] = useState('');
@@ -40,11 +65,13 @@ export default function ResourcesPage() {
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Hierarchy
   const [departments, setDepartments] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
 
+  // User directory hook
   const { users, nameOf, emailOf } = useUserDirectory();
 
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
@@ -152,6 +179,7 @@ export default function ResourcesPage() {
         formData.append('link_url', uploadLinkUrl.trim());
       }
 
+      // Build assigned_to structure
       let assigned_to: any = { type: 'ALL' };
       if (uploadBatchType === 'BATCH') {
         assigned_to = {
@@ -210,26 +238,26 @@ export default function ResourcesPage() {
     }
   };
 
-  const getFileIcon = (filename: string = '', linkUrl?: string) => {
+  const renderFileIcon = (filename: string = '', linkUrl?: string) => {
     if (linkUrl || filename.includes('Google Drive') || filename.includes('drive.google')) {
-      return '🔗';
+      return <ExternalLink size={20} color="#10b981" />;
     }
     const ext = filename.split('.').pop()?.toLowerCase();
     switch (ext) {
-      case 'pdf': return '📄';
+      case 'pdf': return <FileText size={20} color="#f43f5e" />;
       case 'doc':
-      case 'docx': return '📝';
+      case 'docx': return <FileText size={20} color="#3b82f6" />;
       case 'ppt':
-      case 'pptx': return '📊';
+      case 'pptx': return <Layers3 size={20} color="#f59e0b" />;
       case 'xls':
       case 'xlsx':
-      case 'csv': return '📈';
+      case 'csv': return <FileSpreadsheet size={20} color="#10b981" />;
       case 'zip':
-      case 'rar': return '🗜️';
+      case 'rar': return <FileArchive size={20} color="#8b5cf6" />;
       case 'jpg':
       case 'jpeg':
-      case 'png': return '🖼️';
-      default: return '📎';
+      case 'png': return <ImageIcon size={20} color="#06b6d4" />;
+      default: return <FileIcon size={20} color="#94a3b8" />;
     }
   };
 
@@ -243,21 +271,32 @@ export default function ResourcesPage() {
 
   return (
     <div>
+      {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 'bold', margin: 0 }}>📚 Reference Materials & Documents</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '14px' }}>
-            Central repository for course syllabus, Google Drive folders, lecture slides, lab manuals, solution keys, and study materials.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <FolderOpen size={22} color="var(--accent-color)" />
+            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>
+              Reference Materials & Documents
+            </h1>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
+            Central repository for course syllabus, Google Drive folders, lecture slides, lab manuals, and solution keys.
           </p>
         </div>
         {(isSuperAdmin || isCollegeAdmin || isTrainer) && courseId && (
-          <button className="btn-primary" onClick={openUploadModal}>
-            ➕ Add Reference Material
+          <button
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px' }}
+            onClick={openUploadModal}
+          >
+            <Plus size={16} /> Add Reference Material
           </button>
         )}
       </div>
 
-      <div style={{ marginBottom: '25px' }}>
+      {/* College & Course Picker Bar */}
+      <div style={{ marginBottom: '22px' }}>
         <CollegeCoursePicker
           courses={courses}
           courseId={courseId}
@@ -269,15 +308,31 @@ export default function ResourcesPage() {
 
       {!courseId ? (
         <div className="panel" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📚</div>
-          <h3 style={{ fontSize: '18px', marginBottom: '6px', color: 'var(--text-primary)' }}>Select a Course to View Reference Materials</h3>
-          <p style={{ fontSize: '14px' }}>Choose a course from the dropdown above to manage and access its reference documents.</p>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            background: 'rgba(99, 102, 241, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 14px'
+          }}>
+            <FolderOpen size={24} color="var(--accent-color)" />
+          </div>
+          <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
+            Select a Course to View Reference Materials
+          </h3>
+          <p style={{ fontSize: '13px', maxWidth: '420px', margin: '0 auto' }}>
+            Choose a course from the selector above to manage and access its reference documents and shared cloud folders.
+          </p>
         </div>
       ) : resourcesLoading ? (
-        <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+        <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '13px' }}>
           Loading reference materials...
         </div>
       ) : (() => {
+        // Filter resources
         const filteredList = resourcesList.filter((r: any) => {
           const target = parseTarget(r.assigned_to);
           if (filterSemester && target?.semester && String(target.semester) !== String(filterSemester)) return false;
@@ -294,56 +349,88 @@ export default function ResourcesPage() {
 
         return (
           <div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+            {/* Filter Bar */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              marginBottom: '18px',
+              padding: '12px 16px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              borderRadius: '10px'
+            }}>
               <div style={{ minWidth: '160px' }}>
-                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px' }}>Filter by Semester / Batch</label>
-                <select className="input-field" style={{ padding: '6px 10px', fontSize: '13px' }} value={filterSemester} onChange={e => setFilterSemester(e.target.value)}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Filter by Semester / Batch
+                </label>
+                <select className="input-field" style={{ padding: '6px 10px', fontSize: '12px' }} value={filterSemester} onChange={e => setFilterSemester(e.target.value)}>
                   <option value="">All Semesters / Batches</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
                 </select>
               </div>
               <div style={{ minWidth: '160px' }}>
-                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px' }}>Filter by Department</label>
-                <select className="input-field" style={{ padding: '6px 10px', fontSize: '13px' }} value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Filter by Department
+                </label>
+                <select className="input-field" style={{ padding: '6px 10px', fontSize: '12px' }} value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)}>
                   <option value="">All Departments</option>
                   {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px' }}>Search Material</label>
-                <input
-                  className="input-field"
-                  style={{ padding: '6px 10px', fontSize: '13px' }}
-                  placeholder="Search title, link or file name…"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  Search Materials
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="input-field"
+                    style={{ padding: '6px 10px 6px 32px', fontSize: '12px' }}
+                    placeholder="Search title, link or file name…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                  <Search size={14} color="var(--text-secondary)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
               </div>
               {(filterSemester || filterDepartment || searchQuery) && (
                 <button
                   className="btn-secondary"
-                  style={{ alignSelf: 'flex-end', padding: '6px 12px', fontSize: '12px', height: '36px' }}
+                  style={{ alignSelf: 'flex-end', padding: '6px 12px', fontSize: '12px', height: '33px', display: 'flex', alignItems: 'center', gap: '4px' }}
                   onClick={() => { setFilterSemester(''); setFilterDepartment(''); setSearchQuery(''); }}
                 >
-                  Clear Filters
+                  <X size={12} /> Clear Filters
                 </button>
               )}
             </div>
 
+            {/* List Heading */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>
-                Files & Links for <strong>{selectedCourse?.title}</strong> ({filteredList.length} of {resourcesList.length})
+              <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: 'var(--text-primary)' }}>
+                Materials for <strong>{selectedCourse?.title}</strong> ({filteredList.length} of {resourcesList.length})
               </h2>
             </div>
 
             {filteredList.length === 0 ? (
-              <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                <div style={{ fontSize: '32px', marginBottom: '10px' }}>📂</div>
-                <p style={{ fontSize: '14px', marginBottom: '14px' }}>
+              <div className="panel" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-secondary)' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 12px'
+                }}>
+                  <FolderOpen size={20} color="var(--text-secondary)" />
+                </div>
+                <p style={{ fontSize: '13px', marginBottom: '14px' }}>
                   {resourcesList.length === 0 ? 'No reference materials added for this course yet.' : 'No materials match the selected filters.'}
                 </p>
                 {(isSuperAdmin || isCollegeAdmin || isTrainer) && resourcesList.length === 0 && (
-                  <button className="btn-secondary" onClick={openUploadModal}>
+                  <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={openUploadModal}>
                     Add First Reference Material
                   </button>
                 )}
@@ -356,12 +443,38 @@ export default function ResourcesPage() {
                   const deptName = target?.department_id ? departments.find((d: any) => d.id === target.department_id)?.name : null;
 
                   return (
-                    <div key={r.id} className="panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '18px', transition: 'transform 0.15s ease' }}>
+                    <div
+                      key={r.id}
+                      className="panel"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        background: 'rgba(17, 24, 39, 0.7)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '10px' }}>
-                          <span style={{ fontSize: '28px', lineHeight: 1 }}>{getFileIcon(r.file_name, r.link_url)}</span>
+                        {/* Card Header */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+                          <div style={{
+                            width: '38px',
+                            height: '38px',
+                            minWidth: '38px',
+                            borderRadius: '8px',
+                            background: isLink ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                            border: isLink ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(99, 102, 241, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {renderFileIcon(r.file_name, r.link_url)}
+                          </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <h3 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title || r.file_name}>
+                            <h3 style={{ fontSize: '14px', fontWeight: 600, margin: '0 0 3px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title || r.file_name}>
                               {r.title || r.file_name}
                             </h3>
                             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -370,62 +483,80 @@ export default function ResourcesPage() {
                           </div>
                         </div>
 
+                        {/* Status Badges */}
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
                           {isLink ? (
-                            <span className="badge" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }}>
-                              🔗 Google Drive / Cloud Link
+                            <span className="badge" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                              <ExternalLink size={11} /> Google Drive / Cloud Link
                             </span>
                           ) : (
-                            <span className="badge badge-info">{Math.round((r.file_size || 0) / 1024)} KB</span>
+                            <span className="badge badge-info" style={{ fontSize: '11px' }}>
+                              {Math.round((r.file_size || 0) / 1024)} KB
+                            </span>
                           )}
 
                           {r.visibility === 'STAFF_ONLY' ? (
-                            <span className="badge badge-warning" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308' }}>🔒 Faculty Only</span>
+                            <span className="badge badge-warning" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                              <Lock size={11} /> Faculty Only
+                            </span>
                           ) : r.visibility === 'STUDENT_ONLY' ? (
-                            <span className="badge badge-secondary">🎓 Students Only</span>
+                            <span className="badge badge-secondary" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                              <GraduationCap size={11} /> Students Only
+                            </span>
                           ) : (
-                            <span className="badge badge-success">🌐 All (Staff & Students)</span>
+                            <span className="badge badge-success" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                              <Globe size={11} /> All (Staff & Students)
+                            </span>
                           )}
 
                           {target?.semester && (
-                            <span className="badge" style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' }}>
+                            <span className="badge" style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)', fontSize: '11px' }}>
                               Sem {target.semester}
                             </span>
                           )}
                           {deptName && (
-                            <span className="badge badge-secondary">{deptName}</span>
+                            <span className="badge badge-secondary" style={{ fontSize: '11px' }}>{deptName}</span>
                           )}
                           {target?.batch_name && (
-                            <span className="badge badge-info">{target.batch_name}</span>
+                            <span className="badge badge-info" style={{ fontSize: '11px' }}>{target.batch_name}</span>
                           )}
                           {target?.user_ids?.length > 0 && (
-                            <span className="badge" style={{ background: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.3)' }}>
-                              👥 {target.user_ids.length} Students
+                            <span className="badge" style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.25)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                              <Users size={11} /> {target.user_ids.length} Students
                             </span>
                           )}
                           {r.created_at && (
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', alignSelf: 'center' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', alignSelf: 'center', marginLeft: 'auto' }}>
                               {new Date(r.created_at).toLocaleDateString()}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}>
                         <button
                           className="btn-primary"
-                          style={{ flex: 1, fontSize: '13px', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          style={{ flex: 1, fontSize: '12px', padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                           onClick={() => handleOpenOrDownload(r)}
                         >
-                          {isLink ? '🚀 Open in Drive / Link ↗' : '📥 Download File'}
+                          {isLink ? (
+                            <>
+                              <ExternalLink size={13} /> Open in Drive / Link
+                            </>
+                          ) : (
+                            <>
+                              <Download size={13} /> Download File
+                            </>
+                          )}
                         </button>
                         {(isSuperAdmin || isCollegeAdmin || isTrainer) && (
                           <button
                             className="btn-secondary"
-                            style={{ fontSize: '13px', padding: '6px 10px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                            style={{ fontSize: '12px', padding: '6px 10px', color: 'var(--danger-color)', borderColor: 'rgba(244,63,94,0.3)', display: 'flex', alignItems: 'center', gap: '4px' }}
                             onClick={() => handleDelete(r.id, r.title || r.file_name)}
                           >
-                            ✕ Delete
+                            <Trash2 size={13} />
                           </button>
                         )}
                       </div>
@@ -438,51 +569,63 @@ export default function ResourcesPage() {
         );
       })()}
 
+      {/* Upload / Link Modal */}
       {showUploadModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="panel" style={{ width: '680px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px' }}>➕ Add Reference Material</h3>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setShowUploadModal(false)}>✕ Close</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="panel" style={{ width: '680px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={18} color="var(--accent-color)" />
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600 }}>Add Reference Material</h3>
+              </div>
+              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => setShowUploadModal(false)}>
+                <X size={14} /> Close
+              </button>
             </div>
 
             {uploadError && (
-              <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,0.15)', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', borderRadius: '6px', marginBottom: '14px', fontSize: '13px' }}>
-                {uploadError}
+              <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', color: '#f43f5e', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} /> {uploadError}
               </div>
             )}
 
             <form onSubmit={handleUpload}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 600 }}>Selected Course</label>
-                <div className="input-field" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>Selected Course</label>
+                <div className="input-field" style={{ background: 'rgba(255,255,255,0.03)', color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>
                   {selectedCourse?.title || 'No course selected'}
                 </div>
               </div>
 
+              {/* Source Type Selector */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', marginBottom: '8px', fontWeight: 600 }}>Storage / Source Type</label>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>Storage / Source Type</label>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     style={{
                       flex: 1,
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      border: uploadSourceType === 'LINK' ? '2px solid var(--primary-color)' : '1px solid rgba(255,255,255,0.1)',
-                      background: uploadSourceType === 'LINK' ? 'rgba(0,168,255,0.15)' : 'rgba(255,255,255,0.02)',
-                      color: uploadSourceType === 'LINK' ? '#fff' : 'var(--text-secondary)',
+                      border: uploadSourceType === 'LINK' ? '2px solid var(--accent-color)' : '1px solid rgba(255,255,255,0.1)',
+                      background: uploadSourceType === 'LINK' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)',
+                      color: uploadSourceType === 'LINK' ? '#ffffff' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       fontSize: '13px',
                       fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
                     }}
                     onClick={() => setUploadSourceType('LINK')}
                   >
-                    <span>🔗</span> Google Drive / Cloud Link <span style={{ fontSize: '11px', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '2px 6px', borderRadius: '4px' }}>Saves Storage</span>
+                    <ExternalLink size={15} color={uploadSourceType === 'LINK' ? '#10b981' : 'currentColor'} />
+                    Google Drive / Cloud Link
+                    <span style={{ fontSize: '10px', background: 'rgba(16,185,129,0.2)', color: '#10b981', padding: '1px 6px', borderRadius: '4px' }}>
+                      Saves Storage
+                    </span>
                   </button>
 
                   <button
@@ -491,26 +634,27 @@ export default function ResourcesPage() {
                       flex: 1,
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      border: uploadSourceType === 'FILE' ? '2px solid var(--primary-color)' : '1px solid rgba(255,255,255,0.1)',
-                      background: uploadSourceType === 'FILE' ? 'rgba(0,168,255,0.15)' : 'rgba(255,255,255,0.02)',
-                      color: uploadSourceType === 'FILE' ? '#fff' : 'var(--text-secondary)',
+                      border: uploadSourceType === 'FILE' ? '2px solid var(--accent-color)' : '1px solid rgba(255,255,255,0.1)',
+                      background: uploadSourceType === 'FILE' ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)',
+                      color: uploadSourceType === 'FILE' ? '#ffffff' : 'var(--text-secondary)',
                       cursor: 'pointer',
                       fontSize: '13px',
                       fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      transition: 'all 0.15s ease'
                     }}
                     onClick={() => setUploadSourceType('FILE')}
                   >
-                    <span>📁</span> Upload Direct File (PDF, PPT)
+                    <UploadCloud size={15} /> Upload Direct File (PDF, PPT)
                   </button>
                 </div>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 600 }}>Document Title</label>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>Document Title</label>
                 <input
                   required
                   className="input-field"
@@ -520,9 +664,10 @@ export default function ResourcesPage() {
                 />
               </div>
 
+              {/* Dynamic Input based on Source Type */}
               {uploadSourceType === 'LINK' ? (
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Google Drive / Cloud Folder Link
                   </label>
                   <input
@@ -533,13 +678,13 @@ export default function ResourcesPage() {
                     value={uploadLinkUrl}
                     onChange={e => setUploadLinkUrl(e.target.value)}
                   />
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>
-                    💡 <em>Tip: In Google Drive, click <strong>Share → Anyone with the link can view</strong> so enrolled students can open this resource.</em>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Info size={14} color="var(--accent-color)" /> In Google Drive, click <strong>Share &gt; Anyone with the link can view</strong> so enrolled students can open this resource.
                   </div>
                 </div>
               ) : (
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 600 }}>File (PDF, PPT, DOCX, ZIP, XLS)</label>
+                  <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>File (PDF, PPT, DOCX, ZIP, XLS)</label>
                   <input
                     ref={fileInputRef}
                     required
@@ -550,16 +695,19 @@ export default function ResourcesPage() {
                 </div>
               )}
 
-              <div style={{ marginBottom: '16px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', marginBottom: '8px', fontWeight: 600 }}>Batch & Semester Scope</label>
+              {/* Batch & Semester Scope Section */}
+              <div style={{ marginBottom: '16px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Batch & Semester Scope
+                </label>
                 <div style={{ display: 'flex', gap: '20px', marginBottom: '10px' }}>
                   <label style={{ display: 'flex', gap: '6px', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
                     <input type="radio" name="batch-type" checked={uploadBatchType === 'ALL'} onChange={() => setUploadBatchType('ALL')} />
-                    🌐 All Batches (Course-wide)
+                    All Batches (Course-wide)
                   </label>
                   <label style={{ display: 'flex', gap: '6px', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
                     <input type="radio" name="batch-type" checked={uploadBatchType === 'BATCH'} onChange={() => setUploadBatchType('BATCH')} />
-                    🎓 Specific Batch / Semester
+                    Specific Batch / Semester
                   </label>
                 </div>
 
@@ -567,32 +715,33 @@ export default function ResourcesPage() {
                   <div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px', marginBottom: '12px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Semester</label>
-                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '13px' }} value={uploadSem} onChange={e => setUploadSem(e.target.value)}>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Semester</label>
+                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={uploadSem} onChange={e => setUploadSem(e.target.value)}>
                           <option value="">Choose Semester…</option>
                           {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Department</label>
-                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '13px' }} value={uploadDept} onChange={e => setUploadDept(e.target.value)}>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Department</label>
+                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={uploadDept} onChange={e => setUploadDept(e.target.value)}>
                           <option value="">All Departments</option>
                           {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Branch (optional)</label>
-                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '13px' }} value={uploadBranch} onChange={e => setUploadBranch(e.target.value)}>
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Branch (optional)</label>
+                        <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={uploadBranch} onChange={e => setUploadBranch(e.target.value)}>
                           <option value="">All Branches</option>
                           {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Batch / Year Label (optional)</label>
-                        <input className="input-field" style={{ padding: '6px 8px', fontSize: '13px' }} placeholder="e.g. 2024-28 Batch" value={uploadBatchName} onChange={e => setUploadBatchName(e.target.value)} />
+                        <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Batch / Year Label (optional)</label>
+                        <input className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} placeholder="e.g. 2024-28 Batch" value={uploadBatchName} onChange={e => setUploadBatchName(e.target.value)} />
                       </div>
                     </div>
 
+                    {/* Student Multi-Select Checklist */}
                     {(() => {
                       const currentTenant = isSuperAdmin && selectedCollege?.tenant_id ? selectedCollege.tenant_id : undefined;
                       const allStudents = users.filter((u: any) => {
@@ -634,11 +783,11 @@ export default function ResourcesPage() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
                             <span style={{ fontSize: '12px', fontWeight: 600 }}>Target Specific Students (Optional · {selectedStudents.length} selected):</span>
                             <div style={{ display: 'flex', gap: '6px' }}>
-                              <button type="button" className="btn-secondary" style={{ padding: '2px 6px', fontSize: '11px' }} onClick={selectAllFiltered}>
-                                Select All ({filtered.length})
+                              <button type="button" className="btn-secondary" style={{ padding: '2px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={selectAllFiltered}>
+                                <Check size={12} /> Select All ({filtered.length})
                               </button>
-                              <button type="button" className="btn-secondary" style={{ padding: '2px 6px', fontSize: '11px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
-                                Clear
+                              <button type="button" className="btn-secondary" style={{ padding: '2px 8px', fontSize: '11px', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={clearFiltered}>
+                                <X size={12} /> Clear
                               </button>
                             </div>
                           </div>
@@ -660,7 +809,7 @@ export default function ResourcesPage() {
                               const dept = departments.find((d: any) => d.id === userObj.department_id)?.name;
                               const sem = userObj.semester_number || semesters.find((s: any) => s.id === userObj.semester_id)?.number;
                               return (
-                                <label key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', background: selectedStudents.includes(uid) ? 'rgba(0,168,255,0.12)' : 'transparent', marginBottom: '2px' }}>
+                                <label key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', background: selectedStudents.includes(uid) ? 'rgba(99,102,241,0.15)' : 'transparent', marginBottom: '2px' }}>
                                   <span style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px' }}>
                                     <input type="checkbox" checked={selectedStudents.includes(uid)} onChange={() => toggleStudent(uid)} />
                                     <strong>{nameOf(uid)}</strong>
@@ -682,23 +831,35 @@ export default function ResourcesPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 600 }}>Audience / Visibility</label>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>Audience / Visibility</label>
                 <select
                   className="input-field"
                   value={uploadVisibility}
                   onChange={e => setUploadVisibility(e.target.value)}
                 >
-                  <option value="ALL">🌐 All (Both Students & Staff)</option>
-                  <option value="STUDENT_ONLY">🎓 Students Only (Learning Materials)</option>
-                  <option value="STAFF_ONLY">🔒 Staff Only (Faculty Keys & Rubrics)</option>
+                  <option value="ALL">All (Both Students & Staff)</option>
+                  <option value="STUDENT_ONLY">Students Only (Learning Materials)</option>
+                  <option value="STAFF_ONLY">Staff Only (Faculty Keys & Rubrics)</option>
                 </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }} disabled={uploading}>
-                  {uploading ? '⏳ Saving Resource...' : (uploadSourceType === 'LINK' ? '🚀 Save Google Drive Link' : 'Upload Resource')}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} disabled={uploading}>
+                  {uploading ? (
+                    'Saving Resource...'
+                  ) : uploadSourceType === 'LINK' ? (
+                    <>
+                      <ExternalLink size={14} /> Save Google Drive Link
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud size={14} /> Upload Resource
+                    </>
+                  )}
                 </button>
-                <button type="button" className="btn-secondary" onClick={() => setShowUploadModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary" style={{ padding: '10px 16px', fontSize: '13px' }} onClick={() => setShowUploadModal(false)}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>

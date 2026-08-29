@@ -1848,9 +1848,21 @@ export const Dashboard: React.FC = () => {
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
-                            <span style={{ fontSize: '1.2rem' }}>{isLink ? '🔗' : '📄'}</span>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              minWidth: '32px',
+                              borderRadius: '6px',
+                              background: isLink ? 'rgba(16, 185, 129, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                              border: isLink ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(56, 189, 248, 0.25)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {isLink ? <ExternalLink size={16} color="#10b981" /> : <FileText size={16} color="#38bdf8" />}
+                            </div>
                             <div>
-                              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{res.title}</p>
+                              <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', margin: 0 }}>{res.title}</p>
                               <span style={{ fontSize: '0.75rem', color: isLink ? '#10b981' : 'var(--text-secondary)' }}>
                                 {isLink ? 'Google Drive / Cloud Resource' : res.file_name}
                               </span>

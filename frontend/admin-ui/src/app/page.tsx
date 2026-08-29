@@ -4,6 +4,23 @@ import Link from 'next/link';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
 import { useRole } from "@/hooks/useRole";
+import {
+  Building2,
+  Layers,
+  BookOpen,
+  Users,
+  ArrowRight,
+  TrendingUp,
+  HelpCircle,
+  CheckSquare,
+  FileText,
+  Award,
+  MapPin,
+  Video,
+  Bell,
+  Sparkles,
+  Calendar
+} from 'lucide-react';
 
 export default function Home() {
   const { role, isTrainer } = useRole();
@@ -12,23 +29,19 @@ export default function Home() {
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
 
   useEffect(() => {
-    (async () => {
-      // Trainers land on their own teaching view — the platform-wide stats are
-      // admin information and mean nothing to a trainer (#fix).
-      if (isTrainer) return;
+    if (isTrainer) return;
 
-      // All fetches are independent — load whatever the backend exposes; null means "unavailable".
-      // Colleges/enrollments lists are multi-MB (users/courses embedded), so use
-      // the lightweight ?count=1 mode and count courses from the recent list (#perf).
-      const load = async (url: string) => {
-        try {
-          const data = await fetchApi(url);
-          if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as any).count === 'number') return (data as any).count;
-          return Array.isArray(data) ? data.length : 0;
-        } catch {
-          return null;
-        }
-      };
+    const load = async (url: string) => {
+      try {
+        const data = await fetchApi(url);
+        if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as any).count === 'number') return (data as any).count;
+        return Array.isArray(data) ? data.length : 0;
+      } catch {
+        return null;
+      }
+    };
+
+    (async () => {
       const [colleges, departments, students] = await Promise.all([
         load('/api/v1/colleges?count=1'),
         load('/api/v1/departments'),
@@ -45,55 +58,99 @@ export default function Home() {
               .slice(0, 5)
           );
         }
-      } catch { /* no courses endpoint available */ }
+      } catch { }
       setStats({ colleges, departments, courses: courseCount, students });
     })();
   }, [isTrainer]);
 
   const fmt = (n: number | null) => n === null ? '—' : n.toLocaleString();
 
-  // Trainers/assistant trainers: a focused teaching panel, not platform stats.
   if (isTrainer) {
     return <TrainerHome />;
   }
 
   return (
-    <div className="animate-fade-in">
+    <div>
       <Topbar title="Dashboard Overview" />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-        <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>{isCollegeAdmin ? 'My College' : 'Total Colleges'}</h3>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '10px' }}>{fmt(stats.colleges)}</p>
-          {isCollegeAdmin && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Scoped to your college only</p>}
+      {/* KPI Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {isCollegeAdmin ? 'Institution' : 'Total Colleges'}
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={16} color="var(--accent-color)" />
+            </div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.colleges)}</div>
+          {isCollegeAdmin && <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active institutional workspace</p>}
         </div>
-        <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>Total Departments</h3>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '10px' }}>{fmt(stats.departments)}</p>
+
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Departments
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={16} color="#06b6d4" />
+            </div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.departments)}</div>
+          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Academic faculties</p>
         </div>
-        <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>Active Courses</h3>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '10px' }}>{fmt(stats.courses)}</p>
+
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Active Courses
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpen size={16} color="#10b981" />
+            </div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.courses)}</div>
+          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Curriculum modules</p>
         </div>
-        <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>Total Enrollments</h3>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '10px' }}>{fmt(stats.students)}</p>
+
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Total Enrollments
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={16} color="#f59e0b" />
+            </div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.students)}</div>
+          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active student registrations</p>
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '30px' }}>
-        <h3 style={{ marginBottom: '20px' }}>Recently Created Courses</h3>
+      {/* Recent Courses List */}
+      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={18} color="var(--accent-color)" />
+            <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Recently Added Courses</h3>
+          </div>
+          <Link href="/courses" style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+            View All Courses <ArrowRight size={13} />
+          </Link>
+        </div>
+
         {recentCourses.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)' }}>No courses yet.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', padding: '24px 0' }}>No courses added yet.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {recentCourses.map((course: any, i: number) => (
-              <div key={course.id || i} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '15px', borderBottom: i < recentCourses.length - 1 ? '1px solid var(--panel-border)' : 'none' }}>
-                <div>
-                  <h4 style={{ fontSize: '16px', margin: 0 }}>{course.title}</h4>
-                  <p style={{ fontSize: '14px', margin: '5px 0 0 0', color: 'var(--text-secondary)' }}>{course.description || ''}</p>
+              <div key={course.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: '#ffffff' }}>{course.title}</h4>
+                  {course.description && <p style={{ fontSize: '12px', margin: '2px 0 0 0', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{course.description}</p>}
                 </div>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flexShrink: 0, marginLeft: '16px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', flexShrink: 0, marginLeft: '16px' }}>
                   {course.created_at ? new Date(course.created_at).toLocaleDateString() : ''}
                 </span>
               </div>
@@ -115,55 +172,66 @@ function TrainerHome() {
       try {
         const d = await fetchApi('/api/v1/courses');
         setCourses(Array.isArray(d) ? d : []);
-      } catch { /* course list unavailable */ } finally { setLoading(false); }
+      } catch { } finally { setLoading(false); }
     })();
   }, []);
 
   const tools = [
-    { label: '📊 Question Bank', href: '/assessments/questions' },
-    { label: '🧪 Quizzes', href: '/assessments/quizzes' },
-    { label: '📋 Assignments', href: '/assessments/assignments' },
-    { label: '🏆 Gradebook', href: '/assessments/gradebook' },
-    { label: '📍 Attendance', href: '/attendance' },
-    { label: '🎥 Live Classes', href: '/liveclasses' },
-    { label: '🔔 Notifications', href: '/notifications' },
+    { label: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
+    { label: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+    { label: 'Assignments', href: '/assessments/assignments', icon: FileText },
+    { label: 'Gradebook', href: '/assessments/gradebook', icon: Award },
+    { label: 'Attendance', href: '/attendance', icon: MapPin },
+    { label: 'Live Classes', href: '/liveclasses', icon: Video },
+    { label: 'Notifications', href: '/notifications', icon: Bell },
   ];
 
   return (
-    <div className="animate-fade-in">
-      <Topbar title="My Teaching" />
+    <div>
+      <Topbar title="Teaching Dashboard" />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px', marginBottom: '30px' }}>
-        <div className="glass-card">
-          <h3 style={{ color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase' }}>My Courses</h3>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '10px' }}>{loading ? '…' : courses.length}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              My Assigned Courses
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpen size={16} color="var(--accent-color)" />
+            </div>
+          </div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{loading ? '…' : courses.length}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '30px' }}>
-        {tools.map(t => (
-          <Link key={t.href} href={t.href} className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 16px' }}>
-            {t.label}
-          </Link>
-        ))}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '28px' }}>
+        {tools.map(t => {
+          const Icon = t.icon;
+          return (
+            <Link key={t.href} href={t.href} className="btn-secondary" style={{ textDecoration: 'none', padding: '8px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Icon size={14} color="var(--accent-color)" />
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
 
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <h3 style={{ marginBottom: '16px' }}>Courses I Teach</h3>
+      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Courses I Teach</h3>
         {loading ? (
-          <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading courses...</p>
         ) : courses.length === 0 ? (
-          <p style={{ color: 'var(--text-secondary)' }}>You are not assigned to any course yet. Ask your college admin to assign you.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>You are not assigned to any courses yet. Please contact your college administrator.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {courses.map((c: any) => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '12px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.04)', borderRadius: '8px' }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '15px', fontWeight: 600 }}>{c.title}</div>
-                  {c.description && <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description}</div>}
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff' }}>{c.title}</div>
+                  {c.description && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description}</div>}
                 </div>
-                <Link href={`/courses/${c.id}`} className="btn-primary" style={{ textDecoration: 'none', padding: '6px 14px', fontSize: '13px', flexShrink: 0 }}>
-                  Manage
+                <Link href={`/courses/${c.id}`} className="btn-primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '12px', flexShrink: 0 }}>
+                  Manage Course
                 </Link>
               </div>
             ))}

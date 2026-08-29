@@ -4,13 +4,64 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useRole } from '@/hooks/useRole';
 import { getRoleLabel, handleLogout } from '@/lib/auth';
+import {
+  LayoutDashboard,
+  Calendar,
+  Bell,
+  Search,
+  MessagesSquare,
+  MessageSquare,
+  Building2,
+  Users,
+  Layers,
+  GitBranch,
+  CalendarDays,
+  FileCode2,
+  GraduationCap,
+  FolderTree,
+  BookOpen,
+  FolderOpen,
+  FileCheck2,
+  HelpCircle,
+  CheckSquare,
+  FileText,
+  Award,
+  MapPin,
+  Video,
+  BarChart3,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Sparkles
+} from 'lucide-react';
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, isTrainer } = useRole();
+  const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+
   const [username, setUsername] = useState('User');
   const [email, setEmail] = useState('');
   const [initials, setInitials] = useState('U');
+
+  // Collapsible section states
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (title: string) => {
+    setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));
+  };
 
   useEffect(() => {
     const syncProfile = () => {
@@ -24,224 +75,278 @@ export default function Sidebar() {
     return () => window.removeEventListener('roleChanged', syncProfile);
   }, []);
 
-  const superAdminLinks = [
-    { name: '🏠 Dashboard', href: '/' },
-    { name: '📅 Calendar', href: '/calendar' },
-    { name: '🔔 Notifications', href: '/notifications' },
-    { name: '🔍 Search', href: '/search' },
-    { name: '💬 Forums', href: '/forums' },
-    { name: '🗨️ Chat', href: '/chat' },
-    { divider: 'Management' },
-    { name: '🏛️ Colleges', href: '/colleges' },
-    { name: '👥 Bulk Import Users', href: '/users/import' },
-    { name: '🏢 Departments', href: '/departments' },
-    { name: '🌿 Branches', href: '/branches' },
-    { name: '📆 Semesters', href: '/semesters' },
-    { name: '📇 Subjects', href: '/subjects' },
-    { name: '🎓 Academic Sessions', href: '/academic-sessions' },
-    { name: '🗂️ Sections', href: '/sections' },
-    { name: '📚 Courses', href: '/courses' },
-    { name: '📎 Reference Materials', href: '/resources' },
-    { divider: 'Assessment' },
-    { name: '📝 Assessments', href: '/assessments' },
-    { name: '📊 Question Bank', href: '/assessments/questions' },
-    { name: '🧪 Quizzes', href: '/assessments/quizzes' },
-    { name: '📋 Assignments', href: '/assessments/assignments' },
-    { name: '🏆 Gradebook', href: '/assessments/gradebook' },
-    { divider: 'Attendance' },
-    { name: '📍 Attendance', href: '/attendance' },
-    { divider: 'Live Classes' },
-    { name: '🎥 Live Classes', href: '/liveclasses' },
-    { divider: 'Certificates & Analytics' },
-    { name: '🎓 Certificates', href: '/certificates' },
-    { name: '📊 Analytics', href: '/analytics' },
-  ];
+  const getNavSections = (): NavSection[] => {
+    if (isSuperAdmin || isCollegeAdmin) {
+      return [
+        {
+          title: 'Overview',
+          items: [
+            { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+            { name: 'Calendar', href: '/calendar', icon: Calendar },
+            { name: 'Notifications', href: '/notifications', icon: Bell },
+            { name: 'Search', href: '/search', icon: Search },
+          ]
+        },
+        {
+          title: 'Academics',
+          items: [
+            { name: 'Courses', href: '/courses', icon: BookOpen },
+            { name: 'Reference Materials', href: '/resources', icon: FolderOpen },
+            { name: 'Subjects', href: '/subjects', icon: FileCode2 },
+            { name: 'Academic Sessions', href: '/academic-sessions', icon: CalendarDays },
+          ]
+        },
+        {
+          title: 'Assessments',
+          items: [
+            { name: 'Overview', href: '/assessments', icon: FileCheck2 },
+            { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
+            { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+            { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
+            { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
+          ]
+        },
+        {
+          title: 'Engagement & Live',
+          items: [
+            { name: 'Live Classes', href: '/liveclasses', icon: Video },
+            { name: 'Attendance', href: '/attendance', icon: MapPin },
+            { name: 'Forums', href: '/forums', icon: MessagesSquare },
+            { name: 'Chat', href: '/chat', icon: MessageSquare },
+          ]
+        },
+        {
+          title: isSuperAdmin ? 'Institutional Structure' : 'College Structure',
+          items: [
+            ...(isSuperAdmin ? [{ name: 'Colleges', href: '/colleges', icon: Building2 }] : []),
+            { name: 'Departments', href: '/departments', icon: Layers },
+            { name: 'Branches', href: '/branches', icon: GitBranch },
+            { name: 'Semesters', href: '/semesters', icon: GraduationCap },
+            { name: 'Sections', href: '/sections', icon: FolderTree },
+            { name: 'Bulk Import Users', href: '/users/import', icon: Users },
+          ]
+        },
+        {
+          title: 'Analytics & Rewards',
+          items: [
+            { name: 'Certificates', href: '/certificates', icon: Award },
+            { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+          ]
+        }
+      ];
+    }
 
-  const collegeAdminLinks = [
-    { name: '🏠 Dashboard', href: '/' },
-    { name: '📅 Calendar', href: '/calendar' },
-    { name: '🔔 Notifications', href: '/notifications' },
-    { name: '🔍 Search', href: '/search' },
-    { name: '💬 Forums', href: '/forums' },
-    { name: '🗨️ Chat', href: '/chat' },
-    { divider: 'College Structure' },
-    { name: '👥 Bulk Import Users', href: '/users/import' },
-    { name: '🏢 Departments', href: '/departments' },
-    { name: '🌿 Branches', href: '/branches' },
-    { name: '📆 Semesters', href: '/semesters' },
-    { name: '📇 Subjects', href: '/subjects' },
-    { name: '🎓 Academic Sessions', href: '/academic-sessions' },
-    { name: '🗂️ Sections', href: '/sections' },
-    { name: '📚 Courses', href: '/courses' },
-    { name: '📎 Reference Materials', href: '/resources' },
-    { divider: 'Assessment' },
-    { name: '📝 Assessments', href: '/assessments' },
-    { name: '📊 Question Bank', href: '/assessments/questions' },
-    { name: '🧪 Quizzes', href: '/assessments/quizzes' },
-    { name: '📋 Assignments', href: '/assessments/assignments' },
-    { name: '🏆 Gradebook', href: '/assessments/gradebook' },
-    { divider: 'Attendance' },
-    { name: '📍 Attendance', href: '/attendance' },
-    { divider: 'Live Classes' },
-    { name: '🎥 Live Classes', href: '/liveclasses' },
-    { divider: 'Certificates & Analytics' },
-    { name: '🎓 Certificates', href: '/certificates' },
-    { name: '📊 Analytics', href: '/analytics' },
-  ];
+    if (isTrainer) {
+      return [
+        {
+          title: 'Teaching Tools',
+          items: [
+            { name: 'My Courses', href: '/courses', icon: BookOpen },
+            { name: 'Reference Materials', href: '/resources', icon: FolderOpen },
+            { name: 'Live Classes', href: '/liveclasses', icon: Video },
+            { name: 'Attendance', href: '/attendance', icon: MapPin },
+          ]
+        },
+        {
+          title: 'Assessments',
+          items: [
+            { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
+            { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+            { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
+            { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
+          ]
+        },
+        {
+          title: 'Communication',
+          items: [
+            { name: 'Notifications', href: '/notifications', icon: Bell },
+            { name: 'Calendar', href: '/calendar', icon: Calendar },
+            { name: 'Forums', href: '/forums', icon: MessagesSquare },
+            { name: 'Chat', href: '/chat', icon: MessageSquare },
+          ]
+        }
+      ];
+    }
 
-  const studentLinks = [
-    { name: '🏠 Dashboard', href: '/' },
-    { name: '📅 Calendar', href: '/calendar' },
-    { name: '🔔 Notifications', href: '/notifications' },
-    { name: '🔍 Search', href: '/search' },
-    { name: '💬 Forums', href: '/forums' },
-    { name: '🗨️ Chat', href: '/chat' },
-    { name: '📚 Courses', href: '/courses' },
-    { name: '📎 Reference Materials', href: '/resources' },
-    { divider: 'Assessment' },
-    { name: '🧪 Quizzes', href: '/assessments/quizzes' },
-    { name: '📋 Assignments', href: '/assessments/assignments' },
-    { name: '🏆 My Grades', href: '/assessments/gradebook' },
-    { divider: 'Attendance' },
-    { name: '📍 My Attendance', href: '/attendance' },
-    { divider: 'More' },
-    { name: '🎥 Live Classes', href: '/liveclasses' },
-    { name: '🎓 My Certificates', href: '/certificates' },
-  ];
+    // Default / Student Links
+    return [
+      {
+        title: 'Learning',
+        items: [
+          { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+          { name: 'Courses', href: '/courses', icon: BookOpen },
+          { name: 'Reference Materials', href: '/resources', icon: FolderOpen },
+          { name: 'Calendar', href: '/calendar', icon: Calendar },
+        ]
+      },
+      {
+        title: 'Assessments',
+        items: [
+          { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+          { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
+          { name: 'My Grades', href: '/assessments/gradebook', icon: Award },
+          { name: 'Attendance', href: '/attendance', icon: MapPin },
+        ]
+      },
+      {
+        title: 'Community',
+        items: [
+          { name: 'Live Classes', href: '/liveclasses', icon: Video },
+          { name: 'Forums', href: '/forums', icon: MessagesSquare },
+          { name: 'Chat', href: '/chat', icon: MessageSquare },
+          { name: 'Certificates', href: '/certificates', icon: Award },
+        ]
+      }
+    ];
+  };
 
-  // Trainers/assistant trainers see their teaching tools + communication
-  // (notifications, forums, chat) — no platform dashboard, calendar, search,
-  // certificates or analytics (#fix).
-  const trainerLinks = [
-    { name: '📚 My Courses', href: '/courses' },
-    { name: '📎 Reference Materials', href: '/resources' },
-    { name: '🔔 Notifications', href: '/notifications' },
-    { name: '📅 Calendar', href: '/calendar' },
-    { name: '💬 Forums', href: '/forums' },
-    { name: '🗨️ Chat', href: '/chat' },
-    { divider: 'Assessment' },
-    { name: '📊 Question Bank', href: '/assessments/questions' },
-    { name: '🧪 Quizzes', href: '/assessments/quizzes' },
-    { name: '📋 Assignments', href: '/assessments/assignments' },
-    { name: '🏆 Gradebook', href: '/assessments/gradebook' },
-    { divider: 'Attendance' },
-    { name: '📍 Attendance', href: '/attendance' },
-    { divider: 'More' },
-    { name: '🎥 Live Classes', href: '/liveclasses' },
-  ];
-
-  const links = role === 'SUPER_ADMIN' ? superAdminLinks : role === 'COLLEGE_ADMIN' ? collegeAdminLinks : isTrainer ? trainerLinks : studentLinks;
+  const sections = getNavSections();
 
   return (
-    <nav className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <div>
-        <h2 style={{ color: 'var(--accent-color)', fontWeight: 700, fontSize: '22px', marginBottom: '30px', padding: '0 8px' }}>
-          LMS <span style={{ color: 'var(--text-primary)' }}>Platform</span>
-        </h2>
+    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '20px 16px 16px', background: 'rgba(11, 15, 25, 0.95)', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
+      {/* Brand Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 8px', marginBottom: '24px' }}>
+        <div style={{
+          width: '34px',
+          height: '34px',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #6366f1, #06b6d4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
+        }}>
+          <Sparkles size={18} color="#fff" />
+        </div>
+        <div>
+          <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            Sanna<span style={{ color: 'var(--accent-color)' }}>LMS</span>
+          </h2>
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+            {isSuperAdmin ? 'Master Portal' : isCollegeAdmin ? 'Institution Portal' : 'Workspace'}
+          </span>
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {links.map((link, idx) => {
-          if ('divider' in link) {
-            return (
-              <div key={`div-${idx}`} style={{
-                padding: '16px 8px 6px',
-                fontSize: '11px',
-                fontWeight: '700',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.3)'
-              }}>
-                {link.divider}
-              </div>
-            );
-          }
-          const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+
+      {/* Nav List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+        {sections.map((sec, secIdx) => {
+          const isCollapsed = Boolean(collapsedSections[sec.title]);
           return (
-            <Link
-              key={link.href}
-              href={link.href}
-              style={{
-                padding: '10px 16px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                color: isActive ? 'white' : 'var(--text-secondary)',
-                background: isActive ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                borderLeft: isActive ? '3px solid var(--accent-color)' : '3px solid transparent',
-                fontSize: '14px',
-                transition: 'all 0.15s ease',
-                display: 'block',
-              }}
-            >
-              {link.name}
-            </Link>
+            <div key={`sec-${secIdx}`}>
+              <div
+                onClick={() => toggleSection(sec.title)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '4px 8px 6px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(148, 163, 184, 0.7)',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                <span>{sec.title}</span>
+                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+              </div>
+
+              {!isCollapsed && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {sec.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                          background: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                          border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+                          fontSize: '13px',
+                          fontWeight: isActive ? 600 : 500,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <Icon size={16} color={isActive ? 'var(--accent-color)' : 'currentColor'} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
 
       {/* User Profile Card (pinned to bottom of sidebar) */}
-      <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--panel-border)' }}>
+      <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          padding: '10px',
-          borderRadius: '12px',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.07)'
+          justifyContent: 'space-between',
+          padding: '10px 12px',
+          borderRadius: '10px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.07)'
         }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            minWidth: '38px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            color: 'white',
-            fontSize: '13px',
-            boxShadow: '0 0 12px rgba(59, 130, 246, 0.35)'
-          }}>
-            {initials}
-          </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {username}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              minWidth: '34px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '13px',
+              color: '#ffffff'
+            }}>
+              {initials}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
-              {email || 'Signed in via SSO'}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {username}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {getRoleLabel(role)}
+              </div>
             </div>
-            <span style={{ display: 'inline-block', marginTop: '5px', fontSize: '10px', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
-              {getRoleLabel(role)}
-            </span>
           </div>
+
+          <button
+            onClick={() => handleLogout()}
+            title="Sign Out"
+            style={{
+              background: 'rgba(244, 63, 94, 0.1)',
+              border: '1px solid rgba(244, 63, 94, 0.25)',
+              color: '#f43f5e',
+              borderRadius: '6px',
+              padding: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            marginTop: '10px',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            background: 'rgba(239, 68, 68, 0.1)',
-            color: '#f87171',
-            fontWeight: 'bold',
-            fontSize: '13px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)'; }}
-        >
-          🚪 Logout
-        </button>
       </div>
-    </nav>
+    </aside>
   );
 }
