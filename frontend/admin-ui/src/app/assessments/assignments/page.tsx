@@ -179,7 +179,9 @@ export default function AssignmentsPage() {
       setForm({ title: '', description: '', due_date: '', max_marks: 100 });
       setAssignType('ALL'); setSelectedStudents([]);
       loadAssignments();
-    } catch { alert(editingAssignmentId ? 'Failed to update assignment' : 'Failed to create assignment'); }
+    } catch (err: any) {
+      alert(err.message || (editingAssignmentId ? 'Failed to update assignment' : 'Failed to create assignment'));
+    }
   };
 
   const loadSubmissions = async (assignmentId: string) => {
