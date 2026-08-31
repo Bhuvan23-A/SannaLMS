@@ -4,6 +4,7 @@ import Topbar from "@/components/Topbar";
 import CreateCollegeModal from "@/components/CreateCollegeModal";
 import RoleGuard from "@/components/RoleGuard";
 import { fetchApi } from "@/lib/api";
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function CollegesPage() {
   const [colleges, setColleges] = useState<any[]>([]);
@@ -26,6 +27,8 @@ export default function CollegesPage() {
   const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState('');
   const [resetPasswordResult, setResetPasswordResult] = useState<any>(null);
+  const [showAssignPassword, setShowAssignPassword] = useState(true);
+  const [showResetPassword, setShowResetPassword] = useState(true);
   const [busy, setBusy] = useState(''); // college id currently being held/restored/deleted
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 4000); };
@@ -289,8 +292,16 @@ export default function CollegesPage() {
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{assignAdminResult.admin_username}</strong>
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Password: <strong>{assignAdminResult.admin_password}</strong>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Password: <strong>{showAssignPassword ? assignAdminResult.admin_password : '••••••••••••'}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignPassword(!showAssignPassword)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                    title={showAssignPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showAssignPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>Sign in at the student portal — the platform routes admins to the admin dashboard automatically.</div>
               </div>
@@ -335,8 +346,16 @@ export default function CollegesPage() {
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{resetPasswordResult.admin_username}</strong>
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Password: <strong>{resetPasswordResult.admin_password}</strong>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Password: <strong>{showResetPassword ? resetPasswordResult.admin_password : '••••••••••••'}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                    title={showResetPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showResetPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
                 </div>
               </div>
             ) : (

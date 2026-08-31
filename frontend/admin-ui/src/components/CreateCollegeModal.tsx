@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { fetchApi } from '@/lib/api';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
   const [name, setName] = useState('');
@@ -11,6 +12,7 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +69,19 @@ export default function CreateCollegeModal({ onClose, onSuccess }: { onClose: ()
               </div>
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Password</div>
-                <code style={{ fontSize: '15px', wordBreak: 'break-all' }}>{creds.admin_password}</code>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <code style={{ fontSize: '15px', wordBreak: 'break-all' }}>
+                    {showPassword ? creds.admin_password : '••••••••••••'}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '12px' }}>
                 Save this now — the password is only shown once at creation.

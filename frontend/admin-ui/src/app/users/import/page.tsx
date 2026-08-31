@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
+import { Eye, EyeOff } from 'lucide-react';
 
 const SAMPLE_CSV = `email,first_name,last_name,role,department,branch,year
 student.1@college.edu,Aarav,Sharma,student,CSE,CSE-A,1
@@ -22,6 +23,7 @@ export default function BulkImportPage() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -130,10 +132,36 @@ export default function BulkImportPage() {
           value={csvText} onChange={e => setCsvText(e.target.value)} />
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '14px', flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-            Temporary password:
-            <input className="input-field" style={{ width: '160px' }} value={defaultPassword} onChange={e => setDefaultPassword(e.target.value)} />
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+            <span>Temporary password:</span>
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="input-field"
+                style={{ width: '180px', paddingRight: '36px' }}
+                value={defaultPassword}
+                onChange={e => setDefaultPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: showPassword ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
           <button className="btn-primary" disabled={importing} onClick={runImport}>
             {importing ? 'Importing...' : `Import ${parseCsv(csvText).length || ''} Users`}
           </button>

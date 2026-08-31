@@ -7,28 +7,41 @@ import { useUserDirectory } from '@/hooks/useUserDirectory';
 import CollegeCoursePicker from '@/components/CollegeCoursePicker';
 import { useColleges } from '@/hooks/useColleges';
 import Link from 'next/link';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Calendar,
+  Clock,
+  Award,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  X,
+  Check,
+  Eye
+} from 'lucide-react';
 
 export default function AssignmentsPage() {
   const { isAdmin, isTrainer, role } = useRole();
   const { colleges, isSuperAdmin } = useColleges();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // Course-aware assignments (#fix): the course is chosen from the real course
-  // list instead of a hardcoded 'c-1', so trainers/admin pick the right course.
   const [courses, setCourses] = useState<any[]>([]);
   const [courseId, setCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
-  // Super admins browse per college — pass the selected college's tenant_id
-  // so the API returns that college's assignments (not the empty master).
   const selectedCollege = colleges.find((c: any) => c.id === collegeId);
   const [showForm, setShowForm] = useState(false);
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', description: '', due_date: '', max_marks: 100 });
-  // Assign-to targeting (#12): whole course or specific enrolled students
+  
+  // Assign-to targeting
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
-  // Hierarchy & Batch filtering (#batch-targeting)
+  
+  // Hierarchy & Batch filtering
   const [departments, setDepartments] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [semesters, setSemesters] = useState<any[]>([]);
@@ -38,7 +51,8 @@ export default function AssignmentsPage() {
   const [filterSem, setFilterSem] = useState('');
   const [filterSection, setFilterSection] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
-  // Submissions review + grading (#13)
+  
+  // Submissions review + grading
   const [submissionsAssignmentId, setSubmissionsAssignmentId] = useState<string | null>(null);
   const [submissionsData, setSubmissionsData] = useState<any[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
@@ -48,7 +62,6 @@ export default function AssignmentsPage() {
   const [submitForm, setSubmitForm] = useState<{ id: string; text_content: string; file_url: string } | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  // People resolver (#fix): show student names instead of raw Keycloak UUIDs
   const { users, nameOf, emailOf } = useUserDirectory();
 
   useEffect(() => {
@@ -66,29 +79,22 @@ export default function AssignmentsPage() {
         if (Array.isArray(bData)) setBranches(bData);
         if (Array.isArray(semData)) setSemesters(semData);
         if (Array.isArray(secData)) setSections(secData);
-      } catch { /* data unavailable */ }
+      } catch { }
       setLoading(false);
     })();
   }, []);
 
   useEffect(() => {
-    // Reload when the course changes (and for super admins, when the selected
-    // college changes — different college = different tenant = different list).
     if (courseId || isSuperAdmin) loadAssignments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, collegeId, isSuperAdmin]);
 
   const loadAssignments = async () => {
     try {
-      // No setLoading(true) here: flashing the full-page "Loading..." screen
-      // unmounts the CollegeCoursePicker, which restarts its auto-select and
-      // caused the endless reload blink on this page (#fix). The initial
-      // useState(true) already shows the loader on first mount.
       const tenantQ = isSuperAdmin && selectedCollege?.tenant_id ? `&tenant_id=${selectedCollege.tenant_id}` : '';
       const d = await fetchApi(`/api/v1/assignments?course_id=${courseId}${tenantQ}`);
       setAssignments(d || []);
-    }
-    catch { } finally { setLoading(false); }
+    } catch { } finally { setLoading(false); }
   };
 
   const loadEnrolledStudents = async () => {
@@ -114,10 +120,21 @@ export default function AssignmentsPage() {
   const openEditModal = (a: any) => {
     setEditingAssignmentId(a.id);
     if (a.course_id) setCourseId(a.course_id);
+
+    const toLocalDatetime = (dStr?: string) => {
+      if (!dStr) return '';
+      try {
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch { return ''; }
+    };
+
     setForm({
       title: a.title || '',
       description: a.description || '',
-      due_date: a.due_date ? new Date(a.due_date).toISOString().slice(0, 16) : '',
+      due_date: toLocalDatetime(a.due_date),
       max_marks: a.max_marks || 100,
     });
     if (a.assigned_to) {
@@ -185,13 +202,11 @@ export default function AssignmentsPage() {
         method: 'PUT',
         body: JSON.stringify({ score, feedback: feedbackInputs[submissionId] || '' })
       });
-      alert('Grade saved');
+      alert('Grade saved successfully');
       loadSubmissions(submissionsAssignmentId || '');
     } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
   };
 
-  // Delete an assignment (#fix): a wrongly-created assignment can be removed;
-  // its submissions cascade with it.
   const deleteAssignment = async (assignmentId: string) => {
     if (!confirm('Delete this assignment? Its submissions will be removed too.')) return;
     try {
@@ -213,42 +228,77 @@ export default function AssignmentsPage() {
     } catch { alert('Failed to submit assignment'); }
   };
 
-  if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading...</div>;
+  if (loading) return <div className="animate-fade-in" style={{ padding: '20px' }}>Loading...</div>;
 
   return (
-    <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+    <div className="animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Assignments</h1>
+          <Link href="/assessments" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+            ← Back to Assessments Overview
+          </Link>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Course Assignments & Submissions</h1>
           <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
           </div>
         </div>
-        {(isAdmin || isTrainer) && <button className="btn-primary" onClick={openCreateForm}>+ Create Assignment</button>}
+        {(isAdmin || isTrainer) && (
+          <button className="btn-primary" onClick={openCreateForm} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={15} /> Create Assignment
+          </button>
+        )}
       </div>
 
-      {submitted && <div className="panel" style={{ marginBottom: '20px', background: 'rgba(0,200,100,0.1)', borderLeft: '4px solid #00c864', padding: '15px' }}>Assignment submitted successfully!</div>}
+      {submitted && (
+        <div className="panel" style={{ marginBottom: '20px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#10b981', padding: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <CheckCircle2 size={16} /> Assignment submitted successfully!
+        </div>
+      )}
 
       {showForm && (
-        <form onSubmit={saveAssignment} className="panel" style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>{editingAssignmentId ? 'Edit Assignment' : 'New Assignment'}</h3>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Title</label>
-            <input required className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+        <form onSubmit={saveAssignment} className="panel" style={{ marginBottom: '30px', background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(99,102,241,0.25)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {editingAssignmentId ? <Pencil size={18} color="var(--accent-color)" /> : <Plus size={18} color="var(--accent-color)" />}
+              {editingAssignmentId ? 'Edit Assignment Schedule & Max Marks' : 'Create New Assignment'}
+            </h3>
+            <button type="button" onClick={() => setShowForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={18} />
+            </button>
           </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Description</label>
-            <textarea required className="input-field" rows={4} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Assignment Title *</label>
+            <input required className="input-field" placeholder="e.g. Binary Search Tree Implementation Project" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
           </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Description & Problem Statement *</label>
+            <textarea required className="input-field" rows={4} placeholder="Describe the assignment objectives, deliverables, instructions, and rubrics..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          </div>
+
+          {/* Schedule & Marks */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Due Date & Deadline *</label>
+              <input type="datetime-local" className="input-field" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Submissions are accepted until this date and time</span>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Maximum Marks *</label>
+              <input type="number" className="input-field" value={form.max_marks} onChange={e => setForm({ ...form, max_marks: parseInt(e.target.value) || 100 })} />
+            </div>
+          </div>
+
+          {/* Cohort Targeting */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Assign To</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700 }}>Assign Assignment To</label>
             <div style={{ display: 'flex', gap: '20px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
                 <input type="radio" name="assign-to" checked={assignType === 'ALL'} onChange={() => setAssignType('ALL')} />
-                Whole course (all enrolled students)
+                All Enrolled Students in Course
               </label>
-              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
                 <input type="radio" name="assign-to" checked={assignType === 'INDIVIDUALS'} onChange={() => setAssignType('INDIVIDUALS')} />
                 Specific Batch / Semester / Students ({selectedStudents.length} selected)
               </label>
@@ -290,76 +340,73 @@ export default function AssignmentsPage() {
               };
 
               return (
-                <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '14px', marginBottom: '10px' }}>
-                  {/* Filters Header */}
+                <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '14px', marginBottom: '10px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '12px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Department</label>
-                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                      <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Department</label>
+                      <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
                         <option value="">All Departments</option>
                         {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Branch</label>
-                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
+                      <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Branch</label>
+                      <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={filterBranch} onChange={e => setFilterBranch(e.target.value)}>
                         <option value="">All Branches</option>
                         {branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Semester / Batch</label>
-                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
+                      <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Semester / Batch</label>
+                      <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
                         <option value="">All Semesters</option>
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(n => <option key={n} value={String(n)}>Semester {n}</option>)}
                         {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name || `Semester ${s.number}`}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Section</label>
-                      <select className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} value={filterSection} onChange={e => setFilterSection(e.target.value)}>
+                      <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Section</label>
+                      <select className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} value={filterSection} onChange={e => setFilterSection(e.target.value)}>
                         <option value="">All Sections</option>
                         {sections.map((sec: any) => <option key={sec.id} value={sec.id}>{sec.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Search Student</label>
-                      <input className="input-field" style={{ padding: '4px 8px', fontSize: '13px' }} placeholder="Name or email..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+                      <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Search Student</label>
+                      <input className="input-field" style={{ padding: '6px 8px', fontSize: '12px' }} placeholder="Name or email..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
                     </div>
                   </div>
 
-                  {/* Quick Select Bar */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ fontSize: '13px' }}>
-                      Showing <strong>{filtered.length}</strong> matching students · <span style={{ color: 'var(--primary-color)' }}><strong>{selectedStudents.length}</strong> total assigned</span>
+                    <div style={{ fontSize: '12px' }}>
+                      Matching Students: <strong>{filtered.length}</strong> · <span style={{ color: 'var(--accent-color)' }}><strong>{selectedStudents.length}</strong> assigned</span>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px' }} onClick={selectAllFiltered}>
-                         Select All Filtered ({filtered.length})
+                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px' }} onClick={selectAllFiltered}>
+                        Select All Filtered ({filtered.length})
                       </button>
-                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
-                         Deselect Filtered
+                      <button type="button" className="btn-secondary" style={{ padding: '3px 10px', fontSize: '11px', color: 'var(--danger-color)' }} onClick={clearFiltered}>
+                        Deselect Filtered
                       </button>
                     </div>
                   </div>
 
-                  {/* Student Checkbox List */}
-                  <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '6px' }}>
                     {filtered.length === 0 ? (
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', padding: '15px' }}>No students match the selected batch / semester filters.</p>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '12px', textAlign: 'center', padding: '12px' }}>No students match the selected batch filters.</p>
                     ) : filtered.map((st: any) => {
                       const uid = st.id || st.user_id;
                       const userObj = users.find((u: any) => u.id === uid) || st;
                       const deptName = departments.find((d: any) => d.id === userObj.department_id)?.name;
                       const semNumber = userObj.semester_number || semesters.find((s: any) => s.id === userObj.semester_id)?.number;
                       return (
-                        <label key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderRadius: '4px', cursor: 'pointer', background: selectedStudents.includes(uid) ? 'rgba(0,168,255,0.12)' : 'transparent', marginBottom: '2px' }}>
-                          <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px' }}>
+                        <label key={uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', background: selectedStudents.includes(uid) ? 'rgba(99,102,241,0.12)' : 'transparent', marginBottom: '2px' }}>
+                          <span style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px' }}>
                             <input type="checkbox" checked={selectedStudents.includes(uid)} onChange={() => toggleStudent(uid)} />
                             <strong>{nameOf(uid)}</strong>
-                            {emailOf(uid) && <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({emailOf(uid)})</span>}
+                            {emailOf(uid) && <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>({emailOf(uid)})</span>}
                           </span>
-                          <span style={{ display: 'flex', gap: '6px', fontSize: '11px' }}>
+                          <span style={{ display: 'flex', gap: '6px', fontSize: '10px' }}>
                             {deptName && <span className="badge badge-secondary">{deptName}</span>}
                             {semNumber && <span className="badge badge-info">Sem {semNumber}</span>}
                           </span>
@@ -371,157 +418,186 @@ export default function AssignmentsPage() {
               );
             })()}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Due Date</label>
-              <input type="datetime-local" className="input-field" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Max Marks</label>
-              <input type="number" className="input-field" value={form.max_marks} onChange={e => setForm({ ...form, max_marks: parseInt(e.target.value) })} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" className="btn-primary">{editingAssignmentId ? 'Save Changes' : 'Create Assignment'}</button>
-            <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingAssignmentId(null); }}>Cancel</button>
+
+          <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+            <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Check size={14} /> {editingAssignmentId ? 'Save & Update Assignment' : 'Publish Assignment'}
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingAssignmentId(null); }}>
+              Cancel
+            </button>
           </div>
         </form>
       )}
 
+      {/* Student Submit Modal */}
       {submitForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px', zIndex: 100 }}>
           <form onSubmit={submitAssignment} className="panel" style={{ width: '500px', maxWidth: '90vw', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
-            <h3 style={{ marginBottom: '20px' }}>Submit Assignment</h3>
+            <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 700 }}>Submit Assignment Work</h3>
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>File URL (Google Drive, GitHub, etc.)</label>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>File URL (Google Drive link, GitHub repository, Cloud link)</label>
               <input className="input-field" placeholder="https://drive.google.com/..." value={submitForm.file_url} onChange={e => setSubmitForm({ ...submitForm, file_url: e.target.value })} />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Or type your answer here</label>
-              <textarea className="input-field" rows={6} placeholder="Write your answer..." value={submitForm.text_content} onChange={e => setSubmitForm({ ...submitForm, text_content: e.target.value })} />
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Or type / paste your written solution</label>
+              <textarea className="input-field" rows={6} placeholder="Write your solution, code, or essay..." value={submitForm.text_content} onChange={e => setSubmitForm({ ...submitForm, text_content: e.target.value })} />
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" className="btn-primary">Submit</button>
+              <button type="submit" className="btn-primary">Submit Assignment</button>
               <button type="button" className="btn-secondary" onClick={() => setSubmitForm(null)}>Cancel</button>
             </div>
           </form>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {assignments.length === 0 ? <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No assignments yet.</div>
-          : assignments.map(a => (
-            <div className="panel" key={a.id}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontSize: '18px', marginBottom: '8px' }}>{a.title}</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '10px' }}>{a.description}</p>
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <span className="badge badge-warning">Max: {a.max_marks} marks</span>
-                    {a.due_date && <span className="badge badge-info">Due: {new Date(a.due_date).toLocaleDateString()}</span>}
-                    {a.assigned_to && <span className="badge badge-warning">Assigned to specific students</span>}
-                    {courses.find((c: any) => c.id === a.course_id) && (
-                      <span className="badge badge-info">{courses.find((c: any) => c.id === a.course_id)?.title}</span>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                  {(isAdmin || isTrainer) && (
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ fontSize: '13px', color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
-                      onClick={() => openEditModal(a)}
-                    >
-                      Edit
-                    </button>
+      {/* Assignment List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {assignments.length === 0 ? (
+          <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+            No assignments created for this course yet. Click "+ Create Assignment" above to add one.
+          </div>
+        ) : assignments.map(a => (
+          <div className="panel" key={a.id} style={{ background: 'rgba(15,23,42,0.75)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+              <div style={{ flex: 1, minWidth: '280px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 6px 0', color: '#ffffff' }}>{a.title}</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 10px 0' }}>{a.description}</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span className="badge badge-warning" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Award size={11} /> Max Marks: {a.max_marks}
+                  </span>
+                  {a.due_date && (
+                    <span className="badge badge-info" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Calendar size={11} /> Deadline: {new Date(a.due_date).toLocaleString()}
+                    </span>
                   )}
-                  {(isAdmin || isTrainer) && (
-                    <button className="btn-secondary" style={{ fontSize: '13px' }} onClick={() => loadSubmissions(a.id)}>
-                      {submissionsAssignmentId === a.id ? 'Hide Submissions' : 'View Submissions'}
-                    </button>
-                  )}
-                  {(isAdmin || isTrainer) && (
-                    <button className="btn-secondary" style={{ fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteAssignment(a.id)}>Delete</button>
-                  )}
-                  {role === 'STUDENT' && (
-                    <button className="btn-primary" onClick={() => setSubmitForm({ id: a.id, text_content: '', file_url: '' })}>Submit Work</button>
-                  )}
+                  {a.assigned_to && <span className="badge badge-secondary">Targeted Cohort</span>}
                 </div>
               </div>
-              {submissionsAssignmentId === a.id && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '14px' }}>
-                  <h4 style={{ fontSize: '14px', marginBottom: '10px' }}>Student Submissions & Marks</h4>
-                  {submissionsLoading ? <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
-                    : submissionsData.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No submissions yet.</p>
-                    : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {submissionsData.map((sub: any) => (
-                          <div key={sub.id} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                              <span style={{ fontSize: '13px' }}>
-                                <strong>{nameOf(sub.user_id)}</strong>
-                                {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>{emailOf(sub.user_id)}</span>}
-                              </span>
-                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : ''}
-                              </span>
-                              {sub.score !== null && sub.score !== undefined ? (
-                                <span className="badge badge-success">Score: {sub.score} / {a.max_marks}</span>
-                              ) : null}
-                            </div>
-                            {/* The submitted work — trainers grade with full context (#grading) */}
-                            {sub.text_content && (
-                              <div style={{ marginBottom: '8px' }}>
-                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Submitted answer</div>
-                                <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontSize: '13px', background: 'rgba(0,0,0,0.25)', padding: '8px 10px', borderRadius: '6px', maxHeight: '220px', overflowY: 'auto' }}>{sub.text_content}</pre>
-                              </div>
-                            )}
-                            {sub.file_url && (
-                              <div style={{ marginBottom: '8px' }}>
-                                {sub.file_url.startsWith('http') || sub.file_url.startsWith('/') ? (
-                                  <a href={sub.file_url.startsWith('http') ? sub.file_url : `https://admin.sannalms.sannainnovations.com${sub.file_url}`}
-                                     target="_blank" rel="noopener noreferrer"
-                                     style={{ fontSize: '12px', color: 'var(--primary-color)' }}>Submitted file: {sub.file_url.split('/').pop()}</a>
-                                ) : (
-                                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Submitted file: {sub.file_url} — file not attached (older submission without an uploaded file)</span>
-                                )}
-                              </div>
-                            )}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {(isAdmin || isTrainer) && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', borderColor: 'var(--accent-color)', color: 'var(--accent-color)' }}
+                    onClick={() => openEditModal(a)}
+                    title="Edit assignment deadline, max marks, and details"
+                  >
+                    <Pencil size={13} /> Edit Details
+                  </button>
+                )}
+                {(isAdmin || isTrainer) && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    onClick={() => loadSubmissions(a.id)}
+                  >
+                    <Eye size={13} /> {submissionsAssignmentId === a.id ? 'Hide Submissions' : 'Submissions'}
+                  </button>
+                )}
+                {(isAdmin || isTrainer) && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(244,63,94,0.3)', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    onClick={() => deleteAssignment(a.id)}
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                )}
+                {role === 'STUDENT' && (
+                  <button className="btn-primary" onClick={() => setSubmitForm({ id: a.id, text_content: '', file_url: '' })}>
+                    Submit Work
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Submissions Review and Grading Drawer */}
+            {submissionsAssignmentId === a.id && (
+              <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Student Submissions & Evaluation</h4>
+                {submissionsLoading ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading submissions...</p>
+                ) : submissionsData.length === 0 ? (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>No student submissions received yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {submissionsData.map((sub: any) => (
+                      <div key={sub.id} style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                          <div>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>{nameOf(sub.user_id)}</span>
+                            {emailOf(sub.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px', fontSize: '12px' }}>({emailOf(sub.user_id)})</span>}
+                            <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              Submitted: {sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
                             {sub.score !== null && sub.score !== undefined ? (
-                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                {sub.feedback ? `Feedback: ${sub.feedback}` : 'No written feedback.'}
-                              </div>
+                              <span className="badge badge-success">Graded: {sub.score} / {a.max_marks}</span>
                             ) : (
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <input
-                                  type="number"
-                                  className="input-field"
-                                  style={{ width: '80px', padding: '4px 8px' }}
-                                  placeholder={`0-${a.max_marks}`}
-                                  value={gradeInputs[sub.id] || ''}
-                                  onChange={e => setGradeInputs({ ...gradeInputs, [sub.id]: e.target.value })}
-                                />
-                                <input
-                                  className="input-field"
-                                  style={{ flex: 1, minWidth: '160px', padding: '4px 8px' }}
-                                  placeholder="Feedback for the student (optional)"
-                                  value={feedbackInputs[sub.id] || ''}
-                                  onChange={e => setFeedbackInputs({ ...feedbackInputs, [sub.id]: e.target.value })}
-                                />
-                                <button className="btn-primary" style={{ fontSize: '12px', padding: '4px 12px' }} onClick={() => gradeSubmission(sub.id, a.max_marks)}>
-                                  Grade
-                                </button>
-                              </div>
+                              <span className="badge badge-warning">Needs Review</span>
                             )}
                           </div>
-                        ))}
+                        </div>
+
+                        {sub.file_url && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <a href={sub.file_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--accent-color)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <FileText size={13} /> View Attached Solution File
+                            </a>
+                          </div>
+                        )}
+
+                        {sub.text_content && (
+                          <div style={{ fontSize: '12px', color: '#e2e8f0', background: 'rgba(0,0,0,0.3)', padding: '8px 10px', borderRadius: '6px', marginBottom: '10px', whiteSpace: 'pre-wrap' }}>
+                            {sub.text_content}
+                          </div>
+                        )}
+
+                        {/* Grading Inputs for Instructor */}
+                        {(isAdmin || isTrainer) && (
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '8px' }}>
+                            <input
+                              type="number"
+                              className="input-field"
+                              style={{ width: '90px', padding: '5px 8px', fontSize: '12px' }}
+                              placeholder={`/ ${a.max_marks}`}
+                              value={gradeInputs[sub.id] ?? (sub.score !== null ? String(sub.score) : '')}
+                              onChange={e => setGradeInputs({ ...gradeInputs, [sub.id]: e.target.value })}
+                            />
+                            <input
+                              type="text"
+                              className="input-field"
+                              style={{ flex: 1, minWidth: '160px', padding: '5px 8px', fontSize: '12px' }}
+                              placeholder="Feedback notes..."
+                              value={feedbackInputs[sub.id] ?? (sub.feedback || '')}
+                              onChange={e => setFeedbackInputs({ ...feedbackInputs, [sub.id]: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              className="btn-primary"
+                              style={{ fontSize: '11px', padding: '5px 12px' }}
+                              disabled={gradingId === sub.id}
+                              onClick={() => gradeSubmission(sub.id, a.max_marks)}
+                            >
+                              {gradingId === sub.id ? 'Saving...' : 'Save Grade'}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                </div>
-              )}
-            </div>
-          ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -161,3 +161,31 @@ a:hover {
     font-size: 14px !important;
     text-align: center !important;
 }
+
+/* Password Toggle Icon */
+.password-input-wrapper {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+.password-toggle-btn {
+    position: absolute !important;
+    right: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    color: #94a3b8 !important;
+    padding: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: color 0.15s ease !important;
+}
+
+.password-toggle-btn:hover {
+    color: #ffffff !important;
+}
+
