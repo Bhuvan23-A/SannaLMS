@@ -68,11 +68,19 @@ export class AssignmentsService {
     // assignments — never leak the whole college's list.
     if (isStudent) {
       return assignments.filter((a: any) => {
-        if (!courseIds || courseIds.length === 0) return false;
-        if (!courseIds.includes(a.course_id)) return false;
         const target = parseAssignedTo(a.assigned_to);
-        if (!target || target.type === 'ALL') return true;
-        return Array.isArray(target.user_ids) && target.user_ids.includes(viewer?.userId || '');
+        const isAssignedDirectly = target && Array.isArray(target.user_ids) && target.user_ids.includes(viewer?.userId || '');
+        const isAssignedAll = !target || target.type === 'ALL';
+
+        if (!isAssignedDirectly && !isAssignedAll) {
+          return false;
+        }
+
+        if (isAssignedAll && courseIds && courseIds.length > 0) {
+          if (!courseIds.includes(a.course_id)) return false;
+        }
+
+        return true;
       });
     }
     return assignments;

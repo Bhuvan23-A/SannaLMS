@@ -354,7 +354,7 @@ export const Dashboard: React.FC = () => {
     setQuizzesError('');
     try {
       const courseIds = await fetchEnrolledCourseIds();
-      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '?course_ids=';
+      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '';
       const response = await apiClient.get(`/quizzes${qs}`);
       const data = response.data || [];
       setQuizList(Array.isArray(data) ? data : []);
@@ -385,7 +385,7 @@ export const Dashboard: React.FC = () => {
     setAssignmentsError('');
     try {
       const courseIds = await fetchEnrolledCourseIds();
-      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '?course_ids=';
+      const qs = courseIds.length > 0 ? `?course_ids=${encodeURIComponent(courseIds.join(','))}` : '';
       const response = await apiClient.get(`/assignments${qs}`);
       const data = response.data || [];
       const list = Array.isArray(data) ? data : [];
@@ -2053,20 +2053,36 @@ export const Dashboard: React.FC = () => {
                       // Server-authoritative completion state (blocks retakes);
                       // localStorage is only a fallback for older records.
                       const done = quiz.my_submission?.submitted ? quiz.my_submission : getQuizDone(quiz.id);
+                      const isExpired = quiz.end_time && new Date(quiz.end_time) < new Date();
+                      const isDisabled = !!done || isExpired;
                       return (
                       <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
                         <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{quiz.title}{done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>{done.score != null ? ` Completed ${done.score}/${done.maxScore}` : ' Submitted'}</span>}</h4>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
+                            {quiz.title}
+                            {done && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', padding: '2px 8px', borderRadius: '10px' }}>{done.score != null ? ` Completed ${done.score}/${done.maxScore}` : ' Submitted'}</span>}
+                            {!done && isExpired && <span style={{ marginLeft: '8px', fontSize: '0.75rem', fontWeight: 700, color: '#f87171', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', padding: '2px 8px', borderRadius: '10px' }}>Closed</span>}
+                          </h4>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {(quiz.questions || []).length} questions · {quiz.duration_mins || 10} min · {quiz.description || 'No description'}
+                            {quiz.end_time && ` · Deadline: ${new Date(quiz.end_time).toLocaleString()}`}
                           </span>
                         </div>
                         <button
                           onClick={() => startQuiz(quiz)}
-                          disabled={!!done}
-                          style={{ border: 'none', background: done ? 'rgba(255,255,255,0.06)' : 'var(--accent-emerald)', color: done ? 'var(--text-secondary)' : '#fff', padding: '0.5rem 1.25rem', borderRadius: '8px', cursor: done ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.9rem' }}
+                          disabled={isDisabled}
+                          style={{
+                            border: 'none',
+                            background: done ? 'rgba(255,255,255,0.06)' : (isExpired ? 'rgba(239,68,68,0.15)' : 'var(--accent-emerald)'),
+                            color: done ? 'var(--text-secondary)' : (isExpired ? '#fca5a5' : '#fff'),
+                            padding: '0.5rem 1.25rem',
+                            borderRadius: '8px',
+                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.9rem'
+                          }}
                         >
-                          {done ? 'Completed' : 'Start Quiz'}
+                          {done ? 'Completed' : (isExpired ? 'Closed' : 'Start Quiz')}
                         </button>
                       </div>
                       );

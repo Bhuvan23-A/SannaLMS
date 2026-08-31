@@ -111,14 +111,22 @@ export class QuizzesService {
     const visible = isStudent
       ? quizzes
           .filter((q: any) => {
-            if (!courseIds || courseIds.length === 0) return false;
-            if (!courseIds.includes(q.course_id)) return false;
-            // Schedule gating for students
-            if (q.start_time && new Date(q.start_time) > now) return false;
-            if (q.end_time && new Date(q.end_time) < now) return false;
             const a = parseAssignedTo(q.assigned_to);
-            if (!a || a.type === 'ALL') return true;
-            return Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
+            const isAssignedDirectly = a && Array.isArray(a.user_ids) && a.user_ids.includes(viewer?.userId || '');
+            const isAssignedAll = !a || a.type === 'ALL';
+
+            if (!isAssignedDirectly && !isAssignedAll) {
+              return false;
+            }
+
+            if (isAssignedAll && courseIds && courseIds.length > 0) {
+              if (!courseIds.includes(q.course_id)) return false;
+            }
+
+            // Schedule gating: if upcoming in the future, hide from student until start_time
+            if (q.start_time && new Date(q.start_time) > now) return false;
+
+            return true;
           })
       : quizzes;
     // Attach the student's own submission state so the quiz list can show
