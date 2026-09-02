@@ -8,7 +8,7 @@ import {
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
-  MessageSquare, MessagesSquare, Video, Download, ExternalLink
+  MessageSquare, MessagesSquare, Video, Download, ExternalLink, Check, X
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
