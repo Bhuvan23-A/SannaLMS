@@ -2461,10 +2461,6 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-            </div>
-          </div>
-        )}
-
         {/* 5. AI TUTOR TAB */}
         {activeTab === 'tutor' && (
           <div style={{ maxWidth: '850px', margin: '0 auto', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
