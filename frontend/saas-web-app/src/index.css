@@ -417,20 +417,65 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 /* Print Styles for Quiz & Assessment Reports */
 @media print {
-  body {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 12mm 12mm 12mm;
+  }
+
+  html, body, #root, .app-container, main {
     background: #ffffff !important;
     color: #111827 !important;
     font-size: 11pt !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
   }
 
-  aside, header, nav, .btn-sidebar-quick, .no-print {
+  aside, header, nav, .btn-sidebar-quick, .no-print, .header-banner, .parts-grid {
     display: none !important;
+  }
+
+  .modal-overlay-report {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+  }
+
+  .modal-dialog-report {
+    position: static !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .print-only-container {
     display: block !important;
     position: static !important;
     width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
@@ -443,9 +488,15 @@ textarea::-webkit-scrollbar-thumb:hover {
     background: #ffffff !important;
     border: 1px solid #e5e7eb !important;
     color: #111827 !important;
+    break-inside: avoid !important;
     page-break-inside: avoid !important;
     margin-bottom: 14px !important;
     padding: 14px !important;
+    border-radius: 8px !important;
+  }
+
+  .print-card * {
+    color: #111827 !important;
   }
 
   .print-text-dark {
@@ -456,4 +507,5 @@ textarea::-webkit-scrollbar-thumb:hover {
     color: #4b5563 !important;
   }
 }
+
 

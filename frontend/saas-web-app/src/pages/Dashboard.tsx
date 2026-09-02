@@ -345,6 +345,219 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const printQuizReport = (data: any) => {
+    if (!data) return;
+    const printWindow = window.open('', '_blank', 'width=900,height=1000');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const candidateName = userProfile?.firstName
+      ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
+      : (keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || 'Student');
+    const candidateEmail = userProfile?.email || keycloak.tokenParsed?.email || '';
+    const submissionDate = data.submission?.submitted_at
+      ? new Date(data.submission.submitted_at).toLocaleString()
+      : '—';
+
+    const questionsHtml = (data.questions || []).map((q: any, idx: number) => {
+      const isMcq = q.type === 'MCQ';
+      const isCorrect = q.is_correct === true;
+      const isWrong = q.is_correct === false;
+      const isEssay = !isMcq;
+
+      let scoreBadge = '';
+      if (isCorrect) {
+        scoreBadge = `<span style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">+ ${q.marks_awarded} Marks (Correct)</span>`;
+      } else if (isWrong) {
+        scoreBadge = `<span style="background: #fef2f2; border: 1px solid #ef4444; color: #991b1b; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">0 / ${q.marks} Marks (Incorrect)</span>`;
+      } else {
+        scoreBadge = `<span style="background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">${q.marks_awarded} / ${q.marks} Marks</span>`;
+      }
+
+      let optionsHtml = '';
+      if (isMcq && q.options && q.options.length > 0) {
+        optionsHtml = `<div style="display: flex; flex-direction: column; gap: 6px; margin: 10px 0;">` +
+          q.options.map((opt: any, optIdx: number) => {
+            const optId = typeof opt === 'object' ? String(opt.id) : String(optIdx + 1);
+            const optText = typeof opt === 'object' ? (opt.text || opt.id) : String(opt);
+            const isUserPick = String(q.student_answer) === optId || q.student_answer_text === optText;
+            const isKey = opt.isCorrect || String(q.correct_answer) === optId || q.correct_answer_text === optText;
+
+            let bg = '#ffffff';
+            let border = '#e5e7eb';
+            let text = '#374151';
+            let badges = '';
+
+            if (isKey) {
+              bg = '#ecfdf5';
+              border = '#10b981';
+              text = '#065f46';
+              badges += `<span style="background: #10b981; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Correct Answer</span>`;
+            }
+            if (isUserPick) {
+              if (!isKey) {
+                bg = '#fef2f2';
+                border = '#ef4444';
+                text = '#991b1b';
+              }
+              badges += `<span style="background: ${isKey ? '#059669' : '#dc2626'}; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">Your Answer</span>`;
+            }
+
+            return `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 6px; background: ${bg}; border: 1.5px solid ${border}; color: ${text}; font-size: 12px;">
+              <span><strong>${String.fromCharCode(65 + optIdx)}.</strong> ${optText}</span>
+              <div>${badges}</div>
+            </div>`;
+          }).join('') + `</div>`;
+      }
+
+      let essayHtml = '';
+      if (isEssay) {
+        essayHtml = `<div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px; border-radius: 6px; margin: 10px 0;">
+          <span style="font-size: 11px; color: #6b7280; font-weight: 600; display: block; margin-bottom: 4px;">Your Written Answer:</span>
+          <div style="font-size: 12px; color: #111827; white-space: pre-wrap;">${q.student_answer || 'No answer submitted.'}</div>
+        </div>`;
+      }
+
+      let explanationHtml = '';
+      if (q.content && q.content !== q.title) {
+        explanationHtml = `<div style="font-size: 11px; color: #4b5563; background: #f0fdf4; border-left: 3px solid #10b981; padding: 6px 10px; border-radius: 0 4px 4px 0; margin-top: 8px;">
+          <strong style="color: #065f46;">Explanation:</strong> ${q.content.replace(/^Explanation:\s*/i, '')}
+        </div>`;
+      }
+
+      return `<div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <span style="background: #f3f4f6; color: #111827; font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">Q${idx + 1}</span>
+            <span style="background: #eef2ff; color: #4338ca; font-weight: 600; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-right: 6px;">${q.type}</span>
+            <span style="font-size: 11px; color: #6b7280;">(${q.marks} Mark${q.marks === 1 ? '' : 's'})</span>
+          </div>
+          <div>${scoreBadge}</div>
+        </div>
+        <h4 style="font-size: 13px; font-weight: 700; color: #111827; margin: 0 0 6px 0; line-height: 1.4;">${q.title}</h4>
+        ${optionsHtml}
+        ${essayHtml}
+        ${explanationHtml}
+      </div>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${data.quiz?.title || 'Assessment'} - Test Performance Report</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 12mm 12mm 12mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #111827;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header {
+      border-bottom: 2px solid #6366f1;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .footer {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 20px;
+      padding-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div style="font-size: 10px; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.1em;">SannaLMS Academic Examination System</div>
+      <h1 style="font-size: 20px; font-weight: 800; margin: 4px 0 2px 0; color: #111827;">${data.quiz?.title}</h1>
+      <div style="font-size: 11px; color: #6b7280;">Official Candidate Performance Report</div>
+    </div>
+    <div style="text-align: right; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px;">
+      <div style="font-size: 10px; color: #6b7280;">Candidate:</div>
+      <div style="font-size: 12px; font-weight: 700; color: #111827;">${candidateName}</div>
+      <div style="font-size: 11px; color: #4f46e5;">${candidateEmail}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="stat-card">
+      <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Score Obtained</div>
+      <div style="font-size: 18px; font-weight: 800; color: #0284c7; margin-top: 2px;">
+        ${data.submission?.score ?? 0} <span style="font-size: 12px; color: #6b7280; font-weight: 500;">/ ${data.submission?.max_score ?? 0}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Percentage</div>
+      <div style="font-size: 18px; font-weight: 800; color: ${(data.submission?.percentage ?? 0) >= 50 ? '#059669' : '#d97706'}; margin-top: 2px;">
+        ${data.submission?.percentage ?? 0}%
+      </div>
+    </div>
+    <div class="stat-card">
+      <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Grading Status</div>
+      <div style="font-size: 13px; font-weight: 700; color: ${data.submission?.is_graded ? '#059669' : '#d97706'}; margin-top: 4px;">
+        ${data.submission?.is_graded ? 'Graded & Verified' : 'Pending Review'}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Submission Date</div>
+      <div style="font-size: 11px; font-weight: 600; color: #111827; margin-top: 4px;">
+        ${submissionDate}
+      </div>
+    </div>
+  </div>
+
+  <div style="font-size: 13px; font-weight: 700; color: #111827; margin: 14px 0 10px 0;">Detailed Question Analysis</div>
+
+  ${questionsHtml}
+
+  <div class="footer">
+    <span>Generated securely via SannaLMS Assessment Engine</span>
+    <span>Candidate Ref: ${keycloak.subject || 'student-record'}</span>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 250);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   // Exam lockdown: detect tab switches / focus loss / copy-paste during a real
   // quiz, log each violation to the Part-4 proctoring service, and auto-submit
   // after 3 strikes. Active only while a quiz is actually in progress.
@@ -2254,8 +2467,8 @@ export const Dashboard: React.FC = () => {
 
         {/* ─── QUIZ PERFORMANCE REPORT MODAL (Download / Print) ─── */}
         {quizReportModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
-            <div style={{ background: '#0b0f19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' }}>
+          <div className="modal-overlay-report" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
+            <div className="modal-dialog-report" style={{ background: '#0b0f19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' }}>
               
               {/* Modal Header */}
               <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
@@ -2270,7 +2483,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <button
-                    onClick={() => window.print()}
+                    onClick={() => printQuizReport(quizReportData)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
