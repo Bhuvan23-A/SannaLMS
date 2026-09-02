@@ -80,6 +80,13 @@ export class QuizzesController {
     return this.quizzesService.gradeQuizSubmission(id, body.score, body.feedback || '');
   }
 
+  @Get(':id/my-submission')
+  @Roles('STUDENT')
+  mySubmission(@Param('id') id: string, @Req() req: Record<string, any>) {
+    const userId = req.user?.id || 'u-1';
+    return this.quizzesService.getMyQuizSubmission(id, String(userId));
+  }
+
   @Post(':id/submit')
   @Roles('STUDENT')
   submit(@Param('id') id: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {

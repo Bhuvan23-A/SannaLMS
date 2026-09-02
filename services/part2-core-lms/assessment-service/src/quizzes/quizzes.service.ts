@@ -186,12 +186,152 @@ export class QuizzesService {
         title: qq.question?.title || '',
         content: qq.question?.content || '',
         marks: qq.question?.marks || 0,
+        options: typeof qq.question?.options === 'string'
+          ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+          : (qq.question?.options || []),
+        answer_key: qq.question?.answer_key || null,
         image_url: qq.question?.image_url || null,
       })),
       submissions: submissions.map((s: any) => ({
         ...s,
         answers: normalizeAnswers(s.answers),
       })),
+    };
+  }
+
+  // Student's own test report for an attempted quiz — question-by-question breakdown,
+  // student answers, correct answer keys, explanations, and marks scored.
+  async getMyQuizSubmission(quizId: string, userId: string) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        questions: {
+          include: { question: true },
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
+    if (!quiz) throw new NotFoundException('Quiz not found');
+
+    const submission = await this.prisma.quizSubmission.findFirst({
+      where: { quiz_id: quizId, user_id: userId }
+    });
+
+    const userAnswers = submission ? normalizeAnswers(submission.answers) : {};
+    let totalMaxScore = 0;
+    let autoCalculatedScore = 0;
+
+    const questions = (quiz.questions || []).map((qq: any, idx: number) => {
+      const q = qq.question;
+      if (!q) return null;
+      totalMaxScore += q.marks || 0;
+      const rawUserAns = userAnswers[q.id] ?? userAnswers[String(idx)];
+      const studentAnswer = rawUserAns !== undefined && rawUserAns !== null ? String(rawUserAns) : '';
+
+      const options: any[] = typeof q.options === 'string'
+        ? (() => { try { const p = JSON.parse(q.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+        : (q.options || []);
+
+      let isCorrect: boolean | null = null;
+      let marksAwarded = 0;
+      let correctAnswerId = '';
+      let correctAnswerText = '';
+      let studentAnswerText = studentAnswer;
+
+      if (options.length > 0 && studentAnswer) {
+        const matchingOpt = options.find((o: any) => String(o?.id) === studentAnswer || String(o) === studentAnswer);
+        if (matchingOpt) {
+          studentAnswerText = typeof matchingOpt === 'object' ? (matchingOpt.text || String(matchingOpt.id)) : String(matchingOpt);
+        }
+      }
+
+      if (q.type === 'MCQ') {
+        const norm = (v: any) => String(v ?? '').trim().toLowerCase();
+        const correctOpt = options.find((o: any) => o && o.isCorrect);
+        if (correctOpt) {
+          correctAnswerId = String(correctOpt.id ?? '');
+          correctAnswerText = String(correctOpt.text ?? correctOpt.id ?? '');
+          if (norm(correctOpt.id) === norm(studentAnswer) || (norm(correctOpt.text) !== '' && norm(correctOpt.text) === norm(studentAnswer))) {
+            isCorrect = true;
+            marksAwarded = q.marks || 0;
+          } else {
+            isCorrect = false;
+          }
+        } else if (q.answer_key) {
+          const key = String(q.answer_key).trim();
+          const kIdx = parseInt(key, 10);
+          if (!Number.isNaN(kIdx) && kIdx >= 1 && kIdx <= options.length) {
+            const target = options[kIdx - 1];
+            correctAnswerId = String(target?.id ?? kIdx);
+            correctAnswerText = typeof target === 'string' ? target : (target?.text ?? String(kIdx));
+            if (norm(studentAnswer) === norm(correctAnswerId) || (norm(correctAnswerText) !== '' && norm(studentAnswer) === norm(correctAnswerText))) {
+              isCorrect = true;
+              marksAwarded = q.marks || 0;
+            } else {
+              isCorrect = false;
+            }
+          } else {
+            correctAnswerId = key;
+            correctAnswerText = key;
+            if (norm(studentAnswer) === norm(key)) {
+              isCorrect = true;
+              marksAwarded = q.marks || 0;
+            } else {
+              isCorrect = false;
+            }
+          }
+        }
+        if (isCorrect) {
+          autoCalculatedScore += marksAwarded;
+        }
+      } else {
+        isCorrect = null;
+      }
+
+      return {
+        id: q.id,
+        order: qq.order ?? idx,
+        title: q.title || `Question ${idx + 1}`,
+        content: q.content || q.title || '',
+        type: q.type || 'MCQ',
+        marks: q.marks || 1,
+        options,
+        student_answer: studentAnswer,
+        student_answer_text: studentAnswerText,
+        correct_answer: correctAnswerId,
+        correct_answer_text: correctAnswerText,
+        is_correct: isCorrect,
+        marks_awarded: marksAwarded,
+        image_url: q.image_url || null,
+      };
+    }).filter(Boolean);
+
+    const finalScore = submission?.score !== null && submission?.score !== undefined
+      ? Number(submission.score)
+      : autoCalculatedScore;
+
+    return {
+      quiz: {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        duration_mins: quiz.duration_mins,
+        course_id: quiz.course_id,
+        start_time: quiz.start_time,
+        end_time: quiz.end_time,
+      },
+      submission: submission ? {
+        id: submission.id,
+        user_id: submission.user_id,
+        submitted_at: submission.submitted_at,
+        score: finalScore,
+        max_score: totalMaxScore,
+        percentage: totalMaxScore > 0 ? Math.round((finalScore / totalMaxScore) * 100) : 0,
+        is_graded: submission.is_graded,
+        feedback: submission.feedback || '',
+        violation_count: submission.violation_count || 0,
+      } : null,
+      questions,
     };
   }
 
@@ -303,7 +443,7 @@ export class QuizzesService {
         user_id: userId,
         tenant_id: tenantId,
         answers: answers,
-        score: needsManualGrading ? null : score,
+        score: score,
         is_graded: !needsManualGrading,
         violation_count: Number(proctoringSummary?.violation_count) || 0,
         auto_submitted: Boolean(proctoringSummary?.auto_submitted),

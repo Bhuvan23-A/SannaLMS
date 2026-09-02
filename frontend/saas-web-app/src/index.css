@@ -415,3 +415,45 @@ textarea::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Print Styles for Quiz & Assessment Reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+  }
+
+  aside, header, nav, .btn-sidebar-quick, .no-print {
+    display: none !important;
+  }
+
+  .print-only-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .print-card {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 14px !important;
+    padding: 14px !important;
+  }
+
+  .print-text-dark {
+    color: #111827 !important;
+  }
+
+  .print-text-muted {
+    color: #4b5563 !important;
+  }
+}
+
