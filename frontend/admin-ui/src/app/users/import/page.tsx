@@ -5,11 +5,11 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { Eye, EyeOff } from 'lucide-react';
 
-const SAMPLE_CSV = `email,first_name,last_name,role,department,branch,year
-student.1@college.edu,Aarav,Sharma,student,CSE,CSE-A,1
-student.2@college.edu,Diya,Patel,student,CSE,CSE-A,1
-prof.1@college.edu,Dr. Ramesh,Iyer,professor,CSE,CSE-A,
-ta.1@college.edu,Priya,Nair,teaching_assistant,CSE,CSE-A,2`;
+const SAMPLE_CSV = `email,first_name,last_name,phone,role,department,branch,year
+student.1@college.edu,Aarav,Sharma,9876543210,student,CSE,CSE-A,1
+student.2@college.edu,Diya,Patel,9876543211,student,CSE,CSE-A,1
+prof.1@college.edu,Dr. Ramesh,Iyer,9876543212,professor,CSE,CSE-A,
+ta.1@college.edu,Priya,Nair,9876543213,teaching_assistant,CSE,CSE-A,2`;
 
 export default function BulkImportPage() {
   const { isAdmin } = useRole();

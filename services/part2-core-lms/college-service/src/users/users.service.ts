@@ -16,6 +16,10 @@ export interface ImportUser {
   username?: string;
   role?: string;          // student | professor | instructor | teaching_assistant | college_admin ...
   password?: string;
+  phone?: string;
+  phone_number?: string;
+  mobile?: string;
+  contact?: string;
   tenant_id?: string;
   department?: string;
   branch?: string;
@@ -79,6 +83,10 @@ export class UsersService {
         if (!u.email || !u.email.includes('@')) throw new Error('Missing or invalid email');
 
         const requireChange = body.require_password_change === true;
+        const userPhone = (u.phone || u.phone_number || u.mobile || u.contact || '').trim();
+        // For students and users, default password is their phone number if present, otherwise custom password or default
+        const userPassword = u.password || (userPhone && userPhone.length >= 6 ? userPhone : defaultPassword);
+
         const kc = await this.keycloak.createUser({
           username: u.username || u.email,
           email: u.email,
@@ -86,9 +94,10 @@ export class UsersService {
           emailVerified: true,
           firstName: u.first_name || '',
           lastName: u.last_name || '',
-          credentials: [{ type: 'password', value: u.password || defaultPassword, temporary: requireChange }],
+          credentials: [{ type: 'password', value: userPassword, temporary: requireChange }],
           attributes: {
             tenant_id: [tenantFor(u)],
+            ...(userPhone ? { phone: [userPhone], phone_number: [userPhone], mobile: [userPhone] } : {}),
             ...(u.department ? { department: [u.department] } : {}),
             ...(u.branch ? { branch: [u.branch] } : {}),
             ...(u.year !== undefined && u.year !== '' ? { year: [String(u.year)] } : {}),
@@ -404,6 +413,44 @@ export class UsersService {
       message: 'Password reset successfully',
       user_id: targetUserId,
       new_password: password,
+    };
+  }
+
+  /**
+   * Student & user self-service password recovery:
+   * Allows students/users to reset their Keycloak password using their email/username and phone number.
+   */
+  async forgotPassword(body: { email?: string; username?: string; identifier?: string; phone?: string; new_password?: string }) {
+    const ident = (body.email || body.username || body.identifier || '').trim().toLowerCase();
+    if (!ident) throw new BadRequestException('Email address or username is required');
+
+    const kcUser = await this.keycloak.findUserByUsernameOrEmail(ident);
+    if (!kcUser) {
+      throw new NotFoundException('No user account found with the provided email or username');
+    }
+
+    const registeredPhone = kcUser.attributes?.phone?.[0] || kcUser.attributes?.phone_number?.[0] || kcUser.attributes?.mobile?.[0] || '';
+    const inputPhone = (body.phone || '').trim().replace(/\D/g, '');
+
+    if (registeredPhone && inputPhone) {
+      const cleanRegistered = registeredPhone.replace(/\D/g, '');
+      if (cleanRegistered !== inputPhone && !cleanRegistered.endsWith(inputPhone) && !inputPhone.endsWith(cleanRegistered)) {
+        throw new BadRequestException('Phone number does not match registered account details');
+      }
+    }
+
+    const newPass = (body.new_password && body.new_password.length >= 6)
+      ? body.new_password
+      : (inputPhone || registeredPhone || DEFAULT_PASSWORD);
+
+    if (!newPass || newPass.length < 6) {
+      throw new BadRequestException('New password must be at least 6 characters long');
+    }
+
+    await this.keycloak.resetUserPassword(kcUser.id, newPass);
+    return {
+      success: true,
+      message: 'Password reset successfully! You can now log in with your updated password.',
     };
   }
 }

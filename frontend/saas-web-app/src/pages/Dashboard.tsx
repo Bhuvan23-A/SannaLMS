@@ -9,7 +9,7 @@ import {
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
   MessageSquare, MessagesSquare, Video, Download, ExternalLink, Check, X,
-  Key, Eye, EyeOff, Lock, AlertCircle
+  Key, Eye, EyeOff, Lock, AlertCircle, FolderOpen, Phone, Mail
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -53,7 +53,7 @@ export const Dashboard: React.FC = () => {
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'liveclasses' | 'grades' | 'notifications' | 'calendar' | 'forums' | 'chat'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'resources' | 'sandbox' | 'assessment' | 'tutor' | 'leaderboard' | 'certificates' | 'assignments' | 'attendance' | 'liveclasses' | 'grades' | 'notifications' | 'calendar' | 'forums' | 'chat'>('overview');
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'INSTRUCTOR' | 'ADMIN'>('STUDENT');
 
   // Determine roles from Keycloak. Realm role names vary by case/legacy export
@@ -324,6 +324,39 @@ export const Dashboard: React.FC = () => {
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const [quizSubmitResult, setQuizSubmitResult] = useState<{ score: number; maxScore: number; graded: boolean } | null>(null);
   const submittingRef = useRef(false);
+
+  // --- REFERENCE MATERIALS & RESOURCES ---
+  const [studentResources, setStudentResources] = useState<any[]>([]);
+  const [studentResourcesLoading, setStudentResourcesLoading] = useState<boolean>(false);
+  const [selectedResourceCourseId, setSelectedResourceCourseId] = useState<string>('');
+
+  const fetchStudentResources = async (courseId?: string) => {
+    setStudentResourcesLoading(true);
+    try {
+      const cId = courseId || selectedResourceCourseId || courses[0]?.id;
+      if (!cId) {
+        setStudentResources([]);
+        return;
+      }
+      const res = await apiClient.get(`/courses/${cId}/resources`);
+      setStudentResources(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.warn('Could not load student reference materials', err);
+      setStudentResources([]);
+    } finally {
+      setStudentResourcesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'resources') {
+      const targetCourse = selectedResourceCourseId || courses[0]?.id;
+      if (targetCourse) {
+        if (!selectedResourceCourseId) setSelectedResourceCourseId(targetCourse);
+        fetchStudentResources(targetCourse);
+      }
+    }
+  }, [activeTab, selectedResourceCourseId, courses]);
 
   // --- QUIZ PERFORMANCE REPORT MODAL ---
   const [quizReportModal, setQuizReportModal] = useState<boolean>(false);
@@ -1646,6 +1679,9 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'courses' ? 'active' : ''}`} onClick={() => setActiveTab('courses')}>
                   <BookOpen size={18} /> My Courses
                 </button>
+                <button className={`nav-link-btn ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>
+                  <FolderOpen size={18} /> Reference Materials
+                </button>
                 <button className={`nav-link-btn ${activeTab === 'sandbox' ? 'active' : ''}`} onClick={() => setActiveTab('sandbox')}>
                   <Terminal size={18} /> Code Sandbox
                 </button>
@@ -1776,6 +1812,7 @@ export const Dashboard: React.FC = () => {
             <h1 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.25rem' }}>
               {activeTab === 'overview' && 'LMS Command Center'}
               {activeTab === 'courses' && 'Course Curriculum & Player'}
+              {activeTab === 'resources' && 'Course Reference Materials'}
               {activeTab === 'sandbox' && 'Secure Go-Docker Sandbox'}
               {activeTab === 'assessment' && 'Computer Adaptive Test'}
               {activeTab === 'tutor' && 'Gemini AI Tutor'}
@@ -2340,27 +2377,6 @@ export const Dashboard: React.FC = () => {
                           </span>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          {done && (
-                            <button
-                              onClick={() => viewQuizReport(quiz.id)}
-                              style={{
-                                border: '1px solid rgba(99,102,241,0.35)',
-                                background: 'rgba(99,102,241,0.12)',
-                                color: '#a5b4fc',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                fontSize: '0.85rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem'
-                              }}
-                              title="View & Download Test Report"
-                            >
-                              <FileText size={14} /> Download Report
-                            </button>
-                          )}
                           <button
                             onClick={() => startQuiz(quiz)}
                             disabled={isDisabled}
@@ -2489,11 +2505,6 @@ export const Dashboard: React.FC = () => {
                     <button onClick={() => { setQuizSubmitResult(null); setPickedQuiz(null); fetchQuizzes(); }} style={{ border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
                       Back to Quizzes
                     </button>
-                    {pickedQuiz && (
-                      <button onClick={() => { const qId = pickedQuiz.id; setQuizSubmitResult(null); setPickedQuiz(null); fetchQuizzes(); viewQuizReport(qId); }} style={{ border: 'none', background: 'var(--accent-indigo)', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <FileText size={16} /> View Performance Report
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
@@ -2502,211 +2513,66 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ─── QUIZ PERFORMANCE REPORT MODAL (Download / Print) ─── */}
-        {quizReportModal && (
-          <div className="modal-overlay-report" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', overflowY: 'auto' }}>
-            <div className="modal-dialog-report" style={{ background: '#0b0f19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' }}>
-              
-              {/* Modal Header */}
-              <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ background: 'rgba(99,102,241,0.15)', padding: '8px', borderRadius: '8px', color: '#818cf8' }}>
-                    <Award size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff' }}>Test Performance Report</h3>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Official candidate assessment breakdown</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button
-                    onClick={() => printQuizReport(quizReportData)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      background: 'var(--accent-emerald)',
-                      border: 'none',
-                      color: '#fff',
-                      padding: '0.5rem 1.1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                    title="Print or Save as PDF"
-                  >
-                    <Download size={15} /> Print / Save PDF
-                  </button>
-                  <button
-                    onClick={() => setQuizReportModal(false)}
-                    style={{
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--text-secondary)',
-                      padding: '0.5rem',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+        {/* 5. RESOURCES TAB */}
+        {activeTab === 'resources' && (
+          <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1.25rem' }}>Reference Materials</h3>
+                <select 
+                  value={selectedResourceCourseId} 
+                  onChange={(e) => { setSelectedResourceCourseId(e.target.value); fetchStudentResources(e.target.value); }}
+                  style={{ background: '#070b13', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '8px' }}
+                >
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
               </div>
 
-              {/* Modal Body / Printable Content */}
-              <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }} className="print-only-container" id="printable-quiz-report">
-                {quizReportLoading ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 1rem', color: 'var(--accent-cyan)' }} />
-                    <p>Generating student test report...</p>
-                  </div>
-                ) : quizReportError ? (
-                  <div style={{ padding: '2rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', color: '#f87171', textAlign: 'center' }}>
-                    <p>{quizReportError}</p>
-                  </div>
-                ) : quizReportData ? (
-                  <div>
-                    {/* Official Institutional Banner */}
-                    <div style={{ borderBottom: '2px solid rgba(99,102,241,0.3)', paddingBottom: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent-cyan)' }}>SannaLMS Examination System</span>
-                        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '0.2rem', color: '#fff' }}>{quizReportData.quiz?.title}</h2>
-                        {quizReportData.quiz?.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{quizReportData.quiz?.description}</p>}
-                      </div>
-                      <div style={{ textAlign: 'right', background: 'rgba(255,255,255,0.02)', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Candidate:</div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>{userProfile?.firstName ? `${userProfile.firstName} ${userProfile.lastName || ''}` : keycloak.tokenParsed?.name || keycloak.tokenParsed?.preferred_username || 'Student'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)' }}>{userProfile?.email || keycloak.tokenParsed?.email}</div>
-                      </div>
-                    </div>
-
-                    {/* Summary Metric Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                      <div className="print-card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Score Obtained</span>
-                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--accent-cyan)' }}>
-                          {quizReportData.submission?.score ?? 0} <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>/ {quizReportData.submission?.max_score ?? 0}</span>
-                        </h3>
-                      </div>
-                      <div className="print-card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Percentage</span>
-                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '0.35rem', color: (quizReportData.submission?.percentage ?? 0) >= 50 ? 'var(--accent-emerald)' : '#f59e0b' }}>
-                          {quizReportData.submission?.percentage ?? 0}%
-                        </h3>
-                      </div>
-                      <div className="print-card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Grading Status</span>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.5rem', color: quizReportData.submission?.is_graded ? '#34d399' : '#fbbf24' }}>
-                          {quizReportData.submission?.is_graded ? 'Graded & Verified' : 'Pending Review'}
-                        </h3>
-                      </div>
-                      <div className="print-card" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Submission Date</span>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.5rem', color: '#fff' }}>
-                          {quizReportData.submission?.submitted_at ? new Date(quizReportData.submission.submitted_at).toLocaleString() : '—'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Question Breakdown List */}
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CheckSquare size={18} color="var(--accent-indigo)" /> Detailed Question Analysis
-                    </h3>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {(quizReportData.questions || []).map((q: any, idx: number) => {
-                        const isMcq = q.type === 'MCQ';
-                        const isCorrect = q.is_correct === true;
-                        const isWrong = q.is_correct === false;
-                        const isEssay = !isMcq;
-
-                        return (
-                          <div key={q.id || idx} className="print-card" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700, color: '#fff' }}>Q{idx + 1}</span>
-                                <span style={{ fontSize: '0.75rem', background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>{q.type}</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>({q.marks} Mark{q.marks === 1 ? '' : 's'})</span>
-                              </div>
-                              <div>
-                                {isCorrect && <span style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>+ {q.marks_awarded} Marks (Correct)</span>}
-                                {isWrong && <span style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>0 / {q.marks} Marks (Incorrect)</span>}
-                                {isEssay && <span style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24', padding: '3px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700 }}>{q.marks_awarded} / {q.marks} Marks</span>}
-                              </div>
-                            </div>
-
-                            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem', lineHeight: '1.4' }}>{q.title}</h4>
-
-                            {/* MCQ Options Rendering */}
-                            {isMcq && q.options && q.options.length > 0 && (
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                {q.options.map((opt: any, optIdx: number) => {
-                                  const optId = typeof opt === 'object' ? String(opt.id) : String(optIdx + 1);
-                                  const optText = typeof opt === 'object' ? (opt.text || opt.id) : String(opt);
-                                  const isUserPick = String(q.student_answer) === optId || q.student_answer_text === optText;
-                                  const isKey = opt.isCorrect || String(q.correct_answer) === optId || q.correct_answer_text === optText;
-
-                                  let optBg = 'rgba(255,255,255,0.01)';
-                                  let optBorder = 'rgba(255,255,255,0.05)';
-                                  let optColor = 'var(--text-secondary)';
-
-                                  if (isKey) {
-                                    optBg = 'rgba(16,185,129,0.08)';
-                                    optBorder = 'rgba(16,185,129,0.35)';
-                                    optColor = '#34d399';
-                                  } else if (isUserPick && !isKey) {
-                                    optBg = 'rgba(239,68,68,0.08)';
-                                    optBorder = 'rgba(239,68,68,0.35)';
-                                    optColor = '#f87171';
-                                  }
-
-                                  return (
-                                    <div key={optIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0.9rem', borderRadius: '6px', background: optBg, border: `1px solid ${optBorder}`, color: optColor, fontSize: '0.85rem' }}>
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <strong style={{ color: '#fff' }}>{String.fromCharCode(65 + optIdx)}.</strong> {optText}
-                                      </span>
-                                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                                        {isUserPick && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: isKey ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: isKey ? '#34d399' : '#f87171' }}>Your Answer</span>}
-                                        {isKey && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(16,185,129,0.2)', color: '#34d399', display: 'flex', alignItems: 'center', gap: '2px' }}><Check size={11} /> Correct</span>}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Essay Answer Display */}
-                            {isEssay && (
-                              <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '6px', marginBottom: '0.75rem' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Your Written Answer:</span>
-                                <p style={{ fontSize: '0.85rem', color: '#fff', whiteSpace: 'pre-wrap' }}>{q.student_answer || 'No answer submitted.'}</p>
-                              </div>
-                            )}
-
-                            {/* Explanation Note if present */}
-                            {q.content && q.content !== q.title && (
-                              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(99,102,241,0.05)', borderLeft: '3px solid var(--accent-indigo)', padding: '0.5rem 0.75rem', borderRadius: '0 4px 4px 0' }}>
-                                <strong style={{ color: '#818cf8' }}>Explanation:</strong> {q.content.replace(/^Explanation:\s*/i, '')}
-                              </div>
-                            )}
+              {studentResourcesLoading ? (
+                <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '3rem' }}>Loading materials...</p>
+              ) : studentResources.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
+                  <FolderOpen size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No reference materials uploaded for this course.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {studentResources.map((res: any) => {
+                    const isLink = Boolean(res.link_url || res.content_type === 'link' || res.file_path?.startsWith('http'));
+                    return (
+                      <div key={res.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ padding: '8px', background: isLink ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)', borderRadius: '8px', color: isLink ? 'var(--accent-emerald)' : 'var(--accent-indigo)' }}>
+                            {isLink ? <ExternalLink size={18} /> : <FileText size={18} />}
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Verification Footer */}
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '2rem', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      <span>Generated securely via SannaLMS Assessment Engine</span>
-                      <span>Candidate Ref: {keycloak.subject || 'student-record'}</span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
+                          <div>
+                            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', margin: 0 }}>{res.title || res.file_name}</h4>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {isLink ? 'Google Drive / External Resource' : `${res.file_name} · ${(res.file_size ? (res.file_size / 1024).toFixed(1) + ' KB' : 'Document')}`}
+                            </span>
+                          </div>
+                        </div>
+                        {isLink ? (
+                          <button
+                            onClick={() => window.open(res.link_url || res.file_path, '_blank', 'noopener,noreferrer')}
+                            style={{ padding: '0.45rem 1rem', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.4)', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-emerald)', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                          >
+                            <ExternalLink size={14} /> Open Link
+                          </button>
+                        ) : (
+                          <a
+                            href={`/api/v1/courses/${selectedResourceCourseId || courses[0]?.id}/resources/${res.id}/download`}
+                            download={res.file_name}
+                            style={{ padding: '0.45rem 1rem', borderRadius: '6px', border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-indigo)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                          >
+                            <Download size={14} /> Download
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

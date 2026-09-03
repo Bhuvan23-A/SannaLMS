@@ -55,4 +55,10 @@ export class UsersController {
     const newPass = body.new_password || body.password;
     return this.usersService.adminResetPassword(id, newPass);
   }
+
+  // Student / User self-service password recovery (Forgot Password)
+  @Post('users/forgot-password')
+  forgotPassword(@Body() body: { email?: string; username?: string; identifier?: string; phone?: string; new_password?: string }) {
+    return this.usersService.forgotPassword(body);
+  }
 }

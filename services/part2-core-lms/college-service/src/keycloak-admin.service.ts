@@ -98,6 +98,17 @@ export class KeycloakAdminService {
     }
   }
 
+  async findUserByUsernameOrEmail(identifier: string): Promise<any | null> {
+    try {
+      const byEmail = await this.findUserByEmail(identifier);
+      if (byEmail) return byEmail;
+      const users = await this.req(`/users?username=${encodeURIComponent(identifier)}&exact=true`);
+      return Array.isArray(users) && users.length > 0 ? users[0] : null;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Create a Keycloak user. Returns { existing: boolean, id: string }.
    */
