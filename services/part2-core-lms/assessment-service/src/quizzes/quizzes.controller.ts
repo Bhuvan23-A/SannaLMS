@@ -53,20 +53,61 @@ export class QuizzesController {
     return this.quizzesService.getQuizSubmissions(id);
   }
 
-  // CSV export of quiz submissions with malpractice flags
+  // CSV export of quiz submissions with institutional score report metadata
   @Get(':id/submissions/export')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   async exportSubmissions(@Param('id') id: string, @Res() res: any) {
     const data = await this.quizzesService.getQuizSubmissions(id);
-    const header = 'Student ID,Score,Graded,Violations,Auto-Submitted,Submitted At\n';
-    const rows = (data.submissions || []).map((s: any) =>
-      `${s.user_id},${s.score ?? ''},${s.is_graded},${s.violation_count || 0},${s.auto_submitted || false},${s.submitted_at || ''}`
-    ).join('\n');
+    const quiz = data.quiz;
+    const totalMarks = (data.questions || []).reduce((acc: number, q: any) => acc + (q.marks || 0), 0);
+
+    const now = new Date();
+    const downloadDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const downloadTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const assessmentDate = quiz?.start_time
+      ? new Date(quiz.start_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : downloadDate;
+    const durationMins = quiz?.duration_mins || 30;
+
+    let startTimeStr = '09:00 AM';
+    let endTimeStr = '09:30 AM';
+    if (quiz?.start_time) {
+      startTimeStr = new Date(quiz.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      endTimeStr = quiz?.end_time
+        ? new Date(quiz.end_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        : startTimeStr;
+    }
+
+    const titleStr = quiz?.title || 'Assessment';
+    const metadataHeader = 
+`Edulateral Foundation
+User Score Report of : ${titleStr}
+Assessment Date : ${assessmentDate}
+Assessment Time : ${startTimeStr} - ${endTimeStr} (${durationMins} Minutes)
+Downloaded On : ${downloadDate} ${downloadTime}
+
+Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Status,Malpractice Logs,Marks Obtained
+`;
+
+    const rows = (data.submissions || []).map((s: any, idx: number) => {
+      const slNo = idx + 1;
+      const candidateId = s.user_id ? s.user_id.slice(0, 8) : `CAND-${slNo}`;
+      const candidateName = `Candidate ${slNo}`;
+      const candidateEmail = s.user_id ? `${s.user_id}@student.lms` : '—';
+      const group = s.tenant_id || 'Default Batch';
+      const uniqueId = s.user_id || `UID-${slNo}`;
+      const status = s.is_graded ? 'Graded' : 'Submitted';
+      const malpractice = `${s.violation_count || 0} Violations`;
+      const marks = `${s.score ?? 0} / ${totalMarks}`;
+      return `${slNo},"${candidateId}","${candidateName}","${candidateEmail}","${group}","${uniqueId}","${status}","${malpractice}","${marks}"`;
+    }).join('\n');
+
     res.set({
-      'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="quiz-${id}-submissions.csv"`,
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="Score_Report_${titleStr.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv"`,
     });
-    res.send(header + rows);
+    res.send('\uFEFF' + metadataHeader + rows);
   }
 
   // Manually grade an essay/coding quiz submission — score + feedback are

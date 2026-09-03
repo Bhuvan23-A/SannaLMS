@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Building2,
   Users,
+  Key,
   Layers,
   GitBranch,
   CalendarDays,
@@ -123,6 +124,7 @@ export default function Sidebar() {
             { name: 'Branches', href: '/branches', icon: GitBranch },
             { name: 'Semesters', href: '/semesters', icon: GraduationCap },
             { name: 'Sections', href: '/sections', icon: FolderTree },
+            { name: 'User Directory & Passwords', href: '/users', icon: Key },
             { name: 'Bulk Import Users', href: '/users/import', icon: Users },
           ]
         },

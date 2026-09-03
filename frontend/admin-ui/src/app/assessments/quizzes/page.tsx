@@ -462,6 +462,63 @@ export default function QuizzesPage() {
     } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
   };
 
+  const exportQuizScoreReport = (quizItem: any) => {
+    const courseTitle = courses.find((c: any) => c.id === quizItem.course_id)?.title || 'Course';
+    const totalMarks = submissionsQuestions.reduce((s: number, qq: any) => s + (qq.marks || 0), 0);
+    const now = new Date();
+    const downloadDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const downloadTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const assessmentDate = quizItem.start_time
+      ? new Date(quizItem.start_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : downloadDate;
+    const durationMins = quizItem.duration_mins || 30;
+
+    let startTimeStr = '02:30 PM';
+    let endTimeStr = '02:50 PM';
+    if (quizItem.start_time) {
+      startTimeStr = new Date(quizItem.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      endTimeStr = quizItem.end_time
+        ? new Date(quizItem.end_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        : startTimeStr;
+    }
+
+    const reportTitle = `${courseTitle}_${quizItem.title}`.replace(/[\s/\\:]+/g, '_');
+    const headerBlock = 
+`Edulateral Foundation
+User Score Report of : ${reportTitle}
+Assessment Date : ${assessmentDate}
+Assessment Time : ${startTimeStr} - ${endTimeStr} (${durationMins} Minutes)
+Downloaded On : ${downloadDate} ${downloadTime}
+
+Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Status,Malpractice Logs,Marks Obtained
+`;
+
+    const rows = (submissionsData || []).map((sub: any, idx: number) => {
+      const slNo = idx + 1;
+      const user = users.find((u: any) => u.id === sub.user_id);
+      const candEmail = emailOf(sub.user_id) || sub.user_id;
+      const candId = candEmail.split('@')[0] || sub.user_id.slice(0, 8);
+      const candName = nameOf(sub.user_id) || 'Student';
+      const group = user?.branch || user?.department || sub.tenant_id || 'Batch 1';
+      const uniqueId = sub.user_id;
+      const status = sub.is_graded ? 'Graded' : 'Submitted';
+      const malpractice = (sub.violation_count && sub.violation_count > 0) ? `${sub.violation_count} Violations` : '0 Violations';
+      const marks = `${sub.score ?? 0} / ${totalMarks}`;
+      return `${slNo},"${candId}","${candName}","${candEmail}","${group}","${uniqueId}","${status}","${malpractice}","${marks}"`;
+    }).join('\n');
+
+    const csvContent = '\uFEFF' + headerBlock + rows;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `User_Score_Report_${reportTitle}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const toggleStudent = (uid: string) => {
     setSelectedStudents(prev => prev.includes(uid) ? prev.filter(x => x !== uid) : [...prev, uid]);
   };
@@ -983,14 +1040,10 @@ export default function QuizzesPage() {
                   <button
                     type="button"
                     className="btn-secondary"
-                    style={{ fontSize: '11px', padding: '4px 10px' }}
-                    onClick={async () => {
-                      try {
-                        await downloadFile(`/api/v1/quizzes/${q.id}/submissions/export`, `quiz-${q.id}-submissions.csv`);
-                      } catch (err: any) { alert('Export failed: ' + err.message); }
-                    }}
+                    style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    onClick={() => exportQuizScoreReport(q)}
                   >
-                    <Download size={12} /> Export Submissions (CSV)
+                    <Download size={12} /> Export Submissions (Excel / CSV)
                   </button>
                 </div>
                 {submissionsLoading ? (

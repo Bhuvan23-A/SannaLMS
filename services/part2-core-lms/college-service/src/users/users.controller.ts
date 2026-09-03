@@ -38,4 +38,21 @@ export class UsersController {
   async assignAdmin(@Param('id') id: string, @Body() body: any) {
     return this.usersService.assignCollegeAdminById(id, body);
   }
+
+  // Self-service: change password for the currently authenticated user
+  @Post('users/change-password')
+  @Roles('STUDENT', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
+  changePassword(@Body() body: { current_password?: string; new_password?: string; password?: string }, @Req() req: any) {
+    const newPass = body.new_password || body.password || '';
+    const userId = req.user?.id || req.user?.sub;
+    return this.usersService.changePassword(userId, newPass);
+  }
+
+  // Admin/Trainer action: reset any user's password
+  @Post('users/:id/reset-password')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
+  resetUserPassword(@Param('id') id: string, @Body() body: { password?: string; new_password?: string }) {
+    const newPass = body.new_password || body.password;
+    return this.usersService.adminResetPassword(id, newPass);
+  }
 }

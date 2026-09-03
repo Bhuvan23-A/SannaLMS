@@ -347,4 +347,63 @@ export class UsersService {
     }
     return { deleted, failed };
   }
+
+  /**
+   * Self-service password change: Any authenticated student, faculty, or admin
+   * updates their own Keycloak password.
+   */
+  async changePassword(userId: string, newPassword: string) {
+    if (!userId) throw new BadRequestException('User ID not found in token');
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters long');
+    }
+
+    let keycloakId = userId;
+    const kcUser = await this.keycloak.getUser(userId).catch(() => null);
+    if (!kcUser) {
+      const lmsUser = await this.prisma.extendedClient.user.findUnique({ where: { id: userId } });
+      if (lmsUser?.email) {
+        const found = await this.keycloak.findUserByEmail(lmsUser.email);
+        if (found?.id) keycloakId = found.id;
+      }
+    }
+
+    await this.keycloak.resetUserPassword(keycloakId, newPassword);
+    return { success: true, message: 'Password changed successfully' };
+  }
+
+  /**
+   * Admin-driven password reset: Superadmin, College Admin, or Trainer resets a specific
+   * user's Keycloak password so access can be recovered when credentials are lost.
+   */
+  async adminResetPassword(targetUserId: string, newPassword?: string) {
+    if (!targetUserId) throw new BadRequestException('Target user ID is required');
+    const password = newPassword || DEFAULT_PASSWORD;
+    if (password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters long');
+    }
+
+    let keycloakId = targetUserId;
+    const kcUser = await this.keycloak.getUser(targetUserId).catch(() => null);
+    if (!kcUser) {
+      const lmsUser = await this.prisma.extendedClient.user.findFirst({
+        where: { OR: [{ id: targetUserId }, { email: targetUserId }] },
+      });
+      if (lmsUser?.email) {
+        const found = await this.keycloak.findUserByEmail(lmsUser.email);
+        if (found?.id) keycloakId = found.id;
+      } else if (targetUserId.includes('@')) {
+        const found = await this.keycloak.findUserByEmail(targetUserId);
+        if (found?.id) keycloakId = found.id;
+      }
+    }
+
+    await this.keycloak.resetUserPassword(keycloakId, password);
+    return {
+      success: true,
+      message: 'Password reset successfully',
+      user_id: targetUserId,
+      new_password: password,
+    };
+  }
 }

@@ -170,6 +170,9 @@ export class QuizzesService {
   // scores (#10). Includes the quiz's questions so the trainer can see exactly
   // what each essay/coding answer was answering before grading it.
   async getQuizSubmissions(quizId: string) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId }
+    });
     const quizQuestions = await this.prisma.quizQuestion.findMany({
       where: { quiz_id: quizId },
       include: { question: true },
@@ -180,6 +183,7 @@ export class QuizzesService {
       orderBy: { submitted_at: 'desc' }
     });
     return {
+      quiz: quiz || null,
       questions: quizQuestions.map((qq: any) => ({
         question_id: qq.question_id,
         type: qq.question?.type || 'MCQ',

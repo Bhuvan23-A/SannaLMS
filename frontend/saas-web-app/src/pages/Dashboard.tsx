@@ -8,7 +8,8 @@ import {
   Sparkles, Award, ShieldAlert, ChevronRight, Play, CheckCircle2, 
   ArrowRight, Send, Loader2, Trophy, Settings, HelpCircle, Layers, Clock,
   FileText, Calendar, Upload, Bell, GraduationCap, RefreshCw,
-  MessageSquare, MessagesSquare, Video, Download, ExternalLink, Check, X
+  MessageSquare, MessagesSquare, Video, Download, ExternalLink, Check, X,
+  Key, Eye, EyeOff, Lock, AlertCircle
 } from 'lucide-react';
 
 // Starter templates per language — switching tabs loads the matching template
@@ -556,6 +557,43 @@ export const Dashboard: React.FC = () => {
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
+  };
+
+  // Student self-service password change state
+  const [studentPassModal, setStudentPassModal] = useState(false);
+  const [studentNewPass, setStudentNewPass] = useState('');
+  const [studentConfirmPass, setStudentConfirmPass] = useState('');
+  const [showStudentNewPass, setShowStudentNewPass] = useState(false);
+  const [showStudentConfirmPass, setShowStudentConfirmPass] = useState(false);
+  const [studentPassLoading, setStudentPassLoading] = useState(false);
+  const [studentPassSuccess, setStudentPassSuccess] = useState('');
+  const [studentPassError, setStudentPassError] = useState('');
+
+  const handleStudentChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (studentNewPass !== studentConfirmPass) {
+      setStudentPassError('New passwords do not match');
+      return;
+    }
+    if (studentNewPass.length < 6) {
+      setStudentPassError('Password must be at least 6 characters long');
+      return;
+    }
+    setStudentPassLoading(true);
+    setStudentPassError('');
+    setStudentPassSuccess('');
+    try {
+      const res = await apiClient.post('/users/change-password', {
+        new_password: studentNewPass
+      });
+      setStudentPassSuccess(res.data?.message || 'Password changed successfully!');
+      setStudentNewPass('');
+      setStudentConfirmPass('');
+    } catch (err: any) {
+      setStudentPassError(err?.response?.data?.message || err.message || 'Failed to change password');
+    } finally {
+      setStudentPassLoading(false);
+    }
   };
 
   // Exam lockdown: detect tab switches / focus loss / copy-paste during a real
@@ -1713,17 +1751,16 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <a
-              href={`${window.location.origin}/auth/realms/sannalms/account/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ flex: 1, background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', fontSize: '0.9rem', transition: 'all 0.2s' }}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => { setStudentPassModal(true); setStudentPassError(''); setStudentPassSuccess(''); }}
+              style={{ flex: 1, minWidth: '95px', background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#818cf8', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}
+              title="Change Account Password"
             >
-              <Settings size={16} /> Account
-            </a>
-            <button onClick={logout} style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', color: '#fb7185', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
-              <LogOut size={16} /> Logout
+              <Key size={15} /> Password
+            </button>
+            <button onClick={logout} style={{ flex: 1, minWidth: '95px', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', color: '#fb7185', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}>
+              <LogOut size={15} /> Logout
             </button>
           </div>
         </div>
@@ -3643,6 +3680,120 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── STUDENT CHANGE PASSWORD MODAL ─── */}
+        {studentPassModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <div style={{ background: '#0b0f19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', width: '100%', maxWidth: '440px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' }}>
+              
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{ background: 'rgba(99,102,241,0.15)', padding: '8px', borderRadius: '8px', color: '#818cf8' }}>
+                    <Key size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', margin: 0 }}>Change Password</h3>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Update your student login credentials</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStudentPassModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleStudentChangePassword} style={{ padding: '1.5rem' }}>
+                
+                {studentPassError && (
+                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertCircle size={15} /> {studentPassError}
+                  </div>
+                )}
+
+                {studentPassSuccess && (
+                  <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#34d399', padding: '0.85rem', borderRadius: '8px', marginBottom: '1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Check size={16} /> {studentPassSuccess}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    New Password
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showStudentNewPass ? 'text' : 'password'}
+                      value={studentNewPass}
+                      onChange={(e) => setStudentNewPass(e.target.value)}
+                      placeholder="Enter new password"
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 0.85rem', color: '#fff', fontSize: '0.9rem' }}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowStudentNewPass(!showStudentNewPass)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title={showStudentNewPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showStudentNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Confirm New Password
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showStudentConfirmPass ? 'text' : 'password'}
+                      value={studentConfirmPass}
+                      onChange={(e) => setStudentConfirmPass(e.target.value)}
+                      placeholder="Confirm new password"
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 0.85rem', color: '#fff', fontSize: '0.9rem' }}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowStudentConfirmPass(!showStudentConfirmPass)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title={showStudentConfirmPass ? 'Hide password' : 'Show password'}
+                    >
+                      {showStudentConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setStudentPassModal(false)}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', padding: '0.65rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
+                  >
+                    {studentPassSuccess ? 'Close' : 'Cancel'}
+                  </button>
+                  {!studentPassSuccess && (
+                    <button
+                      type="submit"
+                      disabled={studentPassLoading}
+                      style={{ background: 'var(--accent-indigo)', border: 'none', color: '#fff', padding: '0.65rem 1.25rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Key size={14} />
+                      {studentPassLoading ? 'Updating...' : 'Update Password'}
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           </div>
         )}

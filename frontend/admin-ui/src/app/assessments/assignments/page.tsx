@@ -20,7 +20,8 @@ import {
   FileText,
   X,
   Check,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 
 export default function AssignmentsPage() {
@@ -207,6 +208,52 @@ export default function AssignmentsPage() {
       alert('Grade saved successfully');
       loadSubmissions(submissionsAssignmentId || '');
     } catch (err: any) { alert(err.message || 'Failed to grade'); } finally { setGradingId(null); }
+  };
+
+  const exportAssignmentScoreReport = (assignmentItem: any) => {
+    const courseTitle = courses.find((c: any) => c.id === assignmentItem.course_id)?.title || 'Course';
+    const now = new Date();
+    const downloadDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const downloadTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const assessmentDate = assignmentItem.due_date
+      ? new Date(assignmentItem.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : downloadDate;
+
+    const reportTitle = `${courseTitle}_${assignmentItem.title}`.replace(/[\s/\\:]+/g, '_');
+    const headerBlock = 
+`Edulateral Foundation
+User Score Report of : ${reportTitle}
+Assessment Date : ${assessmentDate}
+Assessment Type : Assignment (Max Marks: ${assignmentItem.max_marks || 100})
+Downloaded On : ${downloadDate} ${downloadTime}
+
+Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Status,Malpractice Logs,Marks Obtained
+`;
+
+    const rows = (submissionsData || []).map((sub: any, idx: number) => {
+      const slNo = idx + 1;
+      const user = users.find((u: any) => u.id === sub.user_id);
+      const candEmail = emailOf(sub.user_id) || sub.user_id;
+      const candId = candEmail.split('@')[0] || sub.user_id.slice(0, 8);
+      const candName = nameOf(sub.user_id) || 'Student';
+      const group = user?.branch || user?.department || sub.tenant_id || 'Batch 1';
+      const uniqueId = sub.user_id;
+      const status = sub.score !== null && sub.score !== undefined ? 'Graded' : 'Submitted';
+      const malpractice = '0 Violations';
+      const marks = `${sub.score ?? 0} / ${assignmentItem.max_marks || 100}`;
+      return `${slNo},"${candId}","${candName}","${candEmail}","${group}","${uniqueId}","${status}","${malpractice}","${marks}"`;
+    }).join('\n');
+
+    const csvContent = '\uFEFF' + headerBlock + rows;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Assignment_Score_Report_${reportTitle}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const deleteAssignment = async (assignmentId: string) => {
@@ -522,7 +569,17 @@ export default function AssignmentsPage() {
             {/* Submissions Review and Grading Drawer */}
             {submissionsAssignmentId === a.id && (
               <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Student Submissions & Evaluation</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0 }}>Student Submissions & Evaluation</h4>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    onClick={() => exportAssignmentScoreReport(a)}
+                  >
+                    <Download size={12} /> Export Submissions (Excel / CSV)
+                  </button>
+                </div>
                 {submissionsLoading ? (
                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading submissions...</p>
                 ) : submissionsData.length === 0 ? (
