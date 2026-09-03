@@ -176,11 +176,24 @@ export class CoursesService {
         select: { course_id: true },
       });
       const ids = (rows as any[]).map((r) => r.course_id);
+      if (ids.length > 0) {
+        return this.prisma.extendedClient.course.findMany({
+          where: {
+            deleted_at: null,
+            id: { in: ids },
+          },
+          include: { subject: true },
+        });
+      }
+      // Fallback: If not explicitly mapped in courseTrainer, show all courses in trainer's college/tenant
+      if (tenantId && tenantId !== 'test-tenant' && tenantId !== 'master') {
+        return this.prisma.extendedClient.course.findMany({
+          where: { tenant_id: tenantId, deleted_at: null },
+          include: { subject: true },
+        });
+      }
       return this.prisma.extendedClient.course.findMany({
-        where: {
-          deleted_at: null,
-          ...(ids.length > 0 ? { id: { in: ids } } : { id: 'none' }),
-        },
+        where: { deleted_at: null },
         include: { subject: true },
       });
     } else if (isStudent) {

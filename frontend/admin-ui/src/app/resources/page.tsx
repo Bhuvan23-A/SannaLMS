@@ -88,7 +88,12 @@ export default function ResourcesPage() {
           fetchApi('/api/v1/semesters').catch(() => []),
           fetchApi('/api/v1/sections').catch(() => [])
         ]);
-        if (Array.isArray(cData)) setCourses(cData);
+        if (Array.isArray(cData)) {
+          setCourses(cData);
+          if (cData.length > 0 && !courseId) {
+            setCourseId(cData[0].id);
+          }
+        }
         if (Array.isArray(colData)) setColleges(colData);
         if (Array.isArray(dData)) setDepartments(dData);
         if (Array.isArray(bData)) setBranches(bData);
@@ -284,7 +289,7 @@ export default function ResourcesPage() {
             Central repository for course syllabus, Google Drive folders, lecture slides, lab manuals, and solution keys.
           </p>
         </div>
-        {(isSuperAdmin || isCollegeAdmin || isTrainer) && courseId && (
+        {(isSuperAdmin || isCollegeAdmin || isTrainer) && (
           <button
             className="btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 16px' }}
@@ -321,11 +326,33 @@ export default function ResourcesPage() {
             <FolderOpen size={24} color="var(--accent-color)" />
           </div>
           <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '6px', color: 'var(--text-primary)' }}>
-            Select a Course to View Reference Materials
+            {courses.length > 0 ? 'Select a Course to View Reference Materials' : 'No Courses Available'}
           </h3>
-          <p style={{ fontSize: '13px', maxWidth: '420px', margin: '0 auto' }}>
-            Choose a course from the selector above to manage and access its reference documents and shared cloud folders.
+          <p style={{ fontSize: '13px', maxWidth: '460px', margin: '0 auto 18px' }}>
+            {courses.length > 0 
+              ? 'Choose a course to view, manage, and upload syllabus, slides, and study documents.'
+              : 'No courses found. Please ensure courses are created or assigned to your college/account.'}
           </p>
+          {courses.length > 0 && (
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                className="input-field"
+                style={{ maxWidth: '280px' }}
+                value={courseId}
+                onChange={e => setCourseId(e.target.value)}
+              >
+                <option value="">-- Select Course --</option>
+                {courses.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+              {(isSuperAdmin || isCollegeAdmin || isTrainer) && (
+                <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={openUploadModal}>
+                  <Plus size={16} /> Add Reference Material
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : resourcesLoading ? (
         <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '13px' }}>
@@ -591,10 +618,24 @@ export default function ResourcesPage() {
 
             <form onSubmit={handleUpload}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>Selected Course</label>
-                <div className="input-field" style={{ background: 'rgba(255,255,255,0.03)', color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>
-                  {selectedCourse?.title || 'No course selected'}
-                </div>
+                <label style={{ display: 'block', fontSize: '12px', marginBottom: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>Target Course *</label>
+                {courses.length > 0 ? (
+                  <select
+                    className="input-field"
+                    value={courseId}
+                    onChange={e => setCourseId(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Choose Course --</option>
+                    {courses.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="input-field" style={{ background: 'rgba(255,255,255,0.03)', color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>
+                    {selectedCourse?.title || 'No course selected'}
+                  </div>
+                )}
               </div>
 
               {/* Source Type Selector */}
