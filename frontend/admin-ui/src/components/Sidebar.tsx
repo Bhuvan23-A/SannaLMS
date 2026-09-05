@@ -47,14 +47,14 @@ interface NavSection {
   items: NavItem[];
 }
 
-import { getBrandConfig } from '@/utils/branding';
+import { getBrandConfig, BrandConfig, SANNA_BRAND } from '@/utils/branding';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, isTrainer } = useRole();
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
-  const brand = getBrandConfig();
+  const [brand, setBrand] = useState<BrandConfig>(SANNA_BRAND);
 
   const [username, setUsername] = useState('User');
   const [email, setEmail] = useState('');
@@ -64,8 +64,10 @@ export default function Sidebar() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    document.title = brand.portalTitle;
-  }, [brand.portalTitle]);
+    const currentBrand = getBrandConfig();
+    setBrand(currentBrand);
+    document.title = currentBrand.portalTitle;
+  }, [pathname]);
 
   const toggleSection = (title: string) => {
     setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));

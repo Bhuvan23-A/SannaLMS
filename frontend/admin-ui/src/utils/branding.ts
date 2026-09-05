@@ -10,7 +10,7 @@ export interface BrandConfig {
   accentColor: string;
 }
 
-const SANNA_BRAND: BrandConfig = {
+export const SANNA_BRAND: BrandConfig = {
   id: 'sannalms',
   name: 'SannaLMS',
   portalTitle: 'Sanna LMS Admin Platform',
@@ -22,7 +22,7 @@ const SANNA_BRAND: BrandConfig = {
   accentColor: '#6366f1',
 };
 
-const EDULATERAL_BRAND: BrandConfig = {
+export const EDULATERAL_BRAND: BrandConfig = {
   id: 'edulateral',
   name: 'Edulateral LMS',
   portalTitle: 'Edulateral LMS Admin Platform',
