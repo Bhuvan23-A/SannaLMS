@@ -42,18 +42,30 @@ export function getBrandConfig(): BrandConfig {
   const host = window.location.hostname.toLowerCase();
   const searchParams = new URLSearchParams(window.location.search);
   const tenantParam = searchParams.get('tenant')?.toLowerCase() || searchParams.get('brand')?.toLowerCase();
+  
+  let storedBrand = '';
+  try {
+    storedBrand = localStorage.getItem('preferred_brand') || localStorage.getItem('preferred_tenant') || '';
+  } catch (_) {}
+
+  const hasCookieBrand = typeof document !== 'undefined' && (
+    document.cookie.includes('preferred_brand=edulateral') ||
+    document.cookie.includes('preferred_tenant=edulateral')
+  );
 
   if (
     host.includes('edulateral') ||
     host.includes('edulms') ||
     tenantParam === 'edulateral' ||
-    localStorage.getItem('preferred_tenant') === 'edulateral'
+    storedBrand === 'edulateral' ||
+    hasCookieBrand
   ) {
-    if (tenantParam === 'edulateral') {
-      try {
-        localStorage.setItem('preferred_tenant', 'edulateral');
-      } catch (_) {}
-    }
+    try {
+      localStorage.setItem('preferred_brand', 'edulateral');
+      localStorage.setItem('preferred_tenant', 'edulateral');
+      document.cookie = "preferred_brand=edulateral; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = "preferred_tenant=edulateral; path=/; max-age=31536000; SameSite=Lax";
+    } catch (_) {}
     return EDULATERAL_BRAND;
   }
 

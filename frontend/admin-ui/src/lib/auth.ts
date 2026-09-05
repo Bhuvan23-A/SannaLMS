@@ -19,14 +19,19 @@ export function getRoleLabel(role: string): string {
 }
 
 export function handleLogout(): void {
-  // 1. Clear all local session data immediately
-  localStorage.clear();
+  let isEdulateral = false;
+  try {
+    const brand = localStorage.getItem('preferred_brand') || localStorage.getItem('preferred_tenant') || '';
+    isEdulateral = brand === 'edulateral' || (typeof document !== 'undefined' && document.cookie.includes('preferred_brand=edulateral'));
+  } catch (_) {}
+
+  // 1. Clear session tokens but preserve brand preference
+  localStorage.removeItem('access_token');
   sessionStorage.clear();
 
   // 2. Build Keycloak logout URL.
-  //    Send the user to the portal landing page after logout (it has the Sign In
-  //    button) - the admin dashboard must never render without a real token.
-  const redirectUri = encodeURIComponent(PORTAL_URL);
+  const targetPortal = isEdulateral ? `${PORTAL_URL}/?brand=edulateral` : PORTAL_URL;
+  const redirectUri = encodeURIComponent(targetPortal);
   const logoutUrl =
     `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/logout` +
     `?post_logout_redirect_uri=${redirectUri}` +
