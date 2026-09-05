@@ -38,8 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const login = () => keycloak.login();
-  const logout = () => keycloak.logout();
+  const login = () => keycloak.login({ redirectUri: typeof window !== 'undefined' ? window.location.href : undefined });
+  const logout = () => keycloak.logout({ redirectUri: typeof window !== 'undefined' ? window.location.origin : undefined });
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, isInitialized, initError, login, logout, userProfile }}>
