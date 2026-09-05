@@ -47,11 +47,14 @@ interface NavSection {
   items: NavItem[];
 }
 
+import { getBrandConfig } from '@/utils/branding';
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, isTrainer } = useRole();
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+  const brand = getBrandConfig();
 
   const [username, setUsername] = useState('User');
   const [email, setEmail] = useState('');
@@ -59,6 +62,10 @@ export default function Sidebar() {
 
   // Collapsible section states
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    document.title = brand.portalTitle;
+  }, [brand.portalTitle]);
 
   const toggleSection = (title: string) => {
     setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));
@@ -222,7 +229,11 @@ export default function Sidebar() {
         </div>
         <div>
           <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            Sanna<span style={{ color: 'var(--accent-color)' }}>LMS</span>
+            {brand.id === 'edulateral' ? (
+              <>Edulateral<span style={{ color: 'var(--accent-color)' }}> LMS</span></>
+            ) : (
+              <>Sanna<span style={{ color: 'var(--accent-color)' }}>LMS</span></>
+            )}
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
             {isSuperAdmin ? 'Master Portal' : isCollegeAdmin ? 'Institution Portal' : 'Workspace'}

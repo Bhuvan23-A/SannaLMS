@@ -11,6 +11,7 @@ import {
   MessageSquare, MessagesSquare, Video, Download, ExternalLink, Check, X,
   Key, Eye, EyeOff, Lock, AlertCircle, FolderOpen, Phone, Mail
 } from 'lucide-react';
+import { getBrandConfig } from '../utils/branding';
 
 // Starter templates per language — switching tabs loads the matching template
 const LANGUAGE_TEMPLATES: Record<'python' | 'cpp' | 'java', string> = {
@@ -47,6 +48,11 @@ public class Main {
 
 export const Dashboard: React.FC = () => {
   const { userProfile, logout } = useAuth();
+  const brand = getBrandConfig();
+
+  useEffect(() => {
+    document.title = brand.portalTitle;
+  }, [brand.portalTitle]);
 
   // Admin dashboard base URL — override for local dev via .env (VITE_ADMIN_URL=http://localhost:3000)
   const ADMIN_URL: string = (import.meta.env.VITE_ADMIN_URL as string) || 'https://admin.sannalms.sannainnovations.com';
@@ -1667,7 +1673,7 @@ export const Dashboard: React.FC = () => {
             <div style={{ background: 'linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan))', padding: '8px', borderRadius: '10px' }}>
               <Layers size={22} color="#fff" />
             </div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em', background: 'linear-gradient(to right, #fff, #cbd5e1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SannaLMS</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.025em', background: 'linear-gradient(to right, #fff, #cbd5e1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{brand.logoText}</span>
           </div>
 
           <nav className="nav-menu" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
