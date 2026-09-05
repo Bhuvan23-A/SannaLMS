@@ -189,3 +189,22 @@ a:hover {
     color: #ffffff !important;
 }
 
+/* Dynamic Edulateral Theme Override */
+body.edulateral-theme #kc-page-title::before {
+    content: "Edulateral LMS" !important;
+    background: linear-gradient(135deg, #ff9800 0%, #3b82f6 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+body.edulateral-theme .btn-primary, body.edulateral-theme #kc-login {
+    background: linear-gradient(135deg, #ff9800 0%, #3b82f6 100%) !important;
+    box-shadow: 0 8px 24px rgba(255, 152, 0, 0.25) !important;
+}
+body.edulateral-theme input[type="text"]:focus, body.edulateral-theme input[type="password"]:focus {
+    border-color: #ff9800 !important;
+    box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2) !important;
+}
+body.edulateral-theme a {
+    color: #ff9800 !important;
+}
+

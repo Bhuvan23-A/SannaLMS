@@ -1,3 +1,37 @@
+(function() {
+  function applyDynamicTheme() {
+    try {
+      var url = (window.location.href || '').toLowerCase();
+      var ref = (document.referrer || '').toLowerCase();
+      var cookies = (document.cookie || '').toLowerCase();
+      
+      var isEdulateral = url.indexOf('edulateral') !== -1 || 
+                          url.indexOf('edulms') !== -1 || 
+                          ref.indexOf('edulateral') !== -1 || 
+                          ref.indexOf('edulms') !== -1 ||
+                          cookies.indexOf('preferred_brand=edulateral') !== -1 ||
+                          cookies.indexOf('preferred_tenant=edulateral') !== -1;
+
+      if (isEdulateral && document.body) {
+        if (document.body.className.indexOf('edulateral-theme') === -1) {
+          document.body.className = (document.body.className || '') + ' edulateral-theme';
+        }
+        document.title = 'Sign in to Edulateral LMS';
+      }
+    } catch (e) {
+      console.warn('Brand customization error:', e);
+    }
+  }
+  
+  applyDynamicTheme();
+  document.addEventListener('DOMContentLoaded', applyDynamicTheme);
+  setTimeout(applyDynamicTheme, 10);
+  setTimeout(applyDynamicTheme, 50);
+  setTimeout(applyDynamicTheme, 150);
+  setTimeout(applyDynamicTheme, 400);
+  setTimeout(applyDynamicTheme, 1000);
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
   function initPasswordToggles() {
     var passwordInputs = document.querySelectorAll('input[type="password"], input[data-has-toggle="true"]');
