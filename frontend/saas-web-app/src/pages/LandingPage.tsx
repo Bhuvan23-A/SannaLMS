@@ -266,6 +266,8 @@ export const LandingPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
       {/* Dynamic Brand Footer */}
       <footer style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         <p style={{ margin: 0 }}>{brand.footerText}</p>
