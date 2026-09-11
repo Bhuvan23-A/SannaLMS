@@ -123,9 +123,6 @@ export class QuizzesService {
               if (!courseIds.includes(q.course_id)) return false;
             }
 
-            // Schedule gating: if upcoming in the future, hide from student until start_time
-            if (q.start_time && new Date(q.start_time) > now) return false;
-
             return true;
           })
       : quizzes;
@@ -142,25 +139,31 @@ export class QuizzesService {
     // so the quiz-taking UI can render them without crashing.
     return visible.map((quiz: any) => {
       const sub = mySubmissions.get(quiz.id);
+      const isUpcoming = isStudent && quiz.start_time && new Date(quiz.start_time) > now;
+      const totalMarks = (quiz.questions || []).reduce((acc: number, qq: any) => acc + (qq.question?.marks || 1), 0);
       return {
         ...quiz,
+        is_upcoming: isUpcoming,
         my_submission: sub ? {
           submitted: true,
           score: sub.score,
+          maxScore: totalMarks,
           is_graded: sub.is_graded,
           submitted_at: sub.submitted_at,
         } : null,
         questions: (quiz.questions || []).map((qq: any) => ({
           ...qq,
-          question: qq.question ? {
-            ...qq.question,
-            // The quiz-taking UI renders question.text — the model stores it as
-            // content/title, so expose it here (and always as a string).
-            text: String(qq.question.content || qq.question.title || ''),
-            options: typeof qq.question.options === 'string'
-              ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
-              : (qq.question.options || [])
-          } : qq.question
+          question: isUpcoming
+            ? null // Do not leak question text or options to students before test start_time
+            : (qq.question ? {
+                ...qq.question,
+                // The quiz-taking UI renders question.text — the model stores it as
+                // content/title, so expose it here (and always as a string).
+                text: String(qq.question.content || qq.question.title || ''),
+                options: typeof qq.question.options === 'string'
+                  ? (() => { try { const p = JSON.parse(qq.question.options); return Array.isArray(p) ? p : []; } catch { return []; } })()
+                  : (qq.question.options || [])
+              } : qq.question)
         })),
       };
     });
@@ -501,7 +504,13 @@ export class QuizzesService {
 function parseAssignedTo(value: any): { type?: string; user_ids?: string[] } | null {
   if (!value) return null;
   if (typeof value === 'string') {
-    try { return JSON.parse(value); } catch { return null; }
+    try {
+      let parsed = JSON.parse(value);
+      while (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { break; }
+      }
+      return parsed;
+    } catch { return null; }
   }
   return value;
 }
