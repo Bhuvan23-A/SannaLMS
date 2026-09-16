@@ -1802,7 +1802,7 @@ export const Dashboard: React.FC = () => {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => { setStudentPassModal(true); setStudentPassError(''); setStudentPassSuccess(''); }}
-              style={{ flex: 1, minWidth: '95px', background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.25)', color: '#818cf8', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}
+              style={{ flex: 1, minWidth: '95px', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '0.65rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s' }}
               title="Change Account Password"
             >
               <Key size={15} /> Password
@@ -1901,10 +1901,10 @@ export const Dashboard: React.FC = () => {
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Progress: {course.progress}%</span>
                         </div>
                         <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '0.5rem' }}>
-                          <div style={{ height: '100%', width: `${course.progress}%`, background: 'var(--accent-indigo)', borderRadius: '3px' }} />
+                          <div style={{ height: '100%', width: `${course.progress}%`, background: 'var(--accent-sky, #0ea5e9)', borderRadius: '3px' }} />
                         </div>
                       </div>
-                      <button onClick={() => { setSelectedCourse(course); setActiveTab('courses'); }} style={{ border: 'none', background: 'rgba(99,102,241,0.1)', color: '#818cf8', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', alignSelf: 'center' }}>
+                      <button onClick={() => { setSelectedCourse(course); setActiveTab('courses'); }} style={{ border: 'none', background: 'rgba(14, 165, 233, 0.12)', color: '#38bdf8', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', alignSelf: 'center' }}>
                         Open <ChevronRight size={16} />
                       </button>
                     </div>
@@ -1929,7 +1929,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                   </button>
                   <button className="btn-sidebar-quick" onClick={() => setActiveTab('tutor')} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '0.75rem', color: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                    <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '10px', borderRadius: '8px', color: 'var(--accent-indigo)' }}><Sparkles size={20} /></div>
+                    <div style={{ background: 'rgba(14, 165, 233, 0.12)', padding: '10px', borderRadius: '8px', color: '#38bdf8' }}><Sparkles size={20} /></div>
                     <div>
                       <h4 style={{ fontSize: '0.95rem' }}>Talk to Gemini AI Tutor</h4>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Query AI based on lecture transcript context</p>
@@ -2397,8 +2397,9 @@ export const Dashboard: React.FC = () => {
                             disabled={isDisabled}
                             style={{
                               border: 'none',
-                              background: done ? 'rgba(255,255,255,0.06)' : (isExpired ? 'rgba(239,68,68,0.15)' : (isUpcoming ? 'rgba(56,189,248,0.15)' : 'var(--accent-emerald)')),
+                              background: done ? 'rgba(255,255,255,0.06)' : (isExpired ? 'rgba(239,68,68,0.15)' : (isUpcoming ? 'rgba(56,189,248,0.15)' : 'linear-gradient(135deg, #0ea5e9, #0284c7)')),
                               color: done ? 'var(--text-secondary)' : (isExpired ? '#fca5a5' : (isUpcoming ? '#7dd3fc' : '#fff')),
+                              boxShadow: done || isExpired || isUpcoming ? 'none' : '0 4px 14px rgba(14, 165, 233, 0.35)',
                               padding: '0.5rem 1.25rem',
                               borderRadius: '8px',
                               cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -3573,7 +3574,7 @@ export const Dashboard: React.FC = () => {
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <div style={{ background: 'rgba(99,102,241,0.15)', padding: '8px', borderRadius: '8px', color: '#818cf8' }}>
+                  <div style={{ background: 'rgba(14, 165, 233, 0.15)', padding: '8px', borderRadius: '8px', color: '#38bdf8' }}>
                     <Key size={18} />
                   </div>
                   <div>

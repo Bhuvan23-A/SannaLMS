@@ -4,9 +4,9 @@
   --panel-border: rgba(255, 255, 255, 0.08);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-color: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-glow: rgba(99, 102, 241, 0.4);
+  --accent-color: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-glow: rgba(14, 165, 233, 0.4);
   --danger-color: #f43f5e;
   --success-color: #10b981;
   --warning-color: #f59e0b;
@@ -42,8 +42,8 @@
 body {
   background-color: var(--bg-color);
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12), transparent 25%),
-    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.1), transparent 25%);
+    radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.12), transparent 25%),
+    radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.08), transparent 25%);
   color: var(--text-primary);
   font-family: var(--font-family);
   min-height: 100vh;
@@ -83,7 +83,7 @@ body {
 .glass-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px -5px var(--accent-glow);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 /* Typography */
@@ -113,9 +113,9 @@ p {
 }
 
 .badge-info {
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(14, 165, 233, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .badge-success {
@@ -138,7 +138,7 @@ p {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-color), #4f46e5);
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px 16px;
@@ -147,12 +147,12 @@ p {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 4px 12px 0 rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px 0 rgba(14, 165, 233, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.45);
 }
 
 .btn-primary:disabled {

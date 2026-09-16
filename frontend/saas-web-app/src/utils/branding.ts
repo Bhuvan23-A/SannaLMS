@@ -40,8 +40,8 @@ const EDULATERAL_BRAND: BrandConfig = {
   footerText: '© 2026 Edulateral Foundation. All Rights Reserved.',
   websiteUrl: 'https://edulateral.com',
   supportEmail: 'support@edulateral.com',
-  primaryColor: '#ff9800',
-  accentColor: '#3b82f6',
+  primaryColor: '#0ea5e9',
+  accentColor: '#38bdf8',
   logoText: 'Edulateral LMS',
   showPoweredBy: false
 };

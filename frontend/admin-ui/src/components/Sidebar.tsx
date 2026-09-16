@@ -221,11 +221,11 @@ export default function Sidebar() {
           width: '34px',
           height: '34px',
           borderRadius: '8px',
-          background: 'linear-gradient(135deg, #6366f1, #06b6d4)',
+          background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
+          boxShadow: '0 4px 12px rgba(14, 165, 233, 0.35)'
         }}>
           <Sparkles size={18} color="#fff" />
         </div>
@@ -286,14 +286,14 @@ export default function Sidebar() {
                           borderRadius: '8px',
                           textDecoration: 'none',
                           color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                          background: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                          border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+                          background: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
+                          border: isActive ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
                           fontSize: '13px',
                           fontWeight: isActive ? 600 : 500,
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <Icon size={16} color={isActive ? 'var(--accent-color)' : 'currentColor'} />
+                        <Icon size={16} color={isActive ? '#38bdf8' : 'currentColor'} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                       </Link>
                     );

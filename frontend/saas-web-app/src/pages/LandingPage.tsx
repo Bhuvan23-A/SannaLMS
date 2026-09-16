@@ -116,7 +116,7 @@ export const LandingPage: React.FC = () => {
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ background: 'rgba(99,102,241,0.15)', padding: '8px', borderRadius: '8px', color: '#818cf8' }}>
+                <div style={{ background: 'rgba(14, 165, 233, 0.15)', padding: '8px', borderRadius: '8px', color: '#38bdf8' }}>
                   <Key size={18} />
                 </div>
                 <div>

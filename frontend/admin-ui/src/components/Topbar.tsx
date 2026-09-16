@@ -114,8 +114,8 @@ export default function Topbar({ title }: { title: string }) {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            background: 'rgba(99, 102, 241, 0.12)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
+            background: 'rgba(14, 165, 233, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
             padding: '4px 12px',
             borderRadius: '20px'
           }}>
@@ -154,7 +154,7 @@ export default function Topbar({ title }: { title: string }) {
                 width: '38px', 
                 height: '38px', 
                 borderRadius: '8px', 
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
@@ -162,7 +162,7 @@ export default function Topbar({ title }: { title: string }) {
                 color: '#ffffff', 
                 fontSize: '13px',
                 cursor: 'pointer',
-                boxShadow: showDropdown ? '0 0 0 2px rgba(99, 102, 241, 0.5)' : 'none',
+                boxShadow: showDropdown ? '0 0 0 2px rgba(14, 165, 233, 0.5)' : 'none',
                 transition: 'all 0.15s ease'
               }}
               title="Account Menu"
@@ -197,7 +197,7 @@ export default function Topbar({ title }: { title: string }) {
                         {email}
                       </div>
                     )}
-                    <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                    <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '10px', background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
                       {getRoleLabel(role)}
                     </span>
                   </div>
@@ -211,9 +211,9 @@ export default function Topbar({ title }: { title: string }) {
                       width: '100%',
                       padding: '8px 10px',
                       borderRadius: '6px',
-                      background: 'rgba(99, 102, 241, 0.12)',
+                      background: 'rgba(14, 165, 233, 0.12)',
                       border: 'none',
-                      color: '#a5b4fc',
+                      color: '#38bdf8',
                       fontWeight: 600,
                       fontSize: '12px',
                       display: 'flex',
