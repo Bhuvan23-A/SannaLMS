@@ -503,7 +503,7 @@ export const Dashboard: React.FC = () => {
       print-color-adjust: exact;
     }
     .header {
-      border-bottom: 2px solid #6366f1;
+      border-bottom: 2px solid #0ea5e9;
       padding-bottom: 12px;
       margin-bottom: 16px;
       display: flex;

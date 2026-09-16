@@ -24,8 +24,8 @@ const SANNA_BRAND: BrandConfig = {
   footerText: '© 2026 Sanna Innovations. All rights reserved.',
   websiteUrl: 'https://sannainnovations.com',
   supportEmail: 'support@sannainnovations.com',
-  primaryColor: '#4f46e5',
-  accentColor: '#6366f1',
+  primaryColor: '#0ea5e9',
+  accentColor: '#38bdf8',
   logoText: 'SannaLMS',
   showPoweredBy: true
 };

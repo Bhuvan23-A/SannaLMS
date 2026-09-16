@@ -75,67 +75,67 @@ export default function Home() {
 
       {/* KPI Cards Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {isCollegeAdmin ? 'Institution' : 'Total Colleges'}
             </span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building2 size={16} color="var(--accent-color)" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Building2 size={16} color="#38bdf8" />
             </div>
           </div>
-          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.colleges)}</div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.colleges)}</div>
           {isCollegeAdmin && <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active institutional workspace</p>}
         </div>
 
-        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Departments
             </span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(6, 182, 212, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Layers size={16} color="#06b6d4" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={16} color="#38bdf8" />
             </div>
           </div>
-          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.departments)}</div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.departments)}</div>
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Academic faculties</p>
         </div>
 
-        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Active Courses
             </span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BookOpen size={16} color="#10b981" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpen size={16} color="#38bdf8" />
             </div>
           </div>
-          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.courses)}</div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.courses)}</div>
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Curriculum modules</p>
         </div>
 
-        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Enrollments
             </span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={16} color="#f59e0b" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={16} color="#38bdf8" />
             </div>
           </div>
-          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{fmt(stats.students)}</div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.students)}</div>
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active student registrations</p>
         </div>
       </div>
 
       {/* Recent Courses List */}
-      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BookOpen size={18} color="var(--accent-color)" />
             <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Recently Added Courses</h3>
           </div>
-          <Link href="/courses" style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+          <Link href="/courses" style={{ fontSize: '12px', color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
             View All Courses <ArrowRight size={13} />
           </Link>
         </div>
@@ -191,16 +191,16 @@ function TrainerHome() {
       <Topbar title="Teaching Dashboard" />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '28px' }}>
-        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               My Assigned Courses
             </span>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BookOpen size={16} color="var(--accent-color)" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpen size={16} color="#38bdf8" />
             </div>
           </div>
-          <div style={{ fontSize: '30px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>{loading ? '…' : courses.length}</div>
+          <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{loading ? '…' : courses.length}</div>
         </div>
       </div>
 
@@ -216,7 +216,7 @@ function TrainerHome() {
         })}
       </div>
 
-      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(17, 24, 39, 0.7)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+      <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Courses I Teach</h3>
         {loading ? (
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading courses...</p>

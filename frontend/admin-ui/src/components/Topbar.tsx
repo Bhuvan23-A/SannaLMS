@@ -106,21 +106,21 @@ export default function Topbar({ title }: { title: string }) {
 
   return (
     <>
-      <div className="topbar" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>{title}</h2>
+      <div className="topbar" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '16px', borderBottom: '1px solid rgba(56, 189, 248, 0.14)' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#ffffff' }}>{title}</h2>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            background: 'rgba(14, 165, 233, 0.12)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
+            background: 'rgba(14, 165, 233, 0.15)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
             padding: '4px 12px',
             borderRadius: '20px'
           }}>
-            <Shield size={12} color="var(--accent-color)" />
-            <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: 600 }}>
+            <Shield size={12} color="#38bdf8" />
+            <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600 }}>
               {getRoleLabel(role)}
             </span>
           </div>
@@ -133,12 +133,12 @@ export default function Topbar({ title }: { title: string }) {
               width: '36px',
               height: '36px',
               borderRadius: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'rgba(14, 165, 233, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--text-secondary)',
+              color: '#7dd3fc',
               transition: 'all 0.15s ease'
             }}
             title="Notifications"
@@ -176,16 +176,16 @@ export default function Topbar({ title }: { title: string }) {
                 right: 0,
                 top: '46px',
                 width: '260px',
-                background: '#0f172a',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: '#0a1d37',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
                 borderRadius: '12px',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4)',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 20px rgba(14, 165, 233, 0.15)',
                 padding: '14px',
                 zIndex: 1000,
                 backdropFilter: 'blur(16px)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                  <div style={{ width: '36px', height: '36px', minWidth: '36px', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#ffffff', fontSize: '13px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                  <div style={{ width: '36px', height: '36px', minWidth: '36px', borderRadius: '8px', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#ffffff', fontSize: '13px', boxShadow: '0 2px 8px rgba(14, 165, 233, 0.4)' }}>
                     {initials}
                   </div>
                   <div style={{ overflow: 'hidden' }}>

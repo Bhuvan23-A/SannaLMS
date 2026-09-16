@@ -380,7 +380,7 @@ export default function Part3Console() {
             alignItems: 'center',
             gap: '0.5rem',
             transition: 'all 0.2s',
-            boxShadow: activeTab === 'assessment' ? '0 0 15px rgba(99, 102, 241, 0.4)' : 'none',
+            boxShadow: activeTab === 'assessment' ? '0 0 15px rgba(14, 165, 233, 0.4)' : 'none',
           }}
         >
           <Clock size={16} /> Adaptive Exam
@@ -549,7 +549,7 @@ export default function Part3Console() {
                     borderRadius: '0.5rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+                    boxShadow: '0 4px 15px rgba(14, 165, 233, 0.45)',
                   }}
                 >
                   START ASSESSMENT TEST
@@ -633,7 +633,7 @@ export default function Part3Console() {
                       <label
                         key={i}
                         style={{
-                          background: selectedOption === opt ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
+                          background: selectedOption === opt ? 'rgba(14, 165, 233, 0.12)' : 'rgba(255,255,255,0.02)',
                           border: selectedOption === opt ? '1px solid var(--accent-indigo)' : '1px solid var(--border-color)',
                           borderRadius: '0.5rem',
                           padding: '1rem',

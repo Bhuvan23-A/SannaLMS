@@ -214,7 +214,7 @@ export default function Sidebar() {
   const sections = getNavSections();
 
   return (
-    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '20px 16px 16px', background: 'rgba(11, 15, 25, 0.95)', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
+    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '20px 16px 16px', background: 'linear-gradient(180deg, #07152b 0%, #051020 100%)', borderRight: '1px solid rgba(56, 189, 248, 0.18)' }}>
       {/* Brand Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 8px', marginBottom: '24px' }}>
         <div style={{
@@ -232,12 +232,12 @@ export default function Sidebar() {
         <div>
           <h2 style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             {brand.id === 'edulateral' ? (
-              <>Edulateral<span style={{ color: 'var(--accent-color)' }}> LMS</span></>
+              <>Edulateral<span style={{ color: '#38bdf8' }}> LMS</span></>
             ) : (
-              <>Sanna<span style={{ color: 'var(--accent-color)' }}>LMS</span></>
+              <>Sanna<span style={{ color: '#38bdf8' }}>LMS</span></>
             )}
           </h2>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+          <span style={{ fontSize: '11px', color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
             {isSuperAdmin ? 'Master Portal' : isCollegeAdmin ? 'Institution Portal' : 'Workspace'}
           </span>
         </div>
@@ -260,7 +260,7 @@ export default function Sidebar() {
                   fontWeight: '700',
                   letterSpacing: '0.06em',
                   textTransform: 'uppercase',
-                  color: 'rgba(148, 163, 184, 0.7)',
+                  color: 'rgba(125, 211, 252, 0.7)',
                   cursor: 'pointer',
                   userSelect: 'none'
                 }}
@@ -286,8 +286,10 @@ export default function Sidebar() {
                           borderRadius: '8px',
                           textDecoration: 'none',
                           color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                          background: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
-                          border: isActive ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid transparent',
+                          background: isActive ? 'linear-gradient(90deg, rgba(14, 165, 233, 0.22) 0%, rgba(14, 165, 233, 0.08) 100%)' : 'transparent',
+                          border: isActive ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid transparent',
+                          borderLeft: isActive ? '4px solid #38bdf8' : '1px solid transparent',
+                          boxShadow: isActive ? '0 0 16px rgba(14, 165, 233, 0.25)' : 'none',
                           fontSize: '13px',
                           fontWeight: isActive ? 600 : 500,
                           transition: 'all 0.15s ease'
@@ -306,15 +308,15 @@ export default function Sidebar() {
       </div>
 
       {/* User Profile Card (pinned to bottom of sidebar) */}
-      <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+      <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid rgba(56, 189, 248, 0.18)' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '10px 12px',
           borderRadius: '10px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.07)'
+          background: 'rgba(14, 165, 233, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.22)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             <div style={{
@@ -322,13 +324,14 @@ export default function Sidebar() {
               height: '34px',
               minWidth: '34px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
               fontSize: '13px',
-              color: '#ffffff'
+              color: '#ffffff',
+              boxShadow: '0 2px 10px rgba(14, 165, 233, 0.4)'
             }}>
               {initials}
             </div>
@@ -336,7 +339,7 @@ export default function Sidebar() {
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {username}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: '11px', color: '#7dd3fc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {getRoleLabel(role)}
               </div>
             </div>
