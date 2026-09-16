@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { RolesGuard, Roles } from '../roles.guard';
 
@@ -39,16 +39,23 @@ export class UsersController {
     return this.usersService.assignCollegeAdminById(id, body);
   }
 
-  // Self-service: change password for the currently authenticated user
+  // Self-service: change password for the currently authenticated user (trainers & admins only)
+  // Student password changes are strictly controlled by the college administrator.
   @Post('users/change-password')
   @Roles('STUDENT', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
   changePassword(@Body() body: { current_password?: string; new_password?: string; password?: string }, @Req() req: any) {
+    const roles: string[] = req.user?.roles || [];
+    const isStudent = roles.some(r => r.toLowerCase() === 'student');
+    const isAdminOrTrainer = roles.some(r => ['superadmin', 'tenantadmin', 'instructor', 'primary_trainer', 'teaching_assistant'].includes(r.toLowerCase()));
+    if (isStudent && !isAdminOrTrainer) {
+      throw new ForbiddenException('Student password changes are restricted. Please contact your college administrator to reset your password.');
+    }
     const newPass = body.new_password || body.password || '';
     const userId = req.user?.id || req.user?.sub;
     return this.usersService.changePassword(userId, newPass);
   }
 
-  // Admin/Trainer action: reset any user's password
+  // Admin action: College Admin, Super Admin, or Trainer resets a student or user password
   @Post('users/:id/reset-password')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
   resetUserPassword(@Param('id') id: string, @Body() body: { password?: string; new_password?: string }) {
@@ -56,9 +63,9 @@ export class UsersController {
     return this.usersService.adminResetPassword(id, newPass);
   }
 
-  // Student / User self-service password recovery (Forgot Password)
+  // Student / User self-service password recovery
   @Post('users/forgot-password')
   forgotPassword(@Body() body: { email?: string; username?: string; identifier?: string; phone?: string; new_password?: string }) {
-    return this.usersService.forgotPassword(body);
+    throw new ForbiddenException('Student passwords are under the direct control of your college administrator. Please contact your institution admin.');
   }
 }

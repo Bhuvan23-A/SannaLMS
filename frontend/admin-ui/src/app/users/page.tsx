@@ -2,12 +2,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { fetchApi } from '@/lib/api';
+import { useRole } from '@/hooks/useRole';
 import { 
   Users, Key, Search, Building2, Shield, Eye, EyeOff, Lock, 
   RefreshCw, Check, X, UserPlus, UserCheck, AlertCircle, Copy
 } from 'lucide-react';
 
 export default function UsersDirectoryPage() {
+  const { role } = useRole();
+  const isCollegeAdmin = role === 'COLLEGE_ADMIN';
+
   const [users, setUsers] = useState<any[]>([]);
   const [colleges, setColleges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +39,11 @@ export default function UsersDirectoryPage() {
         fetchApi('/api/v1/colleges').catch(() => []),
         fetchApi(`/api/v1/users?${selectedCollege ? `college_id=${selectedCollege}&` : ''}${selectedRole !== 'ALL' ? `role=${selectedRole.toLowerCase()}&` : ''}`).catch(() => [])
       ]);
-      setColleges(Array.isArray(collegesData) ? collegesData : []);
+      const clgs = Array.isArray(collegesData) ? collegesData : [];
+      setColleges(clgs);
+      if (clgs.length === 1 && !selectedCollege) {
+        setSelectedCollege(clgs[0].id);
+      }
       setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (err) {
       console.error('Failed to load user directory', err);
@@ -103,10 +111,10 @@ export default function UsersDirectoryPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: '#fff' }}>
-            User Directory & Password Management
+            {isCollegeAdmin ? 'Institution Student Directory & Password Control' : 'User Directory & Password Management'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '4px 0 0 0' }}>
-            Manage student & faculty accounts, recover credentials, and set secure passwords
+            {isCollegeAdmin ? 'Manage your institution student and faculty accounts, control login credentials, and reset passwords' : 'Manage student & faculty accounts, recover credentials, and set secure passwords'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -129,26 +137,26 @@ export default function UsersDirectoryPage() {
 
       {/* Metric Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="card" style={{ padding: '1.25rem', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', borderRadius: '12px', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Total Users</div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>{users.length}</div>
         </div>
-        <div className="card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="card" style={{ padding: '1.25rem', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', borderRadius: '12px', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Students</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-cyan)', marginTop: '4px' }}>{studentsCount}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>{studentsCount}</div>
         </div>
-        <div className="card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="card" style={{ padding: '1.25rem', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', borderRadius: '12px', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Faculty / Trainers</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-indigo)', marginTop: '4px' }}>{facultyCount}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7dd3fc', marginTop: '4px' }}>{facultyCount}</div>
         </div>
-        <div className="card" style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="card" style={{ padding: '1.25rem', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', borderRadius: '12px', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Administrators</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-emerald)', marginTop: '4px' }}>{adminsCount}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>{adminsCount}</div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderRadius: '12px', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input
@@ -161,20 +169,26 @@ export default function UsersDirectoryPage() {
           />
         </div>
 
-        {colleges.length > 0 && (
-          <div style={{ minWidth: '200px' }}>
-            <select
-              className="input-field"
-              value={selectedCollege}
-              onChange={(e) => setSelectedCollege(e.target.value)}
-              style={{ width: '100%' }}
-            >
-              <option value="">All Colleges / Institutions</option>
-              {colleges.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+        {isCollegeAdmin && colleges.length <= 1 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', padding: '8px 14px', borderRadius: '8px', color: '#38bdf8', fontSize: '13px', fontWeight: 600 }}>
+            <Building2 size={14} /> {colleges[0]?.name || 'My Institution'}
           </div>
+        ) : (
+          colleges.length > 0 && (
+            <div style={{ minWidth: '200px' }}>
+              <select
+                className="input-field"
+                value={selectedCollege}
+                onChange={(e) => setSelectedCollege(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="">All Colleges / Institutions</option>
+                {colleges.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )
         )}
 
         <div style={{ minWidth: '160px' }}>
@@ -194,10 +208,10 @@ export default function UsersDirectoryPage() {
       </div>
 
       {/* Users Table */}
-      <div className="card" style={{ overflow: 'hidden', padding: 0, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="card" style={{ overflow: 'hidden', padding: 0, background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', borderRadius: '12px', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-            <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 1rem', color: 'var(--accent-cyan)' }} />
+            <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 1rem', color: '#38bdf8' }} />
             <p>Loading user directory...</p>
           </div>
         ) : filteredUsers.length === 0 ? (
@@ -209,11 +223,11 @@ export default function UsersDirectoryPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  <th style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontWeight: 600 }}>User / Candidate</th>
-                  <th style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontWeight: 600 }}>Role</th>
-                  <th style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontWeight: 600 }}>Institution / Cohort</th>
-                  <th style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                <tr style={{ background: 'rgba(14, 165, 233, 0.1)', borderBottom: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>User / Candidate</th>
+                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>Role</th>
+                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>Institution / Cohort</th>
+                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,10 +242,10 @@ export default function UsersDirectoryPage() {
                   if (['SUPER_ADMIN', 'COLLEGE_ADMIN'].includes(u.role)) roleBadge = 'badge-success';
 
                   return (
-                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s' }}>
+                    <tr key={u.id} style={{ borderBottom: '1px solid rgba(56, 189, 248, 0.08)', transition: 'background 0.15s' }}>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
+                          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
                             {initials}
                           </div>
                           <div>
@@ -255,10 +269,10 @@ export default function UsersDirectoryPage() {
                         <button
                           type="button"
                           className="btn-secondary"
-                          style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
                           onClick={() => openResetModal(u)}
                         >
-                          <Key size={13} color="#f59e0b" /> Reset Password
+                          <Key size={13} color="#38bdf8" /> Reset Password
                         </button>
                       </td>
                     </tr>
@@ -273,17 +287,17 @@ export default function UsersDirectoryPage() {
       {/* Password Reset Modal */}
       {resetModalUser && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div style={{ background: '#0b0f19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1.25rem', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)' }}>
+          <div style={{ background: '#07152b', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '1.25rem', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 25px rgba(14, 165, 233, 0.2)' }}>
             
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(56, 189, 248, 0.15)', background: 'rgba(14, 165, 233, 0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ background: 'rgba(245,158,11,0.15)', padding: '8px', borderRadius: '8px', color: '#f59e0b' }}>
+                <div style={{ background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', padding: '8px', borderRadius: '8px', color: '#38bdf8' }}>
                   <Key size={18} />
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', margin: 0 }}>Reset User Password</h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Update credential for student or faculty</span>
+                  <span style={{ fontSize: '0.75rem', color: '#7dd3fc' }}>Update credential for student or faculty</span>
                 </div>
               </div>
               <button
@@ -299,11 +313,11 @@ export default function UsersDirectoryPage() {
             <form onSubmit={handleResetPassword} style={{ padding: '1.5rem' }}>
               
               {/* User info callout */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>
                   {[resetModalUser.first_name, resetModalUser.last_name].filter(Boolean).join(' ') || resetModalUser.email}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)' }}>{resetModalUser.email}</div>
+                <div style={{ fontSize: '0.75rem', color: '#38bdf8' }}>{resetModalUser.email}</div>
               </div>
 
               {resetError && (
@@ -323,7 +337,7 @@ export default function UsersDirectoryPage() {
                   <button
                     type="button"
                     onClick={copyCredentials}
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    style={{ background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
                   >
                     {copied ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
                     {copied ? 'Copied to Clipboard!' : 'Copy Credentials'}
@@ -364,14 +378,14 @@ export default function UsersDirectoryPage() {
                     <button
                       type="button"
                       onClick={() => setNewPassword('Student@123')}
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                      style={{ background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
                     >
                       Use "Student@123"
                     </button>
                     <button
                       type="button"
                       onClick={() => setNewPassword('Admin@123')}
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer' }}
                     >
                       Use "Admin@123"
                     </button>
@@ -380,20 +394,19 @@ export default function UsersDirectoryPage() {
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                     <button
                       type="button"
-                      className="btn-secondary"
                       onClick={() => setResetModalUser(null)}
-                      style={{ fontSize: '0.85rem' }}
+                      className="btn-secondary"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="btn-primary"
                       disabled={resetting}
-                      style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      className="btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      {resetting ? <RefreshCw size={14} className="animate-spin" /> : <Key size={14} />}
-                      {resetting ? 'Updating...' : 'Set Password'}
+                      <Lock size={14} />
+                      {resetting ? 'Updating...' : 'Save & Update Password'}
                     </button>
                   </div>
                 </>
@@ -403,11 +416,10 @@ export default function UsersDirectoryPage() {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                   <button
                     type="button"
-                    className="btn-secondary"
                     onClick={() => setResetModalUser(null)}
-                    style={{ fontSize: '0.85rem' }}
+                    className="btn-primary"
                   >
-                    Close
+                    Done
                   </button>
                 </div>
               )}
