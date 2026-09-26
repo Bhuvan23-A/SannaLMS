@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Key, Phone } from 'lucide-react';
 
 const SAMPLE_CSV = `email,first_name,last_name,phone,role,department,branch,year
 student.1@college.edu,Aarav,Sharma,9876543210,student,CSE,CSE-A,1
@@ -128,12 +128,21 @@ export default function BulkImportPage() {
 
         <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>CSV contents</label>
         <textarea className="input-field" rows={10} style={{ fontFamily: 'monospace', fontSize: '13px' }}
-          placeholder={'email,first_name,last_name,role,department,branch,year\nstudent.1@college.edu,Aarav,Sharma,student,CSE,CSE-A,1'}
+          placeholder={'email,first_name,last_name,phone,role,department,branch,year\nstudent.1@college.edu,Aarav,Sharma,9876543210,student,CSE,CSE-A,1'}
           value={csvText} onChange={e => setCsvText(e.target.value)} />
+
+        {/* Automatic Password Information Box */}
+        <div style={{ marginTop: '14px', padding: '12px 16px', background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '10px', fontSize: '13px', color: '#7dd3fc', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <Key size={18} color="#38bdf8" style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '2px' }}>Student Password: Automatically Set to Phone Number</div>
+            <span>Each student&apos;s login password will be set directly to their <strong>phone number</strong> from the CSV (e.g. <code>9876543210</code>). If a user row has no phone number, the fallback password below will be assigned.</span>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '14px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-            <span>Temporary password:</span>
+            <span>Fallback password (if phone missing):</span>
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -168,7 +177,7 @@ export default function BulkImportPage() {
         </div>
 
         <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-          Roles: <code>student</code>, <code>professor</code> (or instructor), <code>teaching_assistant</code>, <code>college_admin</code>. Columns: email (required), first_name, last_name, role, department, branch, year.
+          Roles: <code>student</code>, <code>professor</code> (or instructor), <code>teaching_assistant</code>, <code>college_admin</code>. Columns: <code>email</code> (required), <code>first_name</code>, <code>last_name</code>, <code>phone</code> (auto-assigned as password), <code>role</code>, <code>department</code>, <code>branch</code>, <code>year</code>.
         </p>
       </div>
 

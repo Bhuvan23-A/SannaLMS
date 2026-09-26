@@ -83,9 +83,16 @@ export class UsersService {
         if (!u.email || !u.email.includes('@')) throw new Error('Missing or invalid email');
 
         const requireChange = body.require_password_change === true;
-        const userPhone = (u.phone || u.phone_number || u.mobile || u.contact || '').trim();
-        // For students and users, default password is their phone number if present, otherwise custom password or default
-        const userPassword = u.password || (userPhone && userPhone.length >= 6 ? userPhone : defaultPassword);
+        const rawPhone = String(u.phone || u.phone_number || u.mobile || u.contact || '').trim();
+        // Clean phone number (strip whitespace, dashes, underscores, parens)
+        const cleanedPhone = rawPhone.replace(/[\s\-_()]/g, '');
+        // Standardize 10-digit Indian numbers (+919876543210 -> 9876543210, 09876543210 -> 9876543210)
+        const phonePassword = cleanedPhone.length >= 12 && cleanedPhone.startsWith('+91')
+          ? cleanedPhone.slice(3)
+          : (cleanedPhone.length === 11 && cleanedPhone.startsWith('0') ? cleanedPhone.slice(1) : cleanedPhone);
+        const finalPhone = phonePassword || rawPhone;
+        // For students and users, default password is their phone number if present (>= 6 chars), otherwise custom password or default
+        const userPassword = u.password || (finalPhone && finalPhone.length >= 6 ? finalPhone : defaultPassword);
 
         const kc = await this.keycloak.createUser({
           username: u.username || u.email,
@@ -97,13 +104,18 @@ export class UsersService {
           credentials: [{ type: 'password', value: userPassword, temporary: requireChange }],
           attributes: {
             tenant_id: [tenantFor(u)],
-            ...(userPhone ? { phone: [userPhone], phone_number: [userPhone], mobile: [userPhone] } : {}),
+            ...(finalPhone ? { phone: [finalPhone], phone_number: [finalPhone], mobile: [finalPhone] } : {}),
             ...(u.department ? { department: [u.department] } : {}),
             ...(u.branch ? { branch: [u.branch] } : {}),
             ...(u.year !== undefined && u.year !== '' ? { year: [String(u.year)] } : {}),
             ...(collegeId ? { college_id: [collegeId] } : {}),
           },
         });
+
+        // If the user already existed in Keycloak, update their password to the specified password / phone number
+        if (kc.existing && kc.id && userPassword) {
+          await this.keycloak.resetUserPassword(kc.id, userPassword).catch(() => {});
+        }
 
         const realmRole = realmRoleFor(u.role);
         if (realmRole && kc.id) {

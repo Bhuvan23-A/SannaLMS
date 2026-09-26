@@ -39,17 +39,10 @@ export class UsersController {
     return this.usersService.assignCollegeAdminById(id, body);
   }
 
-  // Self-service: change password for the currently authenticated user (trainers & admins only)
-  // Student password changes are strictly controlled by the college administrator.
+  // Self-service: change password for the currently authenticated user
   @Post('users/change-password')
   @Roles('STUDENT', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'COLLEGE_ADMIN', 'SUPER_ADMIN')
   changePassword(@Body() body: { current_password?: string; new_password?: string; password?: string }, @Req() req: any) {
-    const roles: string[] = req.user?.roles || [];
-    const isStudent = roles.some(r => r.toLowerCase() === 'student');
-    const isAdminOrTrainer = roles.some(r => ['superadmin', 'tenantadmin', 'instructor', 'primary_trainer', 'teaching_assistant'].includes(r.toLowerCase()));
-    if (isStudent && !isAdminOrTrainer) {
-      throw new ForbiddenException('Student password changes are restricted. Please contact your college administrator to reset your password.');
-    }
     const newPass = body.new_password || body.password || '';
     const userId = req.user?.id || req.user?.sub;
     return this.usersService.changePassword(userId, newPass);
@@ -66,6 +59,6 @@ export class UsersController {
   // Student / User self-service password recovery
   @Post('users/forgot-password')
   forgotPassword(@Body() body: { email?: string; username?: string; identifier?: string; phone?: string; new_password?: string }) {
-    throw new ForbiddenException('Student passwords are under the direct control of your college administrator. Please contact your institution admin.');
+    return this.usersService.forgotPassword(body);
   }
 }
