@@ -199,4 +199,22 @@ export class KeycloakAdminService {
       // 204 is expected; tolerate missing user (already gone)
     });
   }
+
+  /**
+   * Update or merge custom attributes on an existing Keycloak user (department, branch, batch, section, phone).
+   */
+  async updateUserAttributes(userId: string, attributes: Record<string, any[]>): Promise<void> {
+    if (!userId) return;
+    const user = await this.getUser(userId).catch(() => null);
+    const existingAttrs = user?.attributes || {};
+    await this.req(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        attributes: {
+          ...existingAttrs,
+          ...attributes,
+        },
+      }),
+    });
+  }
 }

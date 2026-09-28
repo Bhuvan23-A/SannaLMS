@@ -23,7 +23,12 @@ export interface ImportUser {
   tenant_id?: string;
   department?: string;
   branch?: string;
+  batch?: string;
+  academic_session?: string;
+  semester?: string | number;
+  semester_number?: string | number;
   year?: string | number;
+  section?: string;
 }
 
 // CSV / JSON role word → Keycloak realm role name
@@ -60,7 +65,19 @@ export class UsersService {
    * Bulk-create users: Keycloak (identity + roles + attributes) and the LMS
    * college user store (User + UserRole). Skips duplicates; reports per-user status.
    */
-  async bulkImport(body: { users: ImportUser[]; default_password?: string; college_id?: string; require_password_change?: boolean }) {
+  async bulkImport(body: {
+    users: ImportUser[];
+    default_password?: string;
+    college_id?: string;
+    require_password_change?: boolean;
+    department?: string;
+    branch?: string;
+    batch?: string;
+    academic_session?: string;
+    semester?: string;
+    year?: string;
+    section?: string;
+  }) {
     const users = Array.isArray(body.users) ? body.users : [];
     if (users.length === 0) throw new BadRequestException('users[] is required');
     const defaultPassword = body.default_password || DEFAULT_PASSWORD;
@@ -94,6 +111,24 @@ export class UsersService {
         // For students and users, default password is their phone number if present (>= 6 chars), otherwise custom password or default
         const userPassword = u.password || (finalPhone && finalPhone.length >= 6 ? finalPhone : defaultPassword);
 
+        // Academic placement: per-row CSV columns override bulk dropdown selections
+        const userDept = (u.department || body.department || '').trim();
+        const userBranch = (u.branch || body.branch || '').trim();
+        const userBatch = (u.batch || u.academic_session || body.batch || body.academic_session || '').trim();
+        const userSem = (u.semester || u.semester_number || u.year || body.semester || body.year || '').toString().trim();
+        const userSection = (u.section || body.section || '').trim();
+
+        const userAttributes: Record<string, string[]> = {
+          tenant_id: [tenantFor(u)],
+          ...(finalPhone ? { phone: [finalPhone], phone_number: [finalPhone], mobile: [finalPhone] } : {}),
+          ...(userDept ? { department: [userDept] } : {}),
+          ...(userBranch ? { branch: [userBranch] } : {}),
+          ...(userBatch ? { batch: [userBatch], academic_session: [userBatch] } : {}),
+          ...(userSem ? { semester: [String(userSem)], year: [String(userSem)] } : {}),
+          ...(userSection ? { section: [userSection] } : {}),
+          ...(collegeId ? { college_id: [collegeId] } : {}),
+        };
+
         const kc = await this.keycloak.createUser({
           username: u.username || u.email,
           email: u.email,
@@ -102,19 +137,15 @@ export class UsersService {
           firstName: u.first_name || '',
           lastName: u.last_name || '',
           credentials: [{ type: 'password', value: userPassword, temporary: requireChange }],
-          attributes: {
-            tenant_id: [tenantFor(u)],
-            ...(finalPhone ? { phone: [finalPhone], phone_number: [finalPhone], mobile: [finalPhone] } : {}),
-            ...(u.department ? { department: [u.department] } : {}),
-            ...(u.branch ? { branch: [u.branch] } : {}),
-            ...(u.year !== undefined && u.year !== '' ? { year: [String(u.year)] } : {}),
-            ...(collegeId ? { college_id: [collegeId] } : {}),
-          },
+          attributes: userAttributes,
         });
 
-        // If the user already existed in Keycloak, update their password to the specified password / phone number
-        if (kc.existing && kc.id && userPassword) {
-          await this.keycloak.resetUserPassword(kc.id, userPassword).catch(() => {});
+        // If the user already existed in Keycloak, update their password and attributes
+        if (kc.existing && kc.id) {
+          if (userPassword) {
+            await this.keycloak.resetUserPassword(kc.id, userPassword).catch(() => {});
+          }
+          await this.keycloak.updateUserAttributes(kc.id, userAttributes).catch(() => {});
         }
 
         const realmRole = realmRoleFor(u.role);
@@ -155,7 +186,16 @@ export class UsersService {
             .catch(() => { /* duplicate (user_id, college_id, role) already exists */ });
         }
 
-        results.push({ email: u.email, status: kc.existing ? 'already_exists' : 'created', keycloak_id: kc.id || null, role: lmsRoleFor(u.role) });
+        results.push({
+          email: u.email,
+          status: kc.existing ? 'already_exists' : 'created',
+          keycloak_id: kc.id || null,
+          role: lmsRoleFor(u.role),
+          department: userDept,
+          branch: userBranch,
+          batch: userBatch,
+          section: userSection,
+        });
       } catch (err: any) {
         results.push({ email: u.email || '(no email)', status: 'failed', error: err?.message || 'Unknown error' });
       }
