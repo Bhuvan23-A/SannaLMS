@@ -56,6 +56,13 @@ export class UsersController {
     return this.usersService.adminResetPassword(id, newPass);
   }
 
+  // Admin action: Super Admin or College Admin changes a user's role (e.g. promote Student to Trainer)
+  @Post('users/:id/role')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN')
+  changeUserRole(@Param('id') id: string, @Body() body: { role: string }) {
+    return this.usersService.changeUserRole(id, body.role);
+  }
+
   // Student / User self-service password recovery
   @Post('users/forgot-password')
   forgotPassword(@Body() body: { email?: string; username?: string; identifier?: string; phone?: string; new_password?: string }) {

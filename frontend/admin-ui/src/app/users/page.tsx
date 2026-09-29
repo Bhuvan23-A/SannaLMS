@@ -28,6 +28,13 @@ export default function UsersDirectoryPage() {
   const [resetError, setResetError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Role change modal state
+  const [roleModalUser, setRoleModalUser] = useState<any | null>(null);
+  const [selectedNewRole, setSelectedNewRole] = useState('PRIMARY_TRAINER');
+  const [roleUpdating, setRoleUpdating] = useState(false);
+  const [roleSuccess, setRoleSuccess] = useState('');
+  const [roleError, setRoleError] = useState('');
+
   useEffect(() => {
     loadData();
   }, [selectedCollege, selectedRole]);
@@ -49,6 +56,33 @@ export default function UsersDirectoryPage() {
       console.error('Failed to load user directory', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openRoleModal = (user: any) => {
+    setRoleModalUser(user);
+    setSelectedNewRole(user.role || 'PRIMARY_TRAINER');
+    setRoleSuccess('');
+    setRoleError('');
+  };
+
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roleModalUser) return;
+    setRoleUpdating(true);
+    setRoleError('');
+    setRoleSuccess('');
+    try {
+      const res = await fetchApi(`/api/v1/users/${roleModalUser.id}/role`, {
+        method: 'POST',
+        body: JSON.stringify({ role: selectedNewRole })
+      });
+      setRoleSuccess(res.message || 'User role updated successfully!');
+      setUsers(prev => prev.map(u => u.id === roleModalUser.id ? { ...u, role: selectedNewRole } : u));
+    } catch (err: any) {
+      setRoleError(err.message || 'Failed to update role');
+    } finally {
+      setRoleUpdating(false);
     }
   };
 
@@ -266,14 +300,26 @@ export default function UsersDirectoryPage() {
                         </div>
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-                          onClick={() => openResetModal(u)}
-                        >
-                          <Key size={13} color="#38bdf8" /> Reset Password
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={() => openRoleModal(u)}
+                            title="Change User Role / RBAC"
+                          >
+                            <Shield size={13} color="#38bdf8" /> Change Role
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.15)', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={() => openResetModal(u)}
+                            title="Reset Password"
+                          >
+                            <Key size={13} /> Reset Password
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -417,6 +463,116 @@ export default function UsersDirectoryPage() {
                   <button
                     type="button"
                     onClick={() => setResetModalUser(null)}
+                    className="btn-primary"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Role Change Modal */}
+      {roleModalUser && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div style={{ background: '#07152b', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '1.25rem', width: '100%', maxWidth: '480px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 25px rgba(14, 165, 233, 0.2)' }}>
+            
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(56, 189, 248, 0.15)', background: 'linear-gradient(to right, rgba(14, 165, 233, 0.15), rgba(7, 21, 43, 0.8))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(14, 165, 233, 0.2)', border: '1px solid rgba(56, 189, 248, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Shield size={18} color="#38bdf8" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#fff' }}>Change User Role / RBAC</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>Assign permissions across LMS &amp; Keycloak</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoleModalUser(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateRole} style={{ padding: '1.5rem' }}>
+              <div style={{ marginBottom: '1.25rem', background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Target User</div>
+                <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem' }}>
+                  {[roleModalUser.first_name, roleModalUser.last_name].filter(Boolean).join(' ') || roleModalUser.email}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#7dd3fc' }}>{roleModalUser.email}</div>
+                <div style={{ marginTop: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Current Role:</span>
+                  <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
+                    {roleModalUser.role ? roleModalUser.role.replace(/_/g, ' ').toLowerCase() : 'student'}
+                  </span>
+                </div>
+              </div>
+
+              {roleSuccess ? (
+                <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', borderRadius: '10px', padding: '14px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Check size={20} color="#10b981" />
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#10b981', fontSize: '0.85rem' }}>Success</div>
+                    <div style={{ fontSize: '0.8rem', color: '#a7f3d0' }}>{roleSuccess}</div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {roleError && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '10px', padding: '12px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <AlertCircle size={18} color="#ef4444" />
+                      <div style={{ fontSize: '0.8rem', color: '#fca5a5' }}>{roleError}</div>
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#7dd3fc', marginBottom: '6px' }}>
+                      Select New Role:
+                    </label>
+                    <select
+                      className="input-field"
+                      value={selectedNewRole}
+                      onChange={(e) => setSelectedNewRole(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', color: '#fff', border: '1px solid rgba(56, 189, 248, 0.3)' }}
+                    >
+                      <option value="PRIMARY_TRAINER">Trainer / Faculty (Teaching Tools, Attendance, Live Classes, Quizzes)</option>
+                      <option value="STUDENT">Student (Course Learning, Assignments, Tests)</option>
+                      <option value="TEACHING_ASSISTANT">Teaching Assistant (Assist courses &amp; grading)</option>
+                      {!isCollegeAdmin && <option value="COLLEGE_ADMIN">College Admin (Institutional administrator)</option>}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setRoleModalUser(null)}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={roleUpdating}
+                      className="btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Shield size={14} />
+                      {roleUpdating ? 'Saving...' : 'Apply Role'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {roleSuccess && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRoleModalUser(null)}
                     className="btn-primary"
                   >
                     Done

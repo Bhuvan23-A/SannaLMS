@@ -469,6 +469,58 @@ export class UsersService {
   }
 
   /**
+   * Admin action: Change a user's role (e.g. promote Student to Trainer, College Admin, etc.)
+   * Updates Keycloak realm roles and LMS database UserRole records.
+   */
+  async changeUserRole(targetUserId: string, newRole: string) {
+    if (!targetUserId) throw new BadRequestException('Target user ID is required');
+    if (!newRole) throw new BadRequestException('Role is required');
+
+    const lmsRole = lmsRoleFor(newRole);
+    const realmRole = realmRoleFor(newRole);
+
+    let keycloakId = targetUserId;
+    const kcUser = await this.keycloak.getUser(targetUserId).catch(() => null);
+    if (!kcUser) {
+      const lmsUser = await this.prisma.extendedClient.user.findFirst({
+        where: { id: targetUserId },
+      });
+      if (lmsUser?.email) {
+        const found = await this.keycloak.findUserByEmail(lmsUser.email);
+        if (found?.id) keycloakId = found.id;
+      }
+    }
+
+    if (keycloakId) {
+      // Clear conflicting roles
+      for (const r of ['student', 'instructor', 'tenantadmin', 'superadmin', 'TEACHING_ASSISTANT']) {
+        await this.keycloak.removeRealmRole(keycloakId, r).catch(() => {});
+      }
+      if (realmRole) {
+        await this.keycloak.assignRealmRole(keycloakId, realmRole).catch(() => {});
+      }
+    }
+
+    // Update in LMS database UserRole table
+    const existing = await this.prisma.extendedClient.userRole.findFirst({
+      where: { user_id: targetUserId },
+    });
+
+    if (existing) {
+      await this.prisma.extendedClient.userRole.updateMany({
+        where: { user_id: targetUserId },
+        data: { role: lmsRole as any },
+      });
+    }
+
+    return {
+      success: true,
+      message: `Role successfully updated to ${lmsRole}`,
+      role: lmsRole,
+    };
+  }
+
+  /**
    * Student & user self-service password recovery:
    * Allows students/users to reset their Keycloak password using their email/username and phone number.
    */
