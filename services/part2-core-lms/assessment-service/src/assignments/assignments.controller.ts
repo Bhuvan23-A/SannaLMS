@@ -82,7 +82,7 @@ export class AssignmentsController {
   }
 
   @Post(':id/submit')
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   submit(@Param('id') id: string, @Body() body: Record<string, any>, @Req() req: Record<string, any>) {
     const isSuperAdmin = req.user?.roles?.includes('superadmin');
     const tenantId = isSuperAdmin ? (body.tenant_id || 'master') : (req.user?.tenantId || 'test-tenant');
@@ -92,7 +92,7 @@ export class AssignmentsController {
 
   // The student's own submission for an assignment, incl. trainer score/feedback
   @Get(':id/my-submission')
-  @Roles('STUDENT')
+  @Roles('STUDENT', 'SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT')
   mySubmission(@Param('id') id: string, @Req() req: Record<string, any>) {
     const userId = req.user?.id || 'u-1';
     return this.assignmentsService.getMySubmission(id, String(userId));
