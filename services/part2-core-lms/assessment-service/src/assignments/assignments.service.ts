@@ -66,8 +66,18 @@ export class AssignmentsService {
     // Students only see assignments for courses they are enrolled in and that
     // are assigned to them (whole-course or individually). No courseIds = no
     // assignments — never leak the whole college's list.
+    const mapped = assignments.map((a: any) => {
+      const target = parseAssignedTo(a.assigned_to);
+      return {
+        ...a,
+        attachment_url: target?.attachment_url || null,
+        attachment_name: target?.attachment_name || null,
+        attachment_type: target?.attachment_type || null,
+      };
+    });
+
     if (isStudent) {
-      return assignments.filter((a: any) => {
+      return mapped.filter((a: any) => {
         const target = parseAssignedTo(a.assigned_to);
         const isAssignedDirectly = target && Array.isArray(target.user_ids) && target.user_ids.includes(viewer?.userId || '');
         const isAssignedAll = !target || target.type === 'ALL';
@@ -83,7 +93,8 @@ export class AssignmentsService {
         return true;
       });
     }
-    return assignments;
+
+    return mapped;
   }
 
   // Submissions for an assignment — used by trainers/college admins to review student work (#13)
@@ -125,9 +136,19 @@ export class AssignmentsService {
       where: { assignment_id_user_id: { assignment_id: assignmentId, user_id: userId } }
     });
     const assignment = await this.prisma.assignment.findUnique({ where: { id: assignmentId } });
+    const target = parseAssignedTo(assignment?.assigned_to);
     return {
       assignment: assignment
-        ? { id: assignment.id, title: assignment.title, max_marks: assignment.max_marks, due_date: assignment.due_date }
+        ? {
+            id: assignment.id,
+            title: assignment.title,
+            description: assignment.description,
+            max_marks: assignment.max_marks,
+            due_date: assignment.due_date,
+            attachment_url: target?.attachment_url || null,
+            attachment_name: target?.attachment_name || null,
+            attachment_type: target?.attachment_type || null,
+          }
         : null,
       submission: submission || null
     };
@@ -155,7 +176,7 @@ export class AssignmentsService {
   }
 }
 
-function parseAssignedTo(value: any): { type?: string; user_ids?: string[] } | null {
+function parseAssignedTo(value: any): { type?: string; user_ids?: string[]; attachment_url?: string; attachment_name?: string; attachment_type?: string } | null {
   if (!value) return null;
   if (typeof value === 'string') {
     try { return JSON.parse(value); } catch { return null; }

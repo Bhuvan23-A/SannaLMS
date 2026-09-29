@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Topbar from "@/components/Topbar";
 import { fetchApi } from "@/lib/api";
 import CreateCourseModal from "@/components/CreateCourseModal";
+import EditCourseModal from "@/components/EditCourseModal";
 import { useColleges } from "@/hooks/useColleges";
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
@@ -22,6 +23,7 @@ export default function CoursesPage() {
   const trainerUsers = users.filter((u: any) => ['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'GUEST_FACULTY'].includes(u.role));
   const [courses, setCourses] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // Stage-2 lookups: resolve subject/section/session names for the table
@@ -456,6 +458,7 @@ export default function CoursesPage() {
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => toggleCoursePublish(course)}>
                           {course.status === 'PUBLISHED' ? '↩ Unpublish' : 'Publish'}
                         </button>
+                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => setEditingCourse(course)}>Edit</button>
                         <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>
                       </>
                     )}
@@ -474,6 +477,17 @@ export default function CoursesPage() {
             setIsModalOpen(false);
             loadCourses();
           }} 
+        />
+      )}
+
+      {editingCourse && (
+        <EditCourseModal
+          course={editingCourse}
+          onClose={() => setEditingCourse(null)}
+          onSuccess={() => {
+            setEditingCourse(null);
+            loadCourses();
+          }}
         />
       )}
 

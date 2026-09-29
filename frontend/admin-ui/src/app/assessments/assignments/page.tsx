@@ -21,7 +21,8 @@ import {
   X,
   Check,
   Eye,
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 
 export default function AssignmentsPage() {
@@ -41,6 +42,12 @@ export default function AssignmentsPage() {
   const [assignType, setAssignType] = useState<'ALL' | 'INDIVIDUALS'>('ALL');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([]);
+
+  // Assessment Brief Upload (PDF / Excel)
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [attachmentName, setAttachmentName] = useState('');
+  const [attachmentType, setAttachmentType] = useState('');
+  const [uploadingBrief, setUploadingBrief] = useState(false);
   
   // Hierarchy & Batch filtering
   const [departments, setDepartments] = useState<any[]>([]);
@@ -114,8 +121,38 @@ export default function AssignmentsPage() {
     setForm({ title: '', description: '', due_date: '', max_marks: 100 });
     setAssignType('ALL');
     setSelectedStudents([]);
+    setAttachmentUrl('');
+    setAttachmentName('');
+    setAttachmentType('');
     setShowForm(true);
     loadEnrolledStudents();
+  };
+
+  const handleBriefFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBrief(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/v1/assignments/upload?assignment_id=' + (editingAssignmentId || 'general'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+          'x-mock-roles': localStorage.getItem('mockRole') || 'SUPER_ADMIN',
+        },
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setAttachmentUrl(data.url);
+      setAttachmentName(file.name);
+      setAttachmentType(file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.ms-excel'));
+    } catch (err: any) {
+      alert(err.message || 'File upload failed');
+    } finally {
+      setUploadingBrief(false);
+    }
   };
 
   const openEditModal = (a: any) => {
@@ -154,6 +191,9 @@ export default function AssignmentsPage() {
       setAssignType('ALL');
       setSelectedStudents([]);
     }
+    setAttachmentUrl(a.attachment_url || '');
+    setAttachmentName(a.attachment_name || '');
+    setAttachmentType(a.attachment_type || '');
     setShowForm(true);
     loadEnrolledStudents();
   };
@@ -163,8 +203,8 @@ export default function AssignmentsPage() {
     try {
       const due_date = form.due_date ? new Date(form.due_date).toISOString() : null;
       const assigned_to = assignType === 'ALL'
-        ? { type: 'ALL' }
-        : { type: 'INDIVIDUALS', user_ids: selectedStudents };
+        ? { type: 'ALL', attachment_url: attachmentUrl || undefined, attachment_name: attachmentName || undefined, attachment_type: attachmentType || undefined }
+        : { type: 'INDIVIDUALS', user_ids: selectedStudents, attachment_url: attachmentUrl || undefined, attachment_name: attachmentName || undefined, attachment_type: attachmentType || undefined };
       const body: any = { ...form, due_date, course_id: courseId, assigned_to };
       const selectedCollege = colleges.find((c: any) => c.id === collegeId);
       if (isSuperAdmin && selectedCollege?.tenant_id) body.tenant_id = selectedCollege.tenant_id;
@@ -324,6 +364,41 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Description & Problem Statement *</label>
             <textarea required className="input-field" rows={4} placeholder="Describe the assignment objectives, deliverables, instructions, and rubrics..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          </div>
+
+          {/* Assessment File Upload (PDF / Excel / Materials) */}
+          <div style={{ marginBottom: '20px', padding: '16px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.05)', border: '1px dashed rgba(56, 189, 248, 0.3)' }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#38bdf8' }}>
+              Upload Assessment File / Brief (PDF or Excel format)
+            </label>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+              Attach question papers, case studies, or datasets in PDF (.pdf) or Excel (.xlsx, .xls, .csv). Students can preview and download this directly in their portal.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="file"
+                id="assessment-brief-file"
+                accept=".pdf,.xlsx,.xls,.csv,.doc,.docx"
+                style={{ display: 'none' }}
+                onChange={handleBriefFileUpload}
+              />
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => document.getElementById('assessment-brief-file')?.click()}
+                disabled={uploadingBrief}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.15)', borderColor: '#38bdf8', color: '#38bdf8' }}
+              >
+                <Upload size={14} /> {uploadingBrief ? 'Uploading...' : 'Choose Assessment File (.pdf, .xlsx)'}
+              </button>
+              {attachmentUrl && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
+                  <CheckCircle2 size={15} />
+                  <span>{attachmentName || 'Assessment file attached'}</span>
+                  <button type="button" onClick={() => { setAttachmentUrl(''); setAttachmentName(''); setAttachmentType(''); }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px' }}>Remove</button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Schedule & Marks */}

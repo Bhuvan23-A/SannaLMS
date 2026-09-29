@@ -15,7 +15,7 @@ export class AssignmentsController {
   // and the returned URL is stored as the submission's file_url so the trainer
   // can actually open the attachment.
   @Post('upload')
-  @Roles('STUDENT')
+  @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'STUDENT')
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: (req: any, _file, cb) => {

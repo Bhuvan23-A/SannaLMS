@@ -63,6 +63,9 @@ export class NotificationsService {
         return fetchIds(usersUrl(`role=student${tenantParam}`));
 
       case 'COLLEGE':
+        if (!target.college_id || target.college_id === 'ALL') {
+          return fetchIds(usersUrl(`role=student${tenantParam}`));
+        }
         return fetchIds(usersUrl(`college_id=${encodeURIComponent(target.college_id || '')}${tenantParam}`));
 
       case 'DEPARTMENT':

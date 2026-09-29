@@ -861,10 +861,12 @@ export const Dashboard: React.FC = () => {
   }, [activeTab]);
 
   // On first load, replace demo courses with the student's real enrolled courses
-  // and pull the live command-center stats.
+  // and pull the live command-center stats, notifications, and calendar events.
   useEffect(() => {
     fetchMyCourses();
     fetchOverviewStats();
+    fetchNotifications();
+    fetchCalendarEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1410,6 +1412,8 @@ export const Dashboard: React.FC = () => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
   };
 
+  const unreadNotificationsCount = notifications.filter((n: any) => !n.is_read).length;
+
   // --- LIVE CLASSES (#fix): the college's scheduled live sessions ---
   const [liveClasses, setLiveClasses] = useState<any[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
@@ -1721,8 +1725,11 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'grades' ? 'active' : ''}`} onClick={() => setActiveTab('grades')}>
                   <GraduationCap size={18} /> My Grades
                 </button>
-                <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
-                  <Bell size={18} /> Notifications
+                <button className={`nav-link-btn ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Bell size={18} /> Notifications</span>
+                  {unreadNotificationsCount > 0 && (
+                    <span style={{ background: '#38bdf8', color: '#090d16', fontSize: '11px', fontWeight: 800, padding: '1px 6px', borderRadius: '10px' }}>{unreadNotificationsCount}</span>
+                  )}
                 </button>
                 <button className={`nav-link-btn ${activeTab === 'calendar' ? 'active' : ''}`} onClick={() => setActiveTab('calendar')}>
                   <Calendar size={18} /> Calendar
@@ -1845,17 +1852,64 @@ export const Dashboard: React.FC = () => {
             </h1>
           </div>
 
-          {/* Role Evaluator & Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.5rem 1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>View Mode:</span>
-            <div style={{ display: 'flex', gap: '0.25rem' }}>
-              <button onClick={() => { setSelectedRole('STUDENT'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'STUDENT' ? 'var(--accent-indigo)' : 'transparent', color: selectedRole === 'STUDENT' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Student</button>
-              {hasTrainerRole && (
-                <button onClick={() => { setSelectedRole('INSTRUCTOR'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'INSTRUCTOR' ? 'var(--accent-cyan)' : 'transparent', color: selectedRole === 'INSTRUCTOR' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Trainer</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              style={{
+                position: 'relative',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '0.75rem',
+                padding: '0.5rem 0.85rem',
+                color: '#38bdf8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+              }}
+              title="View Notifications & Calendar Alerts"
+            >
+              <Bell size={16} />
+              <span>Updates</span>
+              {unreadNotificationsCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    minWidth: '18px',
+                    height: '18px',
+                    borderRadius: '9px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 10px rgba(239, 68, 68, 0.6)',
+                  }}
+                >
+                  {unreadNotificationsCount}
+                </span>
               )}
-              {hasAdminRole && (
-                <button onClick={() => { setSelectedRole('ADMIN'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'ADMIN' ? 'var(--accent-emerald)' : 'transparent', color: selectedRole === 'ADMIN' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Admin</button>
-              )}
+            </button>
+
+            {/* Role Evaluator & Switcher */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.03)', padding: '0.5rem 1rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>View Mode:</span>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button onClick={() => { setSelectedRole('STUDENT'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'STUDENT' ? 'var(--accent-indigo)' : 'transparent', color: selectedRole === 'STUDENT' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Student</button>
+                {hasTrainerRole && (
+                  <button onClick={() => { setSelectedRole('INSTRUCTOR'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'INSTRUCTOR' ? 'var(--accent-cyan)' : 'transparent', color: selectedRole === 'INSTRUCTOR' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Trainer</button>
+                )}
+                {hasAdminRole && (
+                  <button onClick={() => { setSelectedRole('ADMIN'); setActiveTab('overview'); }} style={{ padding: '0.35rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.8rem', fontWeight: 600, background: selectedRole === 'ADMIN' ? 'var(--accent-emerald)' : 'transparent', color: selectedRole === 'ADMIN' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer' }}>Admin</button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -1939,6 +1993,48 @@ export const Dashboard: React.FC = () => {
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Query AI based on lecture transcript context</p>
                     </div>
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Campus Calendar & Live Announcements Widget */}
+            {selectedRole === 'STUDENT' && (
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(56, 189, 248, 0.18)', borderRadius: '1.25rem', padding: '1.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
+                      <Calendar size={18} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#fff' }}>Campus Calendar &amp; Live Announcements</h3>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Upcoming institutional schedules, classes, and notifications</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setActiveTab('calendar')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer' }}>View Calendar</button>
+                    <button onClick={() => setActiveTab('notifications')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer' }}>All Notifications</button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {calendarEvents.slice(0, 3).map((ev: any) => {
+                    const meta = eventTypeMeta(ev.event_type);
+                    return (
+                      <div key={ev.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: meta.color, background: meta.bg, padding: '2px 8px', borderRadius: '6px' }}>{meta.label}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{ev.start_time ? new Date(ev.start_time).toLocaleDateString() : ''}</span>
+                          </div>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 600, margin: '0.2rem 0', color: '#fff' }}>{ev.title}</h4>
+                          {ev.description && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.description}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {calendarEvents.length === 0 && (
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, padding: '1rem 0' }}>No upcoming campus events scheduled right now.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -2814,20 +2910,112 @@ export const Dashboard: React.FC = () => {
                   </div>
                 )}
 
-                {assignmentList.length > 0 && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Select Assignment to Submit</label>
-                    <select
-                      value={selectedAssignmentId}
-                      onChange={e => { setSelectedAssignmentId(e.target.value); fetchMySubmission(e.target.value); }}
-                      style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
-                    >
-                      {assignmentList.map((a: any) => (
-                        <option key={a.id} value={a.id}>{a.title} (due: {a.due_date ? new Date(a.due_date).toLocaleDateString() : 'no due date'})</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                {assignmentList.length > 0 && (() => {
+                  const currentAssignment = assignmentList.find((a: any) => a.id === selectedAssignmentId) || assignmentList[0];
+                  const hasAttachment = Boolean(currentAssignment?.attachment_url);
+                  const isPdf = hasAttachment && (
+                    currentAssignment.attachment_url?.toLowerCase().endsWith('.pdf') ||
+                    currentAssignment.attachment_type === 'application/pdf'
+                  );
+                  const isSpreadsheet = hasAttachment && (
+                    currentAssignment.attachment_url?.toLowerCase().endsWith('.xlsx') ||
+                    currentAssignment.attachment_url?.toLowerCase().endsWith('.xls') ||
+                    currentAssignment.attachment_url?.toLowerCase().endsWith('.csv')
+                  );
+
+                  return (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Select Assignment to Submit</label>
+                        <select
+                          value={selectedAssignmentId}
+                          onChange={e => { setSelectedAssignmentId(e.target.value); fetchMySubmission(e.target.value); }}
+                          style={{ width: '100%', background: '#040711', color: '#fff', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '0.35rem', padding: '0.5rem 0.75rem', outline: 'none' }}
+                        >
+                          {assignmentList.map((a: any) => (
+                            <option key={a.id} value={a.id}>{a.title} (due: {a.due_date ? new Date(a.due_date).toLocaleDateString() : 'no due date'})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {currentAssignment && (
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '1.25rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '0.75rem' }}>
+                            <div>
+                              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#fff' }}>{currentAssignment.title}</h4>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                Max Marks: {currentAssignment.max_marks || 100} · Due: {currentAssignment.due_date ? new Date(currentAssignment.due_date).toLocaleString() : 'No deadline'}
+                              </span>
+                            </div>
+                            {hasAttachment && (
+                              <a
+                                href={currentAssignment.attachment_url}
+                                download={currentAssignment.attachment_name || 'assessment_brief'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-secondary"
+                                style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                              >
+                                <Download size={14} /> Download Brief ({currentAssignment.attachment_name || 'File'})
+                              </a>
+                            )}
+                          </div>
+
+                          {currentAssignment.description && (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
+                              {currentAssignment.description}
+                            </p>
+                          )}
+
+                          {/* PDF Viewer */}
+                          {isPdf && (
+                            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <FileText size={15} /> Assessment PDF Viewer
+                                </span>
+                                <a
+                                  href={currentAssignment.attachment_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  Open in full window <ExternalLink size={12} />
+                                </a>
+                              </div>
+                              <iframe
+                                src={currentAssignment.attachment_url}
+                                style={{ width: '100%', height: '480px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)', background: '#ffffff' }}
+                                title="Assessment Document Viewer"
+                              />
+                            </div>
+                          )}
+
+                          {/* Excel / Spreadsheet Card */}
+                          {isSpreadsheet && (
+                            <div style={{ marginTop: '0.75rem', padding: '12px 16px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <FileText size={20} color="#10b981" />
+                                <div>
+                                  <strong style={{ fontSize: '0.85rem', color: '#fff', display: 'block' }}>{currentAssignment.attachment_name || 'Assessment Spreadsheet'}</strong>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Excel / CSV assessment data file</span>
+                                </div>
+                              </div>
+                              <a
+                                href={currentAssignment.attachment_url}
+                                download={currentAssignment.attachment_name || 'dataset.xlsx'}
+                                className="btn-secondary"
+                                style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.8rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                              >
+                                <Download size={14} /> Download Spreadsheet
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div style={{ marginBottom: '1.2rem' }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Upload File (from PC or Mobile)</label>

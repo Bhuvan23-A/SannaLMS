@@ -24,19 +24,21 @@ export function useRole() {
         const payload = decodeJwt(token);
         if (payload) {
           const roles = payload.realm_access?.roles || [];
-          if (roles.includes('superadmin')) {
+          const rawRoles = Array.isArray(roles) ? roles : [];
+          const lowerRoles = rawRoles.map((r: any) => String(r).toLowerCase());
+          if (lowerRoles.includes('superadmin') || lowerRoles.includes('super_admin')) {
             setRole('SUPER_ADMIN');
             return;
-          } else if (roles.includes('tenantadmin')) {
+          } else if (lowerRoles.includes('tenantadmin') || lowerRoles.includes('tenant_admin') || lowerRoles.includes('college_admin')) {
             setRole('COLLEGE_ADMIN');
             return;
-          } else if (roles.includes('instructor')) {
+          } else if (lowerRoles.includes('instructor') || lowerRoles.includes('trainer') || lowerRoles.includes('faculty') || lowerRoles.includes('primary_trainer')) {
             setRole('PRIMARY_TRAINER');
             return;
-          } else if (roles.includes('TEACHING_ASSISTANT')) {
+          } else if (lowerRoles.includes('teaching_assistant') || lowerRoles.includes('ta')) {
             setRole('TEACHING_ASSISTANT');
             return;
-          } else if (roles.includes('student')) {
+          } else if (lowerRoles.includes('student')) {
             setRole('STUDENT');
             return;
           }
@@ -54,7 +56,7 @@ export function useRole() {
 
   const isAdmin = role === 'SUPER_ADMIN' || role === 'COLLEGE_ADMIN';
   const isStudent = role === 'STUDENT';
-  const isTrainer = role === 'PRIMARY_TRAINER' || role === 'TEACHING_ASSISTANT' || role === 'INSTRUCTOR';
+  const isTrainer = role === 'PRIMARY_TRAINER' || role === 'TEACHING_ASSISTANT' || role === 'INSTRUCTOR' || role === 'TRAINER' || role === 'FACULTY';
 
   return { role, isAdmin, isStudent, isTrainer };
 }

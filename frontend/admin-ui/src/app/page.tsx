@@ -26,6 +26,7 @@ export default function Home() {
   const { role, isTrainer } = useRole();
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
   const [stats, setStats] = useState<{ colleges: number | null; departments: number | null; courses: number | null; students: number | null }>({ colleges: null, departments: null, courses: null, students: null });
+  const [collegesList, setCollegesList] = useState<any[]>([]);
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
 
   useEffect(() => {
@@ -59,6 +60,12 @@ export default function Home() {
           );
         }
       } catch { }
+
+      try {
+        const cols = await fetchApi('/api/v1/colleges');
+        if (Array.isArray(cols)) setCollegesList(cols);
+      } catch { }
+
       setStats({ colleges, departments, courses: courseCount, students });
     })();
   }, [isTrainer]);
@@ -91,7 +98,7 @@ export default function Home() {
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Departments
+              Total Departments
             </span>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Layers size={16} color="#38bdf8" />
@@ -127,6 +134,49 @@ export default function Home() {
           <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active student registrations</p>
         </div>
       </div>
+
+      {/* Top Institutes / Colleges Section (Moved to the top, directly below Overview) */}
+      {!isCollegeAdmin && (
+        <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Building2 size={16} color="#38bdf8" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: '#fff' }}>Top Institutes &amp; Campuses</h3>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Institutional campuses onboarded in SannaLMS</span>
+              </div>
+            </div>
+            <Link href="/colleges" style={{ fontSize: '12px', color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+              View All Colleges <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          {collegesList.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>No institutes onboarded yet.</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+              {collegesList.slice(0, 6).map((col: any) => (
+                <div key={col.id} style={{ padding: '14px 16px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(56, 189, 248, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px' }}>
+                      {col.name ? col.name.slice(0, 2).toUpperCase() : 'CL'}
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '13px', fontWeight: 600, margin: 0, color: '#fff' }}>{col.name}</h4>
+                      <span style={{ fontSize: '11px', color: '#7dd3fc' }}>{col.subdomain || col.tenant_id}</span>
+                    </div>
+                  </div>
+                  <span className={`badge ${col.status === 'HELD' ? 'badge-warning' : 'badge-success'}`} style={{ fontSize: '10px' }}>
+                    {col.status === 'HELD' ? 'Suspended' : 'Active'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recent Courses List */}
       <div className="panel" style={{ padding: '24px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>

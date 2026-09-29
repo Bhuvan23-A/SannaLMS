@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
-import { Eye, EyeOff, Key, Phone, Layers, GraduationCap, Building2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Key, Phone, Layers, GraduationCap, Building2, CheckCircle2, AlertCircle, Download, Upload, FileSpreadsheet, Info } from 'lucide-react';
 
 const SAMPLE_CSV = `email,first_name,last_name,phone,role,department,branch,batch,semester,section
 student.1@college.edu,Aarav,Sharma,9876543210,student,Computer Science,B.Tech CSE,2024-2028,3,A
@@ -78,6 +78,18 @@ export default function BulkImportPage() {
     const reader = new FileReader();
     reader.onload = () => setCsvText(String(reader.result || ''));
     reader.readAsText(f);
+  };
+
+  const downloadSampleCsv = () => {
+    const blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'sannalms_student_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const parseCsv = (text: string): any[] => {
@@ -261,12 +273,34 @@ export default function BulkImportPage() {
         </div>
 
         {/* CSV Action Buttons */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-          <button className="btn-secondary" onClick={() => fileRef.current?.click()}>Upload CSV File</button>
-          <button className="btn-secondary" onClick={() => setCsvText(SAMPLE_CSV)}>Load Sample CSV</button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+          <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Upload size={14} /> Upload CSV File
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => setCsvText(SAMPLE_CSV)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <FileSpreadsheet size={14} /> Load Sample CSV
+          </button>
+          <button type="button" className="btn-secondary" onClick={downloadSampleCsv} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', fontWeight: 600 }}>
+            <Download size={14} /> Download Sample CSV Template (.csv)
+          </button>
           <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleFile} />
         </div>
         {fileName && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>File: {fileName}</p>}
+
+        {/* CSV Format & Required Fields Guide */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '10px', padding: '12px 16px', marginBottom: '14px', fontSize: '12px' }}>
+          <div style={{ fontWeight: 600, color: '#fff', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Info size={14} color="#38bdf8" /> CSV Columns &amp; Field Guide:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px', color: 'var(--text-secondary)' }}>
+            <div><strong style={{ color: '#ef4444' }}>* email:</strong> Required (student login email)</div>
+            <div><strong style={{ color: '#38bdf8' }}>phone:</strong> Recommended (used as auto-login password)</div>
+            <div><strong style={{ color: '#fff' }}>first_name / last_name:</strong> Student name</div>
+            <div><strong style={{ color: '#fff' }}>department / branch:</strong> Academic stream (e.g. CSE)</div>
+            <div><strong style={{ color: '#fff' }}>batch / semester:</strong> e.g. 2024-2028 / Sem 3</div>
+            <div><strong style={{ color: '#fff' }}>section / role:</strong> e.g. A / student</div>
+          </div>
+        </div>
 
         <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: 'var(--text-secondary)' }}>CSV contents</label>
         <textarea

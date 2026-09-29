@@ -94,7 +94,6 @@ export default function Sidebar() {
             { name: 'Dashboard', href: '/', icon: LayoutDashboard },
             { name: 'Calendar', href: '/calendar', icon: Calendar },
             { name: 'Notifications', href: '/notifications', icon: Bell },
-            { name: 'Search', href: '/search', icon: Search },
           ]
         },
         {

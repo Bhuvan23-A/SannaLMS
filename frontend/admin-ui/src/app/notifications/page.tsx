@@ -212,8 +212,9 @@ export default function NotificationsPage() {
                   onChange={e => setUserIds(e.target.value)} />
               )}
 
-              {targetType === 'COLLEGE' && colleges.length > 0 && (
+              {targetType === 'COLLEGE' && (
                 <select className="input-field" value={collegeId} onChange={e => { setCollegeId(e.target.value); setCourseId(''); setDepartmentId(''); setBranchId(''); setSemesterId(''); }}>
+                  {isSuperAdmin && <option value="ALL">All Colleges (Broadcast to All Campuses)</option>}
                   {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               )}
