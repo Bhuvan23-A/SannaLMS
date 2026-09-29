@@ -43,11 +43,35 @@ export default function Home() {
     };
 
     (async () => {
-      const [colleges, departments, students] = await Promise.all([
+      const [colleges, departments] = await Promise.all([
         load('/api/v1/colleges?count=1'),
         load('/api/v1/departments'),
-        load('/api/v1/enrollments?count=1'),
       ]);
+
+      let studentCount: number | null = null;
+      try {
+        const usersData = await fetchApi('/api/v1/users?role=student');
+        if (Array.isArray(usersData)) {
+          studentCount = usersData.length;
+        } else if (usersData && typeof (usersData as any).count === 'number') {
+          studentCount = (usersData as any).count;
+        }
+      } catch { }
+
+      if (studentCount === null || studentCount === 0) {
+        try {
+          const allUsers = await fetchApi('/api/v1/users');
+          if (Array.isArray(allUsers)) {
+            const studentsOnly = allUsers.filter((u: any) => (u.role || '').toUpperCase() === 'STUDENT');
+            studentCount = studentsOnly.length > 0 ? studentsOnly.length : allUsers.length;
+          }
+        } catch { }
+      }
+
+      if (studentCount === null) {
+        studentCount = await load('/api/v1/enrollments?count=1');
+      }
+
       let courseCount: number | null = null;
       try {
         const coursesData = await fetchApi('/api/v1/courses');
@@ -66,7 +90,7 @@ export default function Home() {
         if (Array.isArray(cols)) setCollegesList(cols);
       } catch { }
 
-      setStats({ colleges, departments, courses: courseCount, students });
+      setStats({ colleges, departments, courses: courseCount, students: studentCount });
     })();
   }, [isTrainer]);
 
@@ -92,7 +116,6 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.colleges)}</div>
-          {isCollegeAdmin && <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active institutional workspace</p>}
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
@@ -105,7 +128,6 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.departments)}</div>
-          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Academic faculties</p>
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
@@ -118,7 +140,6 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.courses)}</div>
-          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Curriculum modules</p>
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
@@ -131,7 +152,6 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.students)}</div>
-          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active student registrations</p>
         </div>
       </div>
 
