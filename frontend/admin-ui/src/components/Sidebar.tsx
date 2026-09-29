@@ -97,6 +97,18 @@ export default function Sidebar() {
           ]
         },
         {
+          title: isSuperAdmin ? 'Institutional Structure' : 'College Structure',
+          items: [
+            ...(isSuperAdmin ? [{ name: 'Colleges', href: '/colleges', icon: Building2 }] : []),
+            { name: 'Departments', href: '/departments', icon: Layers },
+            { name: 'Branches', href: '/branches', icon: GitBranch },
+            { name: 'Semesters', href: '/semesters', icon: GraduationCap },
+            { name: 'Sections', href: '/sections', icon: FolderTree },
+            { name: 'User Directory & Passwords', href: '/users', icon: Key },
+            { name: 'Bulk Import Users', href: '/users/import', icon: Users },
+          ]
+        },
+        {
           title: 'Academics',
           items: [
             { name: 'Courses', href: '/courses', icon: BookOpen },
@@ -122,18 +134,6 @@ export default function Sidebar() {
             { name: 'Attendance', href: '/attendance', icon: MapPin },
             { name: 'Forums', href: '/forums', icon: MessagesSquare },
             { name: 'Chat', href: '/chat', icon: MessageSquare },
-          ]
-        },
-        {
-          title: isSuperAdmin ? 'Institutional Structure' : 'College Structure',
-          items: [
-            ...(isSuperAdmin ? [{ name: 'Colleges', href: '/colleges', icon: Building2 }] : []),
-            { name: 'Departments', href: '/departments', icon: Layers },
-            { name: 'Branches', href: '/branches', icon: GitBranch },
-            { name: 'Semesters', href: '/semesters', icon: GraduationCap },
-            { name: 'Sections', href: '/sections', icon: FolderTree },
-            { name: 'User Directory & Passwords', href: '/users', icon: Key },
-            { name: 'Bulk Import Users', href: '/users/import', icon: Users },
           ]
         },
         {
