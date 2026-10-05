@@ -540,7 +540,7 @@ export default function UsersDirectoryPage() {
                       onChange={(e) => setSelectedNewRole(e.target.value)}
                       style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(15, 23, 42, 0.9)', color: '#fff', border: '1px solid rgba(56, 189, 248, 0.3)' }}
                     >
-                      <option value="PRIMARY_TRAINER">Trainer / Faculty (Teaching Tools, Attendance, Live Classes, Quizzes)</option>
+                      <option value="PRIMARY_TRAINER">Trainer / Faculty (Teaching Tools, Attendance, Live Classes, Online Tests)</option>
                       <option value="STUDENT">Student (Course Learning, Assignments, Tests)</option>
                       <option value="TEACHING_ASSISTANT">Teaching Assistant (Assist courses &amp; grading)</option>
                       {!isCollegeAdmin && <option value="COLLEGE_ADMIN">College Admin (Institutional administrator)</option>}

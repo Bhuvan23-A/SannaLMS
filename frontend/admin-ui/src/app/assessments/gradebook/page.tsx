@@ -288,7 +288,7 @@ function StudentGradeCard({ userId, semesters }: { userId: string; semesters: an
   if (!data || (data.grades.length === 0 && data.courses.length === 0)) {
     return (
       <div className="panel" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
-        No grade card available yet. Complete your assignments and quizzes first.
+        No grade card available yet. Complete your assignments and online tests first.
       </div>
     );
   }

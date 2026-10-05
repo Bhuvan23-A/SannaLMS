@@ -206,7 +206,7 @@ export default function QuizzesPage() {
   const exportQuizQuestions = (q: any) => {
     const qList = (q.questions || []).map((x: any) => x.question).filter(Boolean);
     if (qList.length === 0) {
-      alert('This quiz has no questions to export.');
+      alert('This online test has no questions to export.');
       return;
     }
     let csv = 'Question,Type,Marks,Option A,Option B,Option C,Option D,Correct Option,Explanation\n';
@@ -417,11 +417,11 @@ export default function QuizzesPage() {
   };
 
   const deleteQuiz = async (quizId: string) => {
-    if (!confirm('Delete this quiz? Its submissions will be removed too.')) return;
+    if (!confirm('Delete this online test? Its submissions will be removed too.')) return;
     try {
       await fetchApi(`/api/v1/quizzes/${quizId}`, { method: 'DELETE' });
       loadData();
-    } catch { alert('Failed to delete quiz'); }
+    } catch { alert('Failed to delete online test'); }
   };
 
   const loadSubmissions = async (quizId: string) => {
@@ -601,7 +601,7 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
           ) : (
             <p style={{ color: 'var(--text-secondary)' }}>Your answers have been submitted. They will be manually reviewed by your trainer.</p>
           )}
-          <button className="btn-primary" style={{ marginTop: '30px' }} onClick={() => { setSubmitted(null); loadData(); }}>Back to Quizzes</button>
+          <button className="btn-primary" style={{ marginTop: '30px' }} onClick={() => { setSubmitted(null); loadData(); }}>Back to Online Tests</button>
         </div>
       </div>
     );
@@ -611,17 +611,17 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
     <div className="animate-fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <Link href="/assessments" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-            ← Back to Assessments Overview
+          <Link href="/assessments/questions" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+            ← Question Bank
           </Link>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Quizzes & Online Tests</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Online Tests</h1>
           <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
           </div>
         </div>
         {(isAdmin || isTrainer) && (
           <button className="btn-primary" onClick={openCreateForm} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={15} /> Create Assessment
+            <Plus size={15} /> Create Online Test
           </button>
         )}
       </div>
@@ -631,7 +631,7 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               {editingQuizId ? <Pencil size={18} color="var(--accent-color)" /> : <Plus size={18} color="var(--accent-color)" />}
-              {editingQuizId ? 'Edit Assessment Schedule & Details' : 'Create New Assessment / Quiz'}
+              {editingQuizId ? 'Edit Online Test Schedule & Details' : 'Create New Online Test'}
             </h3>
             <button type="button" onClick={() => setShowForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
               <X size={18} />
@@ -640,7 +640,7 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '15px', marginBottom: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Assessment Title *</label>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Test Title *</label>
               <input required className="input-field" placeholder="e.g. Mid-Term Data Structures Examination" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
             </div>
             <div>
@@ -948,11 +948,11 @@ Sl.no,Candidate ID,Candidate Name,Candidate Email,Group,Unique ID,Assessment Sta
         </form>
       )}
 
-      {/* Quizzes List Cards */}
+      {/* Online Tests List Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {quizzes.length === 0 ? (
           <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-            No quizzes or assessments created for this course yet. Click "+ Create Assessment" above to add one.
+            No online tests created for this course yet. Click "+ Create Online Test" above to add one.
           </div>
         ) : quizzes.map(q => (
           <div className="panel" key={q.id} style={{ background: 'rgba(15,23,42,0.75)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px' }}>

@@ -41,15 +41,17 @@ export default function QuestionsPage() {
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
   const downloadSampleTemplate = () => {
-    const csvContent = "Question,Type,Marks,Option A,Option B,Option C,Option D,Correct Option,Explanation\n" +
-      "\"What is the time complexity of binary search?\",MCQ,2,\"O(n)\",\"O(log n)\",\"O(n^2)\",\"O(1)\",\"Option B\",\"Binary search divides the search space in half each step.\"\n" +
-      "\"Explain the difference between Supervised and Unsupervised Learning.\",ESSAY,5,\"\",\"\",\"\",\"\",\"\",\"Supervised learning uses labeled datasets while unsupervised discovers hidden patterns.\"\n" +
-      "\"Python lists are immutable.\",MCQ,1,\"True\",\"False\",\"\",\"\",\"Option B\",\"Python lists are mutable sequences.\"\n";
+    const csvContent =
+      "Question Text,Question Type,Difficulty Level,Subject / Topic,Marks,Option A,Option B,Option C,Option D,Correct Answer,Explanation\n" +
+      "\"What is the average time complexity of QuickSort?\",MCQ,Medium,Algorithms,2,\"O(n)\",\"O(n log n)\",\"O(n^2)\",\"O(log n)\",\"Option B\",\"Partitioning around a pivot yields O(n log n) average time complexity.\"\n" +
+      "\"Which HTTP method is idempotent and used for resource updates?\",MCQ,Easy,Web Technologies,1,\"POST\",\"PUT\",\"CONNECT\",\"PATCH\",\"Option B\",\"PUT replaces the resource entirely and is idempotent by HTTP specification.\"\n" +
+      "\"Write a function to detect a cycle in a singly linked list in Python.\",CODING,Hard,Data Structures,5,\"\",\"\",\"\",\"\",\"def hasCycle(head): ...\",\"Floyd's Tortoise and Hare cycle detection algorithm in O(1) space.\"\n" +
+      "\"Explain the ACID properties in database transaction management.\",ESSAY,Medium,Database Systems,5,\"\",\"\",\"\",\"\",\"Atomicity, Consistency, Isolation, Durability\",\"Detailed breakdown with an example transaction.\"\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'questions_template.csv');
+    link.setAttribute('download', 'question_bank_sample_template.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -125,22 +127,50 @@ export default function QuestionsPage() {
         return result;
       };
 
+      const headerCols = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+      const hasDifficulty = headerCols.some(h => h.includes('diff'));
+      const hasTopic = headerCols.some(h => h.includes('topic') || h.includes('subject'));
+
       // Skip header row
       for (let i = 1; i < lines.length; i++) {
         const cols = parseCSVLine(lines[i]);
         if (!cols[0]) continue;
 
-        const qTitle = cols[0];
-        const qType = (cols[1] || 'MCQ').toUpperCase().includes('ESSAY') ? 'ESSAY' : 'MCQ';
-        const qMarks = parseInt(cols[2], 10) || 1;
+        let qTitle = cols[0];
+        let qType = (cols[1] || 'MCQ').toUpperCase().includes('ESSAY') ? 'ESSAY' : (cols[1] || '').toUpperCase().includes('COD') ? 'CODING' : 'MCQ';
+        let qDifficulty = 'Medium';
+        let qTopic = '';
+        let qMarks = 1;
+        let optA = '', optB = '', optC = '', optD = '';
+        let rawAns = '';
+        let explanation = '';
+
+        if (cols.length >= 10 && (hasDifficulty || hasTopic)) {
+          qDifficulty = cols[2] || 'Medium';
+          qTopic = cols[3] || '';
+          qMarks = parseInt(cols[4], 10) || 1;
+          optA = cols[5] || '';
+          optB = cols[6] || '';
+          optC = cols[7] || '';
+          optD = cols[8] || '';
+          rawAns = (cols[9] || '').toUpperCase();
+          explanation = cols[10] || '';
+        } else {
+          qMarks = parseInt(cols[2], 10) || 1;
+          optA = cols[3] || '';
+          optB = cols[4] || '';
+          optC = cols[5] || '';
+          optD = cols[6] || '';
+          rawAns = (cols[7] || '').toUpperCase();
+          explanation = cols[8] || '';
+        }
 
         let qOptions: any[] | undefined = undefined;
         let answerKey: string | null = null;
 
         if (qType === 'MCQ') {
-          const optTexts = [cols[3], cols[4], cols[5], cols[6]].filter(Boolean);
+          const optTexts = [optA, optB, optC, optD].filter(Boolean);
           if (optTexts.length > 0) {
-            const rawAns = (cols[7] || '').toUpperCase();
             let correctIdx = 0;
             if (rawAns.includes('B') || rawAns === '2') correctIdx = 1;
             else if (rawAns.includes('C') || rawAns === '3') correctIdx = 2;
@@ -153,11 +183,13 @@ export default function QuestionsPage() {
             }));
             answerKey = String(correctIdx + 1);
           }
+        } else if (rawAns) {
+          answerKey = rawAns;
         }
 
         const payload: any = {
           title: qTitle,
-          content: cols[8] ? `${qTitle}\n\nExplanation: ${cols[8]}` : qTitle,
+          content: explanation ? `${qTitle}\n\nDifficulty: ${qDifficulty}${qTopic ? ` · Topic: ${qTopic}` : ''}\nExplanation: ${explanation}` : qTitle,
           type: qType,
           marks: qMarks,
           answer_key: answerKey,
@@ -414,8 +446,8 @@ export default function QuestionsPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} onClick={downloadSampleTemplate}>
-            CSV/Excel Template
+          <button type="button" className="btn-secondary" style={{ fontSize: '13px', background: 'rgba(56, 189, 248, 0.08)', borderColor: 'rgba(56, 189, 248, 0.3)' }} onClick={downloadSampleTemplate}>
+            📥 Download Sample Template (CSV/Excel)
           </button>
           <input ref={csvFileInputRef} type="file" accept=".csv,text/csv,application/vnd.ms-excel,.xlsx" style={{ display: 'none' }} onChange={importFromCsvOrExcel} />
           <button type="button" className="btn-secondary" style={{ fontSize: '13px' }} disabled={importing} onClick={() => csvFileInputRef.current?.click()}>

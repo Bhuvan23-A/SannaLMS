@@ -120,9 +120,8 @@ export default function Sidebar() {
         {
           title: 'Assessments',
           items: [
-            { name: 'Overview', href: '/assessments', icon: FileCheck2 },
             { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
-            { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+            { name: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
             { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
             { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
           ]
@@ -161,7 +160,7 @@ export default function Sidebar() {
           title: 'Assessments',
           items: [
             { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
-            { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+            { name: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
             { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
             { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
           ]
@@ -192,7 +191,7 @@ export default function Sidebar() {
       {
         title: 'Assessments',
         items: [
-          { name: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+          { name: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
           { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
           { name: 'My Grades', href: '/assessments/gradebook', icon: Award },
           { name: 'Attendance', href: '/attendance', icon: MapPin },

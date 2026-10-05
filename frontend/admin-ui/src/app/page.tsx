@@ -248,7 +248,7 @@ function TrainerHome() {
 
   const tools = [
     { label: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
-    { label: 'Quizzes', href: '/assessments/quizzes', icon: CheckSquare },
+    { label: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
     { label: 'Assignments', href: '/assessments/assignments', icon: FileText },
     { label: 'Gradebook', href: '/assessments/gradebook', icon: Award },
     { label: 'Attendance', href: '/attendance', icon: MapPin },

@@ -1,11 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
 import { HelpCircle, CheckSquare, FileText, Award, ArrowRight } from 'lucide-react';
 
 export default function AssessmentsPage() {
+  const router = useRouter();
   const { isAdmin, isTrainer } = useRole();
+
+  useEffect(() => {
+    if (isAdmin || isTrainer) {
+      router.replace('/assessments/questions');
+    } else {
+      router.replace('/assessments/quizzes');
+    }
+  }, [isAdmin, isTrainer, router]);
 
   const modules = [
     {
@@ -19,8 +30,8 @@ export default function AssessmentsPage() {
     },
     {
       icon: CheckSquare,
-      title: 'Quiz & Exam Builder',
-      description: 'Build online tests and quizzes, schedule start/end timestamps, and attach question papers.',
+      title: 'Online Test Builder',
+      description: 'Build online tests and assessments, schedule start/end timestamps, and attach question papers.',
       href: '/assessments/quizzes',
       roles: 'All Roles',
       badge: 'all',

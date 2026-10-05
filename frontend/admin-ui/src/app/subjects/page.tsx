@@ -17,6 +17,9 @@ export default function SubjectsPage() {
   const [collegeFilter, setCollegeFilter] = useState('');
   // Archived subjects are hidden by default — toggle to see/unarchive/delete them.
   const [showArchived, setShowArchived] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   // Edit modal state — reused for creating and editing a subject.
   const [editingSubject, setEditingSubject] = useState<any>(null);
@@ -177,6 +180,51 @@ export default function SubjectsPage() {
     } catch (err: any) { alert(err.message); }
   };
 
+  const bulkDeleteSubjects = async () => {
+    if (selectedIds.length === 0) return;
+    const confirmMsg = showArchived
+      ? `Permanently delete all ${selectedIds.length} selected subject(s) and their syllabi? This action cannot be undone.`
+      : `Archive/delete all ${selectedIds.length} selected subject(s)? Their historical marks and course offerings will remain safely preserved.`;
+    if (!confirm(confirmMsg)) return;
+
+    setBulkLoading(true);
+    try {
+      await Promise.all(
+        selectedIds.map(id =>
+          showArchived
+            ? fetchApi(`/api/v1/subjects/${id}/permanent?cascade=true`, { method: 'DELETE' }).catch(() => null)
+            : fetchApi(`/api/v1/subjects/${id}`, { method: 'DELETE' }).catch(() => null)
+        )
+      );
+      setSelectedIds([]);
+      await load();
+    } catch (err: any) {
+      alert('Bulk delete encountered an issue: ' + (err.message || 'Error'));
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const bulkRestoreSubjects = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Restore ${selectedIds.length} selected subject(s) to the active catalog?`)) return;
+
+    setBulkLoading(true);
+    try {
+      await Promise.all(
+        selectedIds.map(id =>
+          fetchApi(`/api/v1/subjects/${id}/restore`, { method: 'POST' }).catch(() => null)
+        )
+      );
+      setSelectedIds([]);
+      await load();
+    } catch (err: any) {
+      alert('Bulk restore encountered an issue: ' + (err.message || 'Error'));
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   // ─── Syllabus editor (subject-owned, shared by every offering) ───
   const openSyllabus = async (s: any) => {
     setSyllabusSubject(s);
@@ -240,24 +288,95 @@ export default function SubjectsPage() {
     <div className="animate-fade-in">
       <Topbar title="Subject Catalog" />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '16px', flexWrap: 'wrap' }}>
         <h3 style={{ margin: 0 }}>All Subjects</h3>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search subjects by code or name..."
+            value={searchTerm}
+            onChange={e => { setSearchTerm(e.target.value); setSelectedIds([]); }}
+            className="input-field"
+            style={{ minWidth: '240px', maxWidth: '320px' }}
+          />
           {isSuperAdmin && activeColleges.length > 0 && (
-            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
+            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => { setCollegeFilter(e.target.value); setSelectedIds([]); }}>
               <option value="">All colleges</option>
               {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <button className="btn-secondary" onClick={() => setShowArchived(!showArchived)}>
+          <button className="btn-secondary" onClick={() => { setShowArchived(!showArchived); setSelectedIds([]); }}>
             {showArchived ? ' Showing Archived' : 'View Archived'}
           </button>
           <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setDepartmentId(''); setBranchId(''); setModalOpen(true); }}>+ Add Subject</button>
         </div>
       </div>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '-12px', marginBottom: '20px' }}>
-        The catalog of subjects (e.g. "Data Structures", CS201, 4 credits). A <strong>course</strong> is an offering of a subject taught to a <strong>section</strong>.
-      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>ℹ️ Note on Catalog:</span>
+        <span>
+          <strong>Active subjects</strong> can be used to create new courses and enroll students. <strong>Archived subjects</strong> are safely retired from the active catalog without deleting historical student grades, past courses, or syllabus data.
+        </span>
+      </div>
+
+      {selectedIds.length > 0 && (
+        <div className="glass-panel animate-fade-in" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 20px',
+          marginBottom: '16px',
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+          borderRadius: '8px',
+          gap: '12px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', color: '#38bdf8' }}>
+              ✓ {selectedIds.length} subject{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {showArchived ? (
+              <>
+                <button
+                  className="btn-primary"
+                  style={{ fontSize: '13px', padding: '6px 14px' }}
+                  disabled={bulkLoading}
+                  onClick={bulkRestoreSubjects}
+                >
+                  {bulkLoading ? 'Restoring...' : `Restore Selected (${selectedIds.length})`}
+                </button>
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '13px', padding: '6px 14px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                  disabled={bulkLoading}
+                  onClick={bulkDeleteSubjects}
+                >
+                  {bulkLoading ? 'Deleting...' : `Delete Permanently (${selectedIds.length})`}
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn-secondary"
+                style={{ fontSize: '13px', padding: '6px 14px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}
+                disabled={bulkLoading}
+                onClick={bulkDeleteSubjects}
+              >
+                {bulkLoading ? 'Processing...' : `Delete / Archive Selected (${selectedIds.length})`}
+              </button>
+            )}
+            <button
+              className="btn-secondary"
+              style={{ fontSize: '13px', padding: '6px 12px' }}
+              onClick={() => setSelectedIds([])}
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="glass-panel" style={{ padding: '15px', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', marginBottom: '20px' }}>
@@ -265,65 +384,110 @@ export default function SubjectsPage() {
         </div>
       )}
 
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Code</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Credits</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
-              {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
-            ) : subjects.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>{showArchived ? 'No archived subjects.' : 'No subjects yet. Add the subjects your college teaches.'}</td></tr>
-            ) : (
-              subjects.filter((s: any) => {
-                if (!collegeFilter) return true;
-                const col = activeColleges.find((x: any) => x.id === collegeFilter);
-                return col ? s.tenant_id === col.tenant_id : true;
-              }).map((s) => (
-                <tr key={s.id} className="table-row" style={{ transition: 'background 0.2s ease' }}>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace', fontSize: '0.9em' }}>{s.code}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{s.name}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{s.credits}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{branchName(s.branch_id) || '—'}</td>
-                  {isSuperAdmin && (
-                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeNameByTenant(s.tenant_id) || '—'}</td>
-                  )}
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                    <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px',
-                      background: s.status === 'ARCHIVED' ? 'rgba(239,68,68,0.15)' : s.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)',
-                      color: s.status === 'ARCHIVED' ? '#f87171' : undefined }}>{s.status}</span>
-                  </td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    {s.deleted_at ? (
-                      <>
-                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
-                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>Delete Forever</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>Syllabus</button>
-                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
-                        <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>Delete</button>
-                      </>
-                    )}
-                  </td>
+      {(() => {
+        const filteredSubjects = subjects.filter((s: any) => {
+          if (collegeFilter) {
+            const col = activeColleges.find((x: any) => x.id === collegeFilter);
+            if (col && s.tenant_id !== col.tenant_id) return false;
+          }
+          if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase().trim();
+            const nameMatch = (s.name || '').toLowerCase().includes(term);
+            const codeMatch = (s.code || '').toLowerCase().includes(term);
+            if (!nameMatch && !codeMatch) return false;
+          }
+          return true;
+        });
+
+        const allSelected = filteredSubjects.length > 0 && selectedIds.length === filteredSubjects.length;
+
+        return (
+          <div className="glass-panel" style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
+                  <th style={{ width: '40px', padding: '15px 12px 15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all subjects"
+                      checked={allSelected}
+                      onChange={() => {
+                        if (allSelected) setSelectedIds([]);
+                        else setSelectedIds(filteredSubjects.map((s: any) => s.id));
+                      }}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                    />
+                  </th>
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Code</th>
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Credits</th>
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
+                  {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan={8} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+                ) : filteredSubjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '20px', textAlign: 'center' }}>
+                      {searchTerm.trim()
+                        ? `No subjects match "${searchTerm}".`
+                        : showArchived ? 'No archived subjects.' : 'No subjects yet. Add the subjects your college teaches.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSubjects.map((s) => (
+                    <tr key={s.id} className="table-row" style={{ transition: 'background 0.2s ease', background: selectedIds.includes(s.id) ? 'rgba(56, 189, 248, 0.05)' : undefined }}>
+                      <td style={{ width: '40px', padding: '15px 12px 15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select subject ${s.code}`}
+                          checked={selectedIds.includes(s.id)}
+                          onChange={() => {
+                            setSelectedIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]);
+                          }}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace', fontSize: '0.9em' }}>{s.code}</td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontWeight: 500 }}>{s.name}</td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{s.credits}</td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{branchName(s.branch_id) || '—'}</td>
+                      {isSuperAdmin && (
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeNameByTenant(s.tenant_id) || '—'}</td>
+                      )}
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                        <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px',
+                          background: s.status === 'ARCHIVED' ? 'rgba(239,68,68,0.15)' : s.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)',
+                          color: s.status === 'ARCHIVED' ? '#f87171' : undefined }}>{s.status}</span>
+                      </td>
+                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
+                        {s.deleted_at ? (
+                          <>
+                            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
+                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
+                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>Delete Forever</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>Syllabus</button>
+                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
+                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>Delete</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {/* Syllabus editor modal — subject-owned, shared by all offerings */}
       {syllabusSubject && (

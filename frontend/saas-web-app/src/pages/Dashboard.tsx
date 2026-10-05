@@ -2449,7 +2449,7 @@ export const Dashboard: React.FC = () => {
               {!examStarted && !quizSubmitResult && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.5rem' }}>Available Quizzes</h2>
+                    <h2 style={{ fontSize: '1.5rem' }}>Available Online Tests</h2>
                     <button onClick={fetchQuizzes} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
                       {quizzesLoading ? 'Loading...' : 'Refresh'}
                     </button>
@@ -2464,7 +2464,7 @@ export const Dashboard: React.FC = () => {
                   {!quizzesLoading && !quizzesError && quizList.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '3rem', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '0.75rem' }}>
                       <CheckSquare size={32} style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }} />
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No quizzes assigned yet. Your trainer will publish quizzes here for you to attempt.</p>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No online tests assigned yet. Your trainer will publish tests here for you to attempt.</p>
                     </div>
                   )}
 
@@ -2507,7 +2507,7 @@ export const Dashboard: React.FC = () => {
                               fontSize: '0.9rem'
                             }}
                           >
-                            {done ? 'Completed' : (isExpired ? 'Closed' : (isUpcoming ? 'Upcoming' : 'Start Quiz'))}
+                            {done ? 'Completed' : (isExpired ? 'Closed' : (isUpcoming ? 'Upcoming' : 'Start Online Test'))}
                           </button>
                         </div>
                       </div>

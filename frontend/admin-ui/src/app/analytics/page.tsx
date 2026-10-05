@@ -45,7 +45,7 @@ export default function AnalyticsPage() {
         count('/api/v1/departments', 'Departments'),
         count('/api/v1/liveclasses', 'Live Classes'),
         count('/api/v1/forums', 'Forum Topics'),
-        count('/api/v1/quizzes', 'Quizzes'),
+        count('/api/v1/quizzes', 'Online Tests'),
         count('/api/v1/certificates', 'Certificates'),
         count('/api/v1/enrollments?count=1', 'Enrollments'),
       ]);
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
         { label: 'Departments', value: fmt(departments), color: '#8b5cf6', icon: '' },
         { label: 'Live Classes', value: fmt(liveclasses), color: '#ff4757', icon: '' },
         { label: 'Forum Topics', value: fmt(forums), color: '#1e90ff', icon: '' },
-        { label: 'Quizzes', value: fmt(quizzes), color: '#ff6348', icon: '' },
+        { label: 'Online Tests', value: fmt(quizzes), color: '#ff6348', icon: '' },
         { label: 'Certificates', value: fmt(certificates), color: '#2ed573', icon: '' },
         { label: 'Enrollments', value: fmt(enrollments), color: '#ffa502', icon: '' },
       ]);
