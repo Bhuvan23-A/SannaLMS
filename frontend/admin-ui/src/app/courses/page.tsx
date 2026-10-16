@@ -385,7 +385,7 @@ export default function CoursesPage() {
         </div>
       )}
 
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
+      <div className="glass-panel" style={{ overflow: 'visible', minHeight: '320px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
@@ -414,8 +414,8 @@ export default function CoursesPage() {
                   if (!sem || Number(course.semester_number) !== Number(sem.semester_number)) return false;
                 }
                 return true;
-              }).map((course) => (
-                <tr key={course.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
+              }).map((course, index, allCourses) => (
+                <tr key={course.id} style={{ transition: 'background 0.2s ease', position: 'relative', zIndex: actionMenuOpenId === course.id ? 100 : 1 }} className="table-row">
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{course.title}</td>
                   {isSuperAdmin && (
                     <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
@@ -492,12 +492,13 @@ export default function CoursesPage() {
                             style={{
                               position: 'absolute',
                               right: 0,
-                              top: '38px',
-                              background: '#0f172a',
-                              border: '1px solid rgba(255,255,255,0.18)',
+                              ...(index > 0 && index >= allCourses.length - 2 ? { bottom: 'calc(100% + 6px)' } : { top: 'calc(100% + 6px)' }),
+                              background: '#0d1527',
+                              border: '1px solid rgba(56, 189, 248, 0.45)',
+                              boxShadow: '0 20px 30px rgba(0, 0, 0, 0.95), 0 0 15px rgba(56, 189, 248, 0.2)',
                               borderRadius: '8px',
-                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.6)',
-                              zIndex: 100,
+                              
+                              zIndex: 1000,
                               minWidth: '180px',
                               padding: '6px 0',
                               textAlign: 'left'
