@@ -38,6 +38,13 @@ export default function CoursesPage() {
   const [deptFilter, setDeptFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
   const [semesterFilter, setSemesterFilter] = useState('');
+  const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = () => setActionMenuOpenId(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -386,7 +393,7 @@ export default function CoursesPage() {
               {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Subject / Section / Session / Yr</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', minWidth: '220px', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -440,28 +447,181 @@ export default function CoursesPage() {
                       return parts.length > 0 ? parts.join(' · ') : '—';
                     })()}
                   </td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    <Link href={`/courses/${course.id}`} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none', marginRight: '10px' }}>
-                      {(isAdmin || isTrainer) ? 'Manage' : 'View'}
-                    </Link>
-                    {(isAdmin || isTrainer) && (
-                      <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResources(course)}>Resources</button>
-                    )}
-                    {(isCollegeAdmin) && (
-                      <>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignTrainer(course)}>Assign Trainer</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAddStudent(course)}>+ Add Student</button>
-                      </>
-                    )}
-                    {isAdmin && (
-                      <>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => toggleCoursePublish(course)}>
-                          {course.status === 'PUBLISHED' ? '↩ Unpublish' : 'Publish'}
+                  <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap', position: 'relative' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                      <Link 
+                        href={`/courses/${course.id}`} 
+                        className="btn-primary" 
+                        style={{ padding: '6px 14px', fontSize: '12px', height: '32px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        {(isAdmin || isTrainer) ? 'Manage' : 'View'}
+                      </Link>
+
+                      {isAdmin && (
+                        <button 
+                          className="btn-secondary" 
+                          style={{ padding: '6px 12px', fontSize: '12px', height: '32px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                          onClick={() => setEditingCourse(course)}
+                        >
+                          Edit
                         </button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => setEditingCourse(course)}>Edit</button>
-                        <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteCourse(course.id)}>Delete</button>
-                      </>
-                    )}
+                      )}
+
+                      {/* Dropdown Menu for Auxiliary Actions */}
+                      <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '12px',
+                            height: '32px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: actionMenuOpenId === course.id ? 'rgba(56, 189, 248, 0.15)' : undefined,
+                            borderColor: actionMenuOpenId === course.id ? '#38bdf8' : undefined,
+                          }}
+                          onClick={() => setActionMenuOpenId(actionMenuOpenId === course.id ? null : course.id)}
+                        >
+                          <span>More</span> ▾
+                        </button>
+
+                        {actionMenuOpenId === course.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '38px',
+                              background: '#0f172a',
+                              border: '1px solid rgba(255,255,255,0.18)',
+                              borderRadius: '8px',
+                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.6)',
+                              zIndex: 100,
+                              minWidth: '180px',
+                              padding: '6px 0',
+                              textAlign: 'left'
+                            }}
+                          >
+                            {(isAdmin || isTrainer) && (
+                              <button
+                                style={{
+                                  width: '100%',
+                                  padding: '9px 14px',
+                                  fontSize: '12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#e2e8f0',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                onClick={() => { setActionMenuOpenId(null); openResources(course); }}
+                              >
+                                📁 Course Resources
+                              </button>
+                            )}
+
+                            {isCollegeAdmin && (
+                              <>
+                                <button
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 14px',
+                                    fontSize: '12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#e2e8f0',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                  onClick={() => { setActionMenuOpenId(null); openAssignTrainer(course); }}
+                                >
+                                  👨‍🏫 Assign Trainer
+                                </button>
+                                <button
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 14px',
+                                    fontSize: '12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#e2e8f0',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                  onClick={() => { setActionMenuOpenId(null); openAddStudent(course); }}
+                                >
+                                  🎓 Enroll Student
+                                </button>
+                              </>
+                            )}
+
+                            {isAdmin && (
+                              <>
+                                <button
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 14px',
+                                    fontSize: '12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: course.status === 'PUBLISHED' ? '#f59e0b' : '#10b981',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                  onClick={() => { setActionMenuOpenId(null); toggleCoursePublish(course); }}
+                                >
+                                  {course.status === 'PUBLISHED' ? '↩ Unpublish' : '🚀 Publish Course'}
+                                </button>
+
+                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+
+                                <button
+                                  style={{
+                                    width: '100%',
+                                    padding: '9px 14px',
+                                    fontSize: '12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.15)')}
+                                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                  onClick={() => { setActionMenuOpenId(null); deleteCourse(course.id); }}
+                                >
+                                  🗑️ Delete Course
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))

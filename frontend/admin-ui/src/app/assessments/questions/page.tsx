@@ -388,69 +388,15 @@ export default function QuestionsPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Question Bank</h1>
-          <div style={{ marginTop: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {isSuperAdmin && colleges.length > 0 && (
-              <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>College:</label>
-                <select className="input-field" style={{ maxWidth: '220px' }} value={collegeId} onChange={e => { setCollegeId(e.target.value); setSubjectId(''); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}>
-                  {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </>
-            )}
-            {visibleSubjects.length > 0 && (
-              <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Subject:</label>
-                <select className="input-field" style={{ maxWidth: '240px' }} value={subjectId} onChange={e => setSubjectId(e.target.value)}>
-                  <option value="">All Subjects</option>
-                  {visibleSubjects.map((s: any) => <option key={s.id} value={s.id}>{s.code ? `${s.code} · ` : ''}{s.name}</option>)}
-                </select>
-              </>
-            )}
-            {visibleCourses.length > 0 && (
-              <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course:</label>
-                <select className="input-field" style={{ maxWidth: '300px' }} value={courseId} onChange={e => setCourseId(e.target.value)}>
-                  <option value="">All offerings</option>
-                  {visibleCourses.map((c: any) => <option key={c.id} value={c.id}>{collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
-                </select>
-              </>
-            )}
-            {isAdmin && (
-              <>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Department:</label>
-                <select className="input-field" style={{ maxWidth: '180px' }} value={deptId} onChange={e => { setDeptId(e.target.value); setBranchId(''); setSemId(''); }}>
-                  <option value="">All</option>
-                  {visibleDepartments.length === 0 ? <option value="" disabled>No departments yet</option> : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Branch:</label>
-                <select className="input-field" style={{ maxWidth: '180px' }} value={branchId} onChange={e => { setBranchId(e.target.value); setSemId(''); }}>
-                  <option value="">All</option>
-                  {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option> : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Semester:</label>
-                <select className="input-field" style={{ maxWidth: '220px' }} value={semId} onChange={e => setSemId(e.target.value)}>
-                  <option value="">All</option>
-                  {visibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option> : visibleSemesters.map((s: any) => {
-                    // Same-named semesters exist in every branch — qualify with the
-                    // branch so "Semester 1" isn't listed 300 times (#fix)
-                    const br = branches.find((b: any) => b.id === s.branch_id);
-                    const brName = br?.name ? `${br.name} · ` : '';
-                    const colName = isSuperAdmin ? `${collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : ''}` : '';
-                    return <option key={s.id} value={s.id}>{colName}{brName}{s.name}</option>;
-                  })}
-                </select>
-                {orgEmpty && isSuperAdmin && (
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    ℹ️ No departments yet for this college — add them under Management → Departments / Branches / Semesters.
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontSize: '13px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            ← Back to Assessments
+          </Link>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '6px', letterSpacing: '-0.5px' }}>Question Bank</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+            Browse, filter, and author questions across colleges, departments, subjects, and semesters.
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="button" className="btn-secondary" style={{ fontSize: '13px', background: 'rgba(56, 189, 248, 0.08)', borderColor: 'rgba(56, 189, 248, 0.3)' }} onClick={downloadSampleTemplate}>
@@ -469,6 +415,147 @@ export default function QuestionsPage() {
           </button>
           <button className="btn-primary" style={{ fontSize: '13px' }} onClick={() => setShowForm(!showForm)}>+ Add Question</button>
         </div>
+      </div>
+
+      {/* Structured Filter Grid Panel (ISSUE-04) */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.75)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '12px',
+        padding: '18px 20px',
+        marginBottom: '24px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🔍</span> Filter & Hierarchy Scope
+          </span>
+          {(collegeId || subjectId || courseId || deptId || branchId || semId) && (
+            <button
+              type="button"
+              onClick={() => { setSubjectId(''); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gap: '14px',
+          alignItems: 'start'
+        }}>
+          {isSuperAdmin && colleges.length > 0 && (
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                College
+              </label>
+              <select
+                className="input-field"
+                style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                value={collegeId}
+                onChange={e => { setCollegeId(e.target.value); setSubjectId(''); setDeptId(''); setBranchId(''); setSemId(''); setCourseId(''); }}
+              >
+                {colleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {visibleSubjects.length > 0 && (
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Subject
+              </label>
+              <select
+                className="input-field"
+                style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                value={subjectId}
+                onChange={e => setSubjectId(e.target.value)}
+              >
+                <option value="">All Subjects</option>
+                {visibleSubjects.map((s: any) => <option key={s.id} value={s.id}>{s.code ? `${s.code} · ` : ''}{s.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {visibleCourses.length > 0 && (
+            <div>
+              <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Course
+              </label>
+              <select
+                className="input-field"
+                style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                value={courseId}
+                onChange={e => setCourseId(e.target.value)}
+              >
+                <option value="">All Offerings</option>
+                {visibleCourses.map((c: any) => <option key={c.id} value={c.id}>{collegeNameByTenant(c.tenant_id) ? `${collegeNameByTenant(c.tenant_id)} · ${c.title}` : c.title}</option>)}
+              </select>
+            </div>
+          )}
+
+          {isAdmin && (
+            <>
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  Department
+                </label>
+                <select
+                  className="input-field"
+                  style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                  value={deptId}
+                  onChange={e => { setDeptId(e.target.value); setBranchId(''); setSemId(''); }}
+                >
+                  <option value="">All Departments</option>
+                  {visibleDepartments.length === 0 ? <option value="" disabled>No departments yet</option> : visibleDepartments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  Branch
+                </label>
+                <select
+                  className="input-field"
+                  style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                  value={branchId}
+                  onChange={e => { setBranchId(e.target.value); setSemId(''); }}
+                >
+                  <option value="">All Branches</option>
+                  {visibleBranches.length === 0 ? <option value="" disabled>No branches yet</option> : visibleBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', color: '#94a3b8', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  Semester
+                </label>
+                <select
+                  className="input-field"
+                  style={{ width: '100%', height: '38px', padding: '0 32px 0 12px', fontSize: '13px', background: 'rgba(10, 15, 30, 0.7)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '8px', colorScheme: 'dark' }}
+                  value={semId}
+                  onChange={e => setSemId(e.target.value)}
+                >
+                  <option value="">All Semesters</option>
+                  {visibleSemesters.length === 0 ? <option value="" disabled>No semesters yet</option> : visibleSemesters.map((s: any) => {
+                    const br = branches.find((b: any) => b.id === s.branch_id);
+                    const brName = br?.name ? `${br.name} · ` : '';
+                    const colName = isSuperAdmin ? `${collegeNameByTenant(s.tenant_id) ? `${collegeNameByTenant(s.tenant_id)} · ` : ''}` : '';
+                    return <option key={s.id} value={s.id}>{colName}{brName}{s.name}</option>;
+                  })}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+
+        {orgEmpty && isSuperAdmin && (
+          <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)', fontSize: '12px', color: '#bae6fd' }}>
+            ℹ️ No departments yet for this college — add them under Management → Departments / Branches / Semesters.
+          </div>
+        )}
       </div>
 
       {importMessage && (

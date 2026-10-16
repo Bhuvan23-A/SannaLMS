@@ -32,47 +32,65 @@ export default function CollegeTargetPicker({
   };
 
   return (
-    <div style={{ marginTop: '10px' }}>
-      <label style={{ display: 'block', marginBottom: '5px' }}>
-        Visible To Colleges {allSelected ? '(All Colleges)' : ''}
+    <div style={{ marginTop: '4px' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+        <span>🏛️</span> Target Audience / Colleges {allSelected ? <span style={{ color: '#38bdf8', fontSize: '12px' }}>(Broadcasting to All)</span> : ''}
       </label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
         <label
           style={{
-            display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-            padding: '6px 10px', borderRadius: '6px', background: 'rgba(0,200,255,0.08)',
-            border: '1px solid rgba(0,200,255,0.3)',
+            display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+            padding: '7px 12px', borderRadius: '6px',
+            background: allSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            border: allSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+            color: allSelected ? '#ffffff' : '#cbd5e1',
+            fontSize: '13px',
+            fontWeight: 500,
+            transition: 'all 0.15s ease'
           }}
         >
-          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-          All Colleges
+          <input 
+            type="checkbox" 
+            checked={allSelected} 
+            onChange={toggleAll} 
+            style={{ accentColor: '#38bdf8', width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          🌐 All Colleges
         </label>
-        {activeColleges.map((c: any) => (
-          <label
-            key={c.id}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-              padding: '6px 10px', borderRadius: '6px',
-              background: value.includes(c.tenant_id) ? 'rgba(0,200,255,0.08)' : 'transparent',
-              border: value.includes(c.tenant_id) ? '1px solid rgba(0,200,255,0.3)' : '1px solid var(--border-color, #333)',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={value.includes(c.tenant_id)}
-              onChange={() => toggleCollege(c.tenant_id)}
-            />
-            {c.name}
-          </label>
-        ))}
+        {activeColleges.map((c: any) => {
+          const isSelected = value.includes(c.tenant_id);
+          return (
+            <label
+              key={c.id}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                padding: '7px 12px', borderRadius: '6px',
+                background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.2)',
+                color: isSelected ? '#ffffff' : '#cbd5e1',
+                fontSize: '13px',
+                fontWeight: 500,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleCollege(c.tenant_id)}
+                style={{ accentColor: '#38bdf8', width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              🏛️ {c.name}
+            </label>
+          );
+        })}
         {activeColleges.length === 0 && (
-          <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+          <span style={{ color: '#94a3b8', fontSize: '13px' }}>
             No active colleges yet.
           </span>
         )}
       </div>
-      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '5px' }}>
-        Leave empty to keep it in your own workspace only.
+      <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', marginBottom: 0 }}>
+        💡 Leave unselected to restrict visibility to your own institutional workspace.
       </p>
     </div>
   );

@@ -249,7 +249,7 @@ export default function SectionsPage() {
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Year of Study</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Semester</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', minWidth: '240px', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -264,17 +264,31 @@ export default function SectionsPage() {
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{s.year_of_study}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{s.semester_number}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{s.name || '—'}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openRoster(s)}>Roster</button>
-                    <button
-                      className="btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '12px', marginRight: '6px', color: '#00c864', borderColor: '#00c864' }}
-                      onClick={() => startPromote(s)}
-                      title={nextSection(s) ? `Promote cohort to ${sectionLabel(nextSection(s)!)}` : 'Create the next semester section first'}
-                    >
-                      Promote
-                    </button>
-                    <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSection(s.id)}>Delete</button>
+                  <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button 
+                        className="btn-primary" 
+                        style={{ padding: '6px 12px', fontSize: '12px', height: '32px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                        onClick={() => openRoster(s)}
+                      >
+                        👥 Roster
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '12px', height: '32px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)', background: 'rgba(16, 185, 129, 0.08)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => startPromote(s)}
+                        title={nextSection(s) ? `Promote cohort to ${sectionLabel(nextSection(s)!)}` : 'Create the next semester section first'}
+                      >
+                        ⬆️ Promote
+                      </button>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '6px 12px', fontSize: '12px', height: '32px', color: 'var(--danger-color)', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.08)', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                        onClick={() => deleteSection(s.id)}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
