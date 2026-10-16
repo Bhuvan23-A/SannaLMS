@@ -136,7 +136,7 @@ export default function Sidebar() {
           ]
         },
         {
-          title: 'Analytics & Rewards',
+          title: 'Analytics & Certificates',
           items: [
             { name: 'Certificates', href: '/certificates', icon: Award },
             { name: 'Analytics', href: '/analytics', icon: BarChart3 },

@@ -25,7 +25,7 @@ import {
 export default function Home() {
   const { role, isTrainer } = useRole();
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
-  const [stats, setStats] = useState<{ colleges: number | null; departments: number | null; courses: number | null; students: number | null }>({ colleges: null, departments: null, courses: null, students: null });
+  const [stats, setStats] = useState<{ colleges: number | null; departments: number | null; courses: number | null; publishedCourses: number | null; students: number | null; enrollments: number | null }>({ colleges: null, departments: null, courses: null, publishedCourses: null, students: null, enrollments: null });
   const [collegesList, setCollegesList] = useState<any[]>([]);
   const [recentCourses, setRecentCourses] = useState<any[]>([]);
 
@@ -68,15 +68,20 @@ export default function Home() {
         } catch { }
       }
 
-      if (studentCount === null) {
-        studentCount = await load('/api/v1/enrollments?count=1');
-      }
+      let enrollmentsCount: number | null = null;
+      try {
+        const enr = await fetchApi('/api/v1/enrollments?count=1');
+        if (typeof (enr as any)?.count === 'number') enrollmentsCount = (enr as any).count;
+        else if (Array.isArray(enr)) enrollmentsCount = enr.length;
+      } catch { }
 
       let courseCount: number | null = null;
+      let publishedCount: number | null = null;
       try {
         const coursesData = await fetchApi('/api/v1/courses');
         if (Array.isArray(coursesData)) {
           courseCount = coursesData.length;
+          publishedCount = coursesData.filter((c: any) => c.status === 'PUBLISHED' || c.is_published || c.published_at).length;
           setRecentCourses(
             [...coursesData]
               .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
@@ -90,7 +95,7 @@ export default function Home() {
         if (Array.isArray(cols)) setCollegesList(cols);
       } catch { }
 
-      setStats({ colleges, departments, courses: courseCount, students: studentCount });
+      setStats({ colleges, departments, courses: courseCount, publishedCourses: publishedCount, students: studentCount, enrollments: enrollmentsCount });
     })();
   }, [isTrainer]);
 
@@ -116,6 +121,7 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.colleges)}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active institutions</div>
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
@@ -128,30 +134,37 @@ export default function Home() {
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.departments)}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Academic departments</div>
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Active Courses
+              Course Offerings
             </span>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <BookOpen size={16} color="#38bdf8" />
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.courses)}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            {stats.publishedCourses != null ? `${fmt(stats.publishedCourses)} published` : 'Catalog offerings'}
+          </div>
         </div>
 
         <div className="panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(10, 27, 53, 0.75)', border: '1px solid rgba(56, 189, 248, 0.22)', borderTop: '2px solid #38bdf8', boxShadow: '0 8px 24px rgba(2, 12, 27, 0.5)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Total Enrollments
+              Enrolled Students
             </span>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.18)', border: '1px solid rgba(56, 189, 248, 0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users size={16} color="#38bdf8" />
             </div>
           </div>
           <div style={{ fontSize: '30px', fontWeight: 700, color: '#38bdf8', letterSpacing: '-0.02em' }}>{fmt(stats.students)}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            {stats.enrollments != null ? `${fmt(stats.enrollments)} course enrollments` : 'Active student accounts'}
+          </div>
         </div>
       </div>
 
@@ -165,7 +178,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0, color: '#fff' }}>Top Institutes &amp; Campuses</h3>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Institutional campuses onboarded in SannaLMS</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Institutional campuses onboarded on Edulateral LMS</span>
               </div>
             </div>
             <Link href="/colleges" style={{ fontSize: '12px', color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>

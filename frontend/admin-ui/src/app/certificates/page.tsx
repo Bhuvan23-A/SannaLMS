@@ -23,6 +23,9 @@ export default function CertificatesPage() {
   const [templateCourseId, setTemplateCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
   const [issueCollegeId, setIssueCollegeId] = useState('');
+  const [certSearch, setCertSearch] = useState('');
+  const [certStatusFilter, setCertStatusFilter] = useState<'ALL' | 'ACTIVE' | 'REVOKED'>('ALL');
+  const [certCollegeFilter, setCertCollegeFilter] = useState('');
   const { colleges, activeColleges, isSuperAdmin, collegeNameByTenant } = useColleges();
 
   const issueCollege = colleges.find((c: any) => c.id === issueCollegeId);
@@ -219,6 +222,20 @@ export default function CertificatesPage() {
       alert(err.message || 'Failed to batch issue certificates');
     } finally { setBatchIssuing(false); }
   };
+
+  const filteredCertificates = certificates.filter((c: any) => {
+    if (certStatusFilter === 'ACTIVE' && c.is_revoked) return false;
+    if (certStatusFilter === 'REVOKED' && !c.is_revoked) return false;
+    if (certCollegeFilter && c.tenant_id && c.tenant_id !== certCollegeFilter) return false;
+    if (certSearch) {
+      const q = certSearch.toLowerCase();
+      const matchName = (c.student_name || '').toLowerCase().includes(q);
+      const matchCourse = (c.course_title || '').toLowerCase().includes(q);
+      const matchNo = (c.certificate_no || '').toLowerCase().includes(q);
+      if (!matchName && !matchCourse && !matchNo) return false;
+    }
+    return true;
+  });
 
   if (loading) return <div className="fade-in" style={{ padding: '20px' }}>Loading certificates...</div>;
 
@@ -572,18 +589,76 @@ export default function CertificatesPage() {
         </form>
       )}
 
-      {/* All Certificates List */}
-      <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>
-        {(isAdmin || isTrainer) ? 'All Certificates' : 'My Certificates'}
-      </h2>
+      {/* All Certificates List Header & Filters */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: '20px', margin: 0 }}>
+            {(isAdmin || isTrainer) ? 'All Issued Certificates' : 'My Certificates'}
+          </h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            Showing {filteredCertificates.length} of {certificates.length} certificates
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="🔍 Search student, course or cert #..."
+            style={{ width: '260px', padding: '6px 12px', fontSize: '13px' }}
+            value={certSearch}
+            onChange={e => setCertSearch(e.target.value)}
+          />
+
+          <select
+            className="input-field"
+            style={{ width: '130px', padding: '6px 10px', fontSize: '13px' }}
+            value={certStatusFilter}
+            onChange={e => setCertStatusFilter(e.target.value as any)}
+          >
+            <option value="ALL">All Status</option>
+            <option value="ACTIVE">Active Only</option>
+            <option value="REVOKED">Revoked Only</option>
+          </select>
+
+          {isSuperAdmin && activeColleges.length > 0 && (
+            <select
+              className="input-field"
+              style={{ maxWidth: '180px', padding: '6px 10px', fontSize: '13px' }}
+              value={certCollegeFilter}
+              onChange={e => setCertCollegeFilter(e.target.value)}
+            >
+              <option value="">All Colleges</option>
+              {activeColleges.map((col: any) => (
+                <option key={col.id} value={col.tenant_id}>{col.name}</option>
+              ))}
+            </select>
+          )}
+
+          {(certSearch || certStatusFilter !== 'ALL' || certCollegeFilter) && (
+            <button
+              className="btn-secondary"
+              style={{ padding: '6px 12px', fontSize: '12px' }}
+              onClick={() => { setCertSearch(''); setCertStatusFilter('ALL'); setCertCollegeFilter(''); }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
       {certificates.length === 0 ? (
         <div className="panel" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-secondary)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎓</div>
           <p>No certificates issued yet. Complete a course to earn one!</p>
+        </div>
+      ) : filteredCertificates.length === 0 ? (
+        <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+          <p>No certificates match your search query or filter criteria.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-          {certificates.map(c => (
+          {filteredCertificates.map(c => (
             <div key={c.id} className="panel" style={{
               background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
               border: '1px solid rgba(139,92,246,0.3)',
@@ -592,7 +667,7 @@ export default function CertificatesPage() {
             }}>
               {/* Decorative seal */}
               <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(139,92,246,0.2)', border: '2px solid rgba(139,92,246,0.4)' }} />
-              <div style={{ position: 'absolute', top: '0px', right: '0px', fontSize: '40px', opacity: 0.3 }}></div>
+              <div style={{ position: 'absolute', top: '0px', right: '0px', fontSize: '40px', opacity: 0.3 }}>🎓</div>
 
               <div style={{ position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>

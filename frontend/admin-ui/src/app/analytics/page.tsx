@@ -39,7 +39,15 @@ export default function AnalyticsPage() {
           return null;
         }
       };
-      const [coursesData, colleges, departments, liveclasses, forums, quizzes, certificates, enrollments] = await Promise.all([
+      let enrollmentsVal = await count('/api/v1/enrollments?count=1', 'Enrollments');
+      if (enrollmentsVal === null) {
+        enrollmentsVal = await count('/api/v1/enrollments', 'Enrollments');
+      }
+      if (enrollmentsVal === null) {
+        enrollmentsVal = await count('/api/v1/users?role=student', 'Students');
+      }
+
+      const [coursesData, colleges, departments, liveclasses, forums, quizzes, certificates] = await Promise.all([
         count('/api/v1/courses?count=1', 'Courses'),
         count('/api/v1/colleges?count=1', 'Colleges'),
         count('/api/v1/departments', 'Departments'),
@@ -47,17 +55,17 @@ export default function AnalyticsPage() {
         count('/api/v1/forums', 'Forum Topics'),
         count('/api/v1/quizzes', 'Online Tests'),
         count('/api/v1/certificates', 'Certificates'),
-        count('/api/v1/enrollments?count=1', 'Enrollments'),
       ]);
       const fmt = (n: number | null) => n === null ? '—' : n.toLocaleString();
       setStats([
-        { label: 'Courses', value: fmt(coursesData), color: '#00a8ff', icon: '' },        {label: isCollegeAdmin ? 'My College' : 'Colleges', value: fmt(colleges), color: '#00c864', icon: '' },
-        { label: 'Departments', value: fmt(departments), color: '#8b5cf6', icon: '' },
-        { label: 'Live Classes', value: fmt(liveclasses), color: '#ff4757', icon: '' },
-        { label: 'Forum Topics', value: fmt(forums), color: '#1e90ff', icon: '' },
-        { label: 'Online Tests', value: fmt(quizzes), color: '#ff6348', icon: '' },
-        { label: 'Certificates', value: fmt(certificates), color: '#2ed573', icon: '' },
-        { label: 'Enrollments', value: fmt(enrollments), color: '#ffa502', icon: '' },
+        { label: 'Courses', value: fmt(coursesData), color: '#00a8ff', icon: '📚' },
+        { label: isCollegeAdmin ? 'My College' : 'Colleges', value: fmt(colleges), color: '#00c864', icon: '🏛️' },
+        { label: 'Departments', value: fmt(departments), color: '#8b5cf6', icon: '🏢' },
+        { label: 'Live Classes', value: fmt(liveclasses), color: '#ff4757', icon: '📹' },
+        { label: 'Forum Topics', value: fmt(forums), color: '#1e90ff', icon: '💬' },
+        { label: 'Online Tests', value: fmt(quizzes), color: '#ff6348', icon: '📝' },
+        { label: 'Certificates', value: fmt(certificates), color: '#2ed573', icon: '🎓' },
+        { label: 'Enrollments', value: fmt(enrollmentsVal), color: '#ffa502', icon: '👥' },
       ]);
       try {
         const data = await fetchApi('/api/v1/courses');

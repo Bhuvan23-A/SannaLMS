@@ -1,0 +1,668 @@
+﻿Sanna LMS Review and Correction Register
+Review scope and evidence limits
+This is a production read-only Super Admin UI review, not a completed functional UAT, security audit, or capacity certification. Every visible top-level menu was visited. Available list pages, representative filters, safe form views, course management tabs, a section roster, an existing test submission and response review, a closed forum, certificate verification, and relevant empty states were inspected. No users or records were created; nothing was edited, deleted, archived, promoted, published, recalculated, issued, revoked, uploaded, sent, or marked read. Credentials were entered by the user. No load or attack tests were run.
+The user confirmed that only the current Super Admin session is available. Student, Trainer and College Admin UX and permission enforcement remain unvalidated. Buttons that can alter production data were inventoried but not executed. Save validation, import execution, bulk operations, recovery, notification delivery, live classroom joining, GPS attendance, and end-to-end grade calculation need an approved staging environment. Not every record, edit dialog, filter combination, or state-dependent workflow was exercised. A comprehensive module review is delivered below, with those limits preserved rather than declaring all workflows passed.
+Evidence labels: Observed = visible UI behavior or text; Needs validation = implementation or outcome not established by navigation; Proposed = improvement or requirement. Priority expresses potential business impact; it does not turn an untested risk into a confirmed defect.
+1 Executive Summary
+Go-live readiness is not established. Sanna LMS exposes a useful institutional and teaching structure, but Edulateral should withhold sign-off for a 10,000-user rollout or a 500-student simultaneous Online Test until the security, data integrity, grading and capacity gates below pass.
+The most urgent observation is predictable credential provisioning: Bulk Import states that a student's phone number becomes the password, with a common fallback. College onboarding also describes a fixed temporary administrator password. Whether first-login password change is enforced was not established. These policies require immediate review and replacement with secure activation or unique short-lived credentials.
+Reporting cannot currently be trusted without reconciliation. Dashboard displays 188 total enrollments and 2 active courses. User Directory shows 194 users, including 188 students. Both visible courses are DRAFT, their course enrollment tabs show 0, and Analytics reports 0 enrollments and 0 quizzes, despite visible Online Tests and an existing submission. Different data models or scopes may explain some differences, but the UI does not explain them.
+Edulateral's Subject search and bulk-selection concerns are confirmed. Archive semantics are unclear: “Showing Archived” retained published and draft subjects and still offered Archive actions. Academic Sessions should be retained because courses and sections reference them; it needs clearer per-college semantics and a distinction from admission batches. Assessment Overview is currently a navigation landing page and can be simplified. The Question Bank template button already exists, although a completed download was not captured during this session.
+Gradebook is not operationally self-explanatory: populated assessment submissions coexist with an empty calculated-grade view, with no visible grading formula, weighting or calculation history. Engagement tools offer practical uses, but Analytics is limited to counts and recent courses; no separate Rewards implementation is exposed.
+Menu coverage
+Area
+Pages and safe views reviewed
+Main limits
+Overview
+Dashboard; Calendar and event form; Notifications compose controls, preferences and sent history
+No event scheduling, sending, preference updates or mark-read actions
+Institutional structure
+Colleges and onboarding form; Departments and form; Branches and form; Semesters and form; Sections and form; AVIT section roster
+No create/edit/delete/hold/reset/promote or roster changes
+Users
+Directory search and empty-result state; roles and institution filters inventoried; Bulk Import fields and placement options
+No role changes, password resets or imports; no separate permission matrix exposed
+Academics
+Both course builders; trainer, enrollment and prerequisite views; Reference Materials list and link/file forms; Subjects, college filter, archive toggle, syllabus and add form; Academic Sessions and add form
+Both course builders had no modules; no saved content or actual student access tested
+Assessments
+Overview; Question Bank default and course-scoped questions, MCQ/Coding form; Online Test configuration, DSU and AVIT lists, populated submission and response grading view; Assignments lists/form; Gradebook for both courses
+No publish/upload/regrade/recalculate; sample download not confirmed; other submission records and all question types not exhausted
+Engagement
+Live Classes and scheduling form for available courses; Attendance and GPS form; closed forum detail; group chat and DM UI
+No scheduled live/attendance records in inspected course views; no meeting participation, GPS check-in or messaging
+Analytics & Rewards
+Certificates list, batch-issue setup and existing certificate verification; Analytics
+No issue/revoke/upload or batch calculation; no Rewards page exposed
+Other requested areas
+Search/filter inconsistencies and export/import/bulk controls recorded throughout
+Reports and granular Roles & Permissions not exposed as separate menus; Student/Trainer sessions unavailable
+2 Detailed LMS Correction List
+The required seven fields appear in every row. IDs support implementation and UAT tracking. “Missing” means not exposed in the reviewed UI unless explicitly stated otherwise.
+Detailed correction register
+Module
+Existing Functionality
+Issue
+Required Correction
+Reason
+Priority
+Acceptance Criteria
+SEC-01 Bulk User Import
+Phone becomes login password; fallback for missing phones
+Observed predictable and potentially shared credentials
+Use secure activation links or unique random short-lived temporary credentials; enforce first-use change; review existing account exposure
+Phone numbers are discoverable and reusable; shared fallback expands risk
+Critical
+No phone-derived or shared default credential; expiry and one-time use verified; user sets private password before normal access; remediation plan approved for existing accounts
+SEC-02 College onboarding
+Creates tenant and admin in Keycloak; form describes fixed temporary password
+Observed common administrator initial password; expiry/change requirement unclear
+Replace with unique secure activation and forced first-login setup; require privileged-account MFA
+Administrator takeover affects whole institutions
+Critical
+Two new staging administrators never share an initial secret; temporary access expires; forced change and MFA verified; secrets excluded from logs
+SEC-03 Tenant and role isolation
+Super Admin sees colleges, users, materials, assessments and chat
+Needs validation: this privileged session cannot prove College Admin, Trainer or Student restrictions
+Enforce tenant, course, cohort and action authorization on every server endpoint and file access
+UI hiding alone cannot protect multi-university records
+Critical
+Automated positive/negative role matrix passes; cross-tenant ID substitution denied; student cannot access answer keys, other submissions, grades or staff files
+USR-01 User Directory
+194 users, search, college and role filters; per-user role/reset controls
+Observed long unpaginated directory; no visible page-size controls
+Add server-side paging, sorting and indexed search with stable totals
+Loading every user will be costly at 10,000 users
+High
+10,000-user dataset browses in bounded pages; search/filters use full dataset; row actions remain attached to the correct identity
+USR-02 User identity
+Names, emails, role and institution shown
+Observed same email under different roles/institutions; suspicious name/email pairing and malformed email-like data
+Audit identity and membership model; support one identity with explicit memberships where intended; validate import rows and review ambiguous records
+Duplicate or misbound identities can assign data and credentials to the wrong person
+High
+Unique identity rules documented; intentional multi-college membership visible; duplicate conflict preview works; malformed addresses and suspicious mappings reviewed without silent overwrite
+USR-03 Roles & Permissions
+Directory has Change Role; import guide names student, professor/instructor, teaching assistant and college admin
+No visible granular permission matrix; multiple trainer/admin naming schemes
+Publish a role/action matrix and normalize internal roles to clear labels; add scoped management if customization is required
+Edulateral needs consistent responsibility and access
+High
+Matrix covers every module/action; College Admin and course-scoped Trainer/TA/Guest roles tested; unauthorized escalation denied and audited
+IMP-01 Bulk User Import
+CSV upload/paste, sample controls, role and academic placement presets
+Observed DSU selection with branches/sessions/sections from other institutions and ambiguous duplicate labels
+Cascade options by tenant and parent selection; include college, branch, semester and session in labels; reset invalid selections
+Incorrect placements are multiplied by bulk imports
+High
+DSU preset lists only valid DSU relationships; changing college clears incompatible defaults; server rejects foreign-tenant relationships
+IMP-02 Bulk User Import
+One Import Users action
+Needs validation: preview, dry-run, duplicate handling, resumability and partial failure behavior
+Provide preview with row-level validation, explicit duplicate policy, job progress and downloadable error report
+A failed 10,000-row import must not create invisible partial state
+High
+Staging import with valid/invalid/duplicate rows has predictable results; safe retry creates no duplicate identities; Keycloak and LMS records reconcile; no outbound message without stated policy
+IMP-03 Academic terminology
+Import combines Batch / Academic Year; guide uses an admission batch such as 2024–2028
+Observed conflation of intake batch with running academic session
+Separate admission batch, academic session, semester and section in UI/schema/template
+Universities need cohorts spanning several academic years
+High
+A 2024–2028 intake can appear in multiple sessions without rewriting its identity; template columns map unambiguously; histories survive progression
+INS-01 Colleges
+Tenant onboarding, Edit, Admin, Reset Pwd, Hold, Delete Forever
+Observed destructive/security actions alongside routine actions; safeguards untested
+Use separate danger area, named confirmation, dependency preview, audit and retention/recovery policy
+Tenant deletion or suspension can affect thousands of students
+High
+Staging destructive workflow displays affected counts and tenant identity; typed confirmation and authorization required; protected records retained or recoverable according to policy
+INS-02 Departments
+College filter, creation, delete; raw UUID and system-user attribution
+No visible rename/edit; technical identifiers dominate operational details
+Add safe rename and dependency-aware archive; show meaningful creator/time where known; move UUID to details
+Administrators need maintainable institutional structure and accountability
+Medium
+Rename preserves relationships; dependent records block unsafe deletion; real audit actor/time available; list remains understandable without UUIDs
+INS-03 Semesters and Sections
+Semesters described as fixed program timeline; both semester and section lists have Promote
+Observed confusing promotion ownership; semester name/number mismatch in existing data
+Make section/cohort progression the primary workflow; keep semester definitions stable; preview next section, session and enrollments
+Promotion must preserve historical grades and not alter program definitions
+High
+Promotion rehearsal moves approved students only, preserves old results, handles failures safely and is repeat-safe; inconsistent names/numbers corrected after review
+INS-04 Section Roster
+Student picker, Add count, auto-enrollment explanation
+Observed AVIT roster picker contains a user shown as DSU in Directory and many global options
+Scope picker to eligible tenant students; add searchable multi-select and conflict reasons
+Cross-college enrollment and huge dropdowns are error-prone
+High
+Only eligible same-tenant students appear by default; intentional cross-tenant access requires explicit policy; duplicates prevented; 10,000-user search stays responsive
+INS-05 Sections
+Session/branch filters; form derives year from semester pairs
+Proposed flexibility for nonstandard program length, training programs and named batches
+Configure program timeline and cohort labels; support short training cohorts without requiring an eight-semester university model
+Edulateral serves multiple program structures
+Medium
+Two-semester, eight-semester and short-course examples configure correctly; year mapping documented; invalid semester outside program rejected
+SUB-01 Subjects
+College filter, status, syllabus and individual actions
+Observed no search
+Add name/code search with status, department and branch filters
+Catalog grows across universities and programs
+High
+Case-insensitive partial search by name/code works across authorized catalog; combines with filters; clear/reset and no-results states present
+SUB-02 Subjects
+Individual Archive/Delete
+Observed no row checkboxes or bulk action controls
+Add scoped multi-selection and bulk Archive; tightly control bulk Delete with dependency validation
+Manual cleanup does not scale
+High
+Select page/all filtered results shows exact count; protected dependencies identified; unauthorized rows excluded; archive reversible; partial failures reported; production deletion requires approval
+SUB-03 Archived Subjects
+View Archived toggles to Showing Archived
+Observed active published/draft rows remain and Archive actions remain; no explanation or restore action seen
+Use explicit Active/Archived/All filter, archive reason/time and Restore; document dependent-course behavior
+User cannot tell what is hidden, retained or restorable
+High
+Archived-only excludes active rows; active-only excludes archived; All labels status; restore returns eligible subject; historical results and offerings are preserved
+SUB-04 Subject catalog
+Many published records show blank branch and college; two local draft subjects have scope
+Observed ambiguous global/shared ownership
+Label global templates versus tenant-owned subjects; define reuse and code uniqueness rules
+Blank scope is unsafe to interpret across universities
+Medium
+Every subject identifies global or tenant scope; ownership/edit policy clear; adoption does not unexpectedly modify another university's syllabus
+ACA-01 Academic Sessions
+Current flag, dates, tenant ownership, Close/Delete; sections/courses link to session
+Observed wording says exactly one current, while there are current sessions for three colleges
+Retain module; say one current per college or documented program scope; enforce matching invariant in backend
+Sessions separate each year's offerings and histories
+High
+Two colleges may each have a current session; second current in same configured scope handled atomically; valid dates required; closing preserves records
+ACA-02 Session data and lifecycle
+Session named 2027-27 starts in 2026; DSU session is about six months
+Observed naming inconsistency; duration alone does not prove defect
+Use configurable academic-year/term naming and dates; review existing labels; add history/close/reopen rules
+Term-based training must coexist with annual university sessions
+Medium
+Invalid date ordering rejected; label/date consistency warning appropriate to session type; historical sessions usable in reports; closure effect documented
+CRS-01 Courses and Dashboard
+Both visible offerings are DRAFT; Dashboard says two active courses
+Observed status/count mismatch; tests and a submission coexist with draft course
+Define active/published/enrollable states and enforce publication rules; reconcile legacy data
+Staff need to know whether learning and tests are accessible
+High
+Dashboard totals match documented states; publishing requires intended prerequisites; student access to draft/archived course tested; existing assessments linked consistently
+CRS-02 Trainer and Enrollment tabs
+Paste raw user UUID to assign/enroll; role selector; zero records for both courses
+Observed unusable identity lookup and no roster reconciliation view
+Add searchable authorized people picker and section enrollment overview; expose manual versus inherited memberships
+Wrong IDs and disconnected roster models cause operational errors
+High
+Name/email/student-ID lookup scoped by tenant; trainer role validated; roster/course membership counts agree or explicitly distinguish legacy/direct/inherited records
+CRS-03 Subject syllabus and Course Builder
+Subject owns shared syllabus; separate course builder also offers modules; inspected builders empty
+Needs validation: unclear source of truth and propagation/versioning
+Document inheritance and override model; version shared syllabus; provide explicit sync preview
+A syllabus change must not silently alter running or completed batches
+High
+Reused subject syllabus initializes offering as intended; overrides traceable; historical version retained; authorized edits do not leak across tenants
+MAT-01 Reference Materials
+Course filters, Drive links/direct files, all/student/staff audience
+Observed blanket instruction to make Drive files viewable by anyone with the link
+Use approved access model; distinguish public teaching material from protected keys/rubrics; remove blanket public-sharing instruction
+Public links can bypass LMS audience restrictions
+High
+Staff-only file is inaccessible to student via direct URL; private tenant resources remain protected; public sharing is deliberate and labeled
+MAT-02 Materials organization
+Search title/link/name and department/semester filters; existing resource titled 1
+Observed cross-tenant department options and weak metadata; no lesson progress established
+Scope filters; require meaningful title/type/unit; support versioning and accessible previews where needed
+Students and staff must locate relevant material quickly
+Medium
+Parent filters cascade; accurate result counts; accessible preview/download; revisions and audience changes audited; published material uses useful names
+ASM-01 Assessment Overview
+Four navigation cards already available in sidebar
+Observed duplicate landing page without operational overview
+Remove from primary navigation or replace with actionable assessment dashboard
+Reduces navigation without losing teaching capability
+Low
+Direct module navigation works; back links adjusted; if retained, shows pending grading/upcoming tests rather than duplicate cards
+QB-01 Question Bank template
+CSV/Excel Template control and test-builder Template control
+Download completion not confirmed: browser download event timed out; not evidence that feature is absent
+Verify supported browsers/download path; provide real CSV and optionally XLSX samples with field guide
+Staff need predictable bulk authoring
+High
+One click downloads a usable named sample; sample imports in staging; MCQ correct-answer rules, marks, encoding and question-type requirements documented
+QB-02 Question Bank filtering
+All offerings default says no questions; specific DSU course reveals 30 MCQs
+Observed All offerings does not surface existing course questions
+Define subject/course relationship and fix all-offerings union or rename mode; migrate old questions if needed
+Existing questions appear lost and cannot be reused reliably
+High
+All offerings displays all authorized matching questions without duplicates; specific offering shows expected subset; subject-only questions explicitly labeled
+QB-03 Question organization
+Question cards, MCQ/Essay/Coding, marks, answer key, image URL, individual edit/delete
+No visible question search, taxonomy, bulk selection or review state
+Add searchable library with topic/difficulty/type/status, validated marks/answers and reusable versioned questions
+Large banks must support consistent test assembly
+High
+Search/filter combinations work; invalid MCQ key blocked; used question versions preserved; bulk operations show impacts
+QB-04 Coding questions
+Coding form shows expected output text
+No visible runtime, test cases, resource limits or coding rubric
+Define manual grading explicitly or add sandboxed execution with tested cases and limits
+A Coding label does not establish executable coding assessment
+Medium
+Student/trainer understand manual versus automated mode; if execution exists, isolation, hidden tests and limits pass security review
+OT-01 Online Test terminology
+Sidebar Quizzes; heading Quizzes & Online Tests; Create Assessment / Quiz; Analytics Quizzes
+Observed inconsistent terminology
+Rename user-facing text to Online Test throughout; retain route compatibility if needed
+Matches Edulateral's exam use case
+Medium
+Navigation, headings, buttons, help, student/trainer screens, notifications and reports use approved singular/plural Online Test terminology
+OT-02 Test setup and scheduling
+Title, duration, start/end, cohort targeting, question selection and inline/import options
+No visible timezone, attempt policy, late-start rule, randomization or accommodations settings
+Define server-enforced exam policy; expose relevant controls and preview
+500 students need fair and predictable timing
+High
+Display timezone; server uses authoritative deadline; late start gets documented remaining time; retries/accommodations enforced; question/option randomization traceable where enabled
+OT-03 Online Test reliability
+Existing tests and submitted answer review
+Needs validation: autosave, resume, expiry, concurrent attempts and idempotent submission
+Establish durable attempt/save/submit lifecycle with clear saved state and receipts
+Losing answers is a go-live blocker
+Critical
+Disconnect/refresh/retry test recovers acknowledged answers; duplicate submit creates one result; deadline enforcement and auto-submit documented; 500 synchronized attempts preserve all data
+OT-04 Targeting and review
+Tests show generic Targeted Cohort badge; submission response review has manual score and release
+Observed no cohort detail in list and no visible grading change history/rubric in inspected panel
+Show recipients/count and attempt status; add answer-key rationale, moderation and audit history
+Staff must validate intended population and trustworthy grades
+High
+Authorized reviewer sees exact cohort and attempt status; score bounds enforced; changes record actor/reason/time; draft grades separated from release
+ASN-01 Assignments
+PDF/Excel brief, due date, max marks, cohort targeting; existing AVIT assignments
+Needs validation: submission formats, revision/late policy, plagiarism, rubric and grading trail
+Specify workflow and configurable late/revision policy; add rubric and safe preview
+Project evaluation needs consistency and traceability
+High
+Staging student submits allowed files, sees receipt/status; late behavior clear; trainer grades and releases feedback; changed score audited and Gradebook updates correctly
+GRD-01 Gradebook
+Course selection, Recalculate Grades, Export CSV; no calculated grades for either course
+Observed empty view despite AVIT scored test submission; no formula/settings/history visible
+Define source inclusion, weighting, grade boundaries, missing work and calculation state; show pending/stale states and breakdown
+Recalculate is not a usable grading policy
+High
+Known fixture computes expected results; breakdown matches released tests/assignments and weights; stale status shown; repeat calculation produces same result without unintended release
+GRD-02 CGPA and Certificates
+Overview claims semester CGPA; certificates display grade and CGPA; batch issue says auto-calculate from Gradebook
+Needs validation: course result versus semester/cumulative CGPA and grade scale; B and A display 4.0 in examples
+Define configurable credit-weighted GPA and cumulative scope; validate certificate source and overrides
+Certificates must not misrepresent academic achievement
+High
+Approved grade table and sample multi-subject credits yield exact GPA; certificate matches finalized source/version; overrides require reason/audit; no arbitrary scale interpretation
+LIV-01 Live Classes
+Title, date/time, duration and description form; no sessions in available course lists
+Analytics says 10 live classes; provider, host, target and recording behavior unvalidated
+Reconcile scopes; expose provider/host/timezone, audience, join policy and recording access
+Scheduled class must actually deliver instruction to intended students
+High
+Staging host/student join correctly; unauthorized join denied; cancellation/reconnect/recordings validated; Analytics count explained; provider capacity covers chosen mode
+ATT-01 Attendance
+GPS coordinates/radius and optional auto-close
+Needs validation: spoof prevention, QR/time window, permission denial, absent handling and manual overrides
+Add clear attendance methods and privacy rules; authorize/audit corrections; fallback for legitimate GPS failure
+GPS alone is not proof of presence and may fail indoors
+High
+In/out-radius and early/late cases tested; no double attendance; GPS refusal handled; manual correction audited; summary numerator/denominator correct
+ENG-01 Forums
+College visibility; closed forum disables posting; empty forum detail
+Observed closed-state controls work; moderation/search/subscription workflow not established
+Add course/cohort targeting, moderation/reporting and search where absent
+Academic discussion needs discovery and safe moderation
+Medium
+Authorized students post/reply only in open scoped forum; closed forum readable; report/moderation history and retention policy verified
+ENG-02 Chat
+Group/course/specific-user visibility; room close/delete; direct-message picker
+Observed full people dropdown and duplicate indistinguishable room names
+Add searchable scoped directory, room context, unread states and moderation policy
+Large user populations need discoverable and controlled communication
+High
+Directory paging/search scales; room shows course/tenant; unauthorized history denied; abuse reporting and retention tested; no messages sent during review
+NOT-01 Notifications
+College/department/branch/semester/course/role/user targeting; preferences and sent history
+Needs validation: channel delivery, recipient preview and duplicate suppression; Mark Read within sent history is ambiguous
+Preview recipients/count/channel before send; provide delivery status and clear history labels
+Wrong-campus broadcast is costly and hard to undo
+High
+Staging target set matches expected recipients; send idempotent; email/SMS/push opt-outs honored according to policy; failed delivery visible
+CAL-01 Calendar
+Global events with manual Class/Exam/Assignment type and college visibility
+No upcoming entries despite historical tests; integration with assessment/live schedules not established
+Derive academic events from source workflows and show upcoming/past with scoped filters
+Duplicate manual schedules drift from actual deadlines
+Medium
+Schedule updates/cancellations appear once in authorized calendar; timezone explicit; prior and upcoming events accessible; no cross-tenant event leakage
+CER-01 Certificates
+Individual/batch issue, course template upload, verification and revocation; existing number verified successfully
+No visible list search/college filter; issue eligibility, duplicate prevention and revocation propagation untested
+Add indexed search/filter/export and approved eligibility rules; verify uniqueness, template integrity and revocation lifecycle
+Certificates affect Edulateral's credibility
+High
+Only eligible finalized results issue; repeat batch creates no duplicates; valid/invalid/revoked verification correct; authorized download and privacy controls pass
+ANL-01 Dashboard & Analytics
+Counts and recently created courses
+Observed contradictory enrollments/quizzes and active-course label; no reporting definitions
+Use reconciled sources and shared metric definitions; show scope, as-of time and error/unavailable states
+Decision makers cannot rely on unexplained zeros
+High
+Counts agree with auditable fixtures and underlying records; failed API is not displayed as zero; cross-page definitions and tenant scope consistent
+ANL-02 Analytics & Reports
+Platform totals; no dedicated Reports menu exposed
+No visible cohort trends, completion, attendance, learning outcomes or report filters/export
+Add role-scoped reports by college/program/batch/session/course/test with export and drilldown
+10,000 users require exception-focused operations
+High
+A college report reconciles enrollments, attempt/absence/pass counts and attendance; filters persist; exports match scope and protect PII
+REW-01 Rewards
+Sidebar group says Analytics & Rewards; only Analytics/Certificates listed
+No Rewards page or reward rules exposed
+Rename group to match shipped features or implement opt-in badges/rewards with explicit outcomes
+Avoids suggesting unavailable capability
+Low
+Menu accurately reflects capability; if rewards introduced, rule/version/audit and anti-gaming tests pass; participation not substituted for learning mastery
+UX-01 Admin layout and accessibility
+Fixed sidebar and dense tables; narrow panel captured at about 608 px width
+Observed cramped content and wrapped headings; some icon-only controls have no accessible name
+Validate responsive navigation, table scrolling/cards, keyboard use, contrast and labels
+Admin may work in constrained desktop panels and assistive technology
+Medium
+At desktop and narrow widths all columns/actions accessible; sidebar collapses appropriately; keyboard focus/dialog behavior and named controls verified
+OPS-01 Audit and recovery
+Several pages show system-user creator; no audit log menu exposed
+Needs validation: traceability and recovery for high-impact operations
+Provide protected audit history and tested backup/restore; define retention and incident ownership
+Production operations need accountable recovery
+Critical
+Role/credential/grade/import/publish/archive/delete actions log actor/scope/time/result; backup restore rehearsed with reconciled records; approved recovery objectives met
+CAP-01 Scale readiness
+UI works with 194 listed users and two courses
+No evidence of 10,000-user or 500-concurrent capacity
+Complete representative volume, spike, exam, soak and resilience tests in production-like staging
+Small-data navigation cannot certify scale
+Critical
+Section 7 workload and integrity gates pass on documented infrastructure; repeatable report and monitoring evidence approved before 500-student event
+UAT-01 Student/Trainer UX
+Module descriptions mention All Roles
+Only Super Admin session available
+Complete separate Student, Trainer, TA and College Admin UAT using authorized existing staging accounts
+Admin UI cannot establish learner usability or permissions
+High
+Role journeys in section 8 pass; actual rendered menus/actions match approved permission matrix; identified issues retested
+Archived Subjects intended behavior versus observed behavior
+The UI observation establishes only that the toggle changes its label and reloads a list that still includes active-looking records. It does not establish whether archiving is soft deletion, hides new-course selection, blocks ongoing learning, or has a restore mechanism. Those effects were not tested because archiving changes production data.
+Recommended contract: archiving retires a subject from future selection while retaining syllabus versions, existing offerings, enrollments, assessments, grades and certificates. Archived-only lists should provide status, reason, actor/time and Restore. Deletion should be separately permissioned and normally blocked when dependencies exist. Edulateral must approve this contract and verify it in staging.
+Academic Sessions keep but clarify
+Sessions are necessary for year/term-specific offerings, section rosters, promotion, reporting and historical results. The current implementation already links them to sections and courses. Removing the module would remove an important time boundary unless the same concept is implemented elsewhere.
+Use separate concepts: University → Department → Program/Branch → Admission Batch → Academic Session/Term → Semester → Section → Course Offering, with Subject as the reusable curriculum definition. Allow training programs to use a shorter hierarchy. “One current session” should mean one within the explicitly configured institution/program scope, not one across all universities. An admission batch such as 2024–2028 is not a single annual session.
+Gradebook how it should be used
+Observed sequence: choose college and course → review Online Test submissions → inspect student answers, score and feedback → authorized grader uses Save & Release Grade → Gradebook exposes Recalculate Grades and CSV export → certificate batch workflow describes Gradebook-based calculation. Calculation and release were not executed, so their actual interaction remains unverified.
+Recommended operating workflow:
+Confirm correct subject, course offering, session, section and roster. Assign authorized trainers.
+Approve a grade policy before publishing assessments: marks, weighting, pass criteria, late/missing work, rounding, retakes and grade scale.
+Publish Online Tests and assignments to the intended cohort. Student receives attempt/submission receipt.
+Auto-mark supported MCQs and have authorized graders assess essays/coding/projects. Keep draft grades separate from released grades.
+Moderate and release scores/feedback using a recorded actor, timestamp and reason for overrides.
+Calculate or refresh the course result using the approved policy. Show every component, marks/maximum, weight and contribution. Do not silently count an unattempted test as completed.
+For semester GPA, combine finalized subject results using approved credit weights; cumulative GPA needs results from the defined historical scope. A single course percentage is not automatically a semester CGPA.
+Review exceptions, lock/finalize results, export reconciled records, then issue certificates only to eligible students. Reopening a grade must record why and update downstream records deliberately.
+Illustrative policy only: if Online Test is 40% and Assignment is 60%, a student scoring 30/60 and 80/100 obtains 0.4×50 + 0.6×80 = 68%. Edulateral must approve its own policy; this example is not a statement about the application's current formula. GPA should use an approved mapping and sum(credit × grade point)/sum(credits), with treatment of failures, repeats and excluded subjects documented.
+3 Missing Features
+Confirmed not exposed in the reviewed Super Admin UI: Subject search and bulk selection; granular Roles & Permissions page; dedicated Reports; separate Rewards; actionable Analytics beyond platform counts; Gradebook policy and breakdown controls; searchable trainer/student identity picker in course management.
+Requirements whose existence elsewhere remains unverified: attempt autosave/resume and receipt; exam accommodations/retake rules; moderation and audit history; course completion rules and versioned syllabus; mobile accessibility; learner/trainer views; report scheduling; background job status; privacy/consent controls; backup/restore and incident dashboard. These need discovery and UAT, not automatic duplicate implementation.
+Practical Engagement Live use cases
+Feature
+Edulateral use case
+Conditions needed
+Live Classes
+Trainer-led revision, doubt clearing, guest lecture and induction per course/cohort
+Provider and host controls, roster scope, reminders, timezone, capacity, recordings and reconnection
+Attendance
+On-campus labs using location/time; scheduled workshop attendance; authorized trainer corrections
+Privacy, alternative check-in, spoof-risk controls, session denominator and export
+Forums
+Persistent topic-based questions, peer discussion, project FAQs and trainer answers
+Course scope, search, moderation, closed-state behavior, subscriptions and retention
+Course chat
+Short-lived doubt channels and project coordination
+Clear room/course identity, moderation, membership authorization, unread indicators
+Direct messages
+Private trainer/student clarification or operational support
+Approved contact policy, searchable scoped directory, privacy and reporting
+Notifications/Calendar
+Induction, upcoming Online Test, changed class time and assignment reminders
+Correct recipient preview, source-linked event updates and delivery evidence
+Forums and chat have different purposes: persistent searchable academic discussion versus immediate conversation. Neither should be removed solely because both provide messages. Enable modules according to program needs.
+Practical Analytics Rewards use cases
+Analytics should answer: Which batch is not logging in? Which students have not attempted an Online Test? Which topics show low mastery? Which assignments await grading? Which trainers have overdue feedback? Which colleges have poor attendance/completion? Current counts do not answer these questions.
+Recommended views: cohort completion and inactivity; test participation/pass distribution and item analysis; grading turnaround; attendance trend; certificate eligibility; import failures; trainer workload; college-level outcomes. Include period, denominator, source definitions and export. Learner risk signals should support human follow-up, with privacy and access limits.
+Optional rewards: completion badges, project milestones and recognized forum contributions. Make rules auditable and resistant to click/message farming. Competitive leaderboards should be optional and scoped; use inclusive progress indicators when ranking creates unfair comparisons. No reward functionality was confirmed in this session.
+4 Features that can be removed
+Candidate
+Recommendation
+Assessment Overview navigation landing page
+Remove its sidebar entry or fold into an actionable assessment dashboard; keep routes/back links compatible
+“Rewards” in group heading
+Remove the label until an actual reward feature is shipped
+Raw UUIDs in default Department/Course views
+Move to detail/copy tools, preserving support access
+Predictable password/fallback workflow
+Replace entirely with secure onboarding
+Duplicate trainer terminology
+Consolidate user-facing roles; preserve required internal identity mappings
+Promote on fixed semester definitions
+Remove or rename if progression belongs to sections; verify semantics first
+Keep Academic Sessions, Gradebook, Reference Materials, Forums and Chat unless Edulateral explicitly chooses otherwise. Their usefulness depends on correcting workflow and access control, not removing the underlying capability.
+5 UX Improvements
+Use a consistent institution/program/session/cohort context, with cascading filters and explicit reset. Distinguish global catalog items from tenant records. Preserve filter selection during safe navigation and show loading instead of stale actionable rows; briefly observed previous-college rows during filter transitions should not remain actionable under a new college label.
+Provide search, bounded pagination, sorting, useful empty states and contextual help across all large lists. Use searchable names/emails/IDs rather than UUID entry. Explain grade calculation, publication, archive, promotion and certificate eligibility in the interface. Show exact targeted cohort and student counts before consequential actions.
+Move dangerous actions away from ordinary navigation. Use accessible named controls, keyboard-compatible dialogs, clear required fields and validation messages. Verify narrow-panel and full desktop layouts; the captured narrow viewport alone does not establish how a full-width desktop behaves. Normalize Online Test terminology and offer concise Admin/Trainer/Student operating guides.
+6 Security Observations
+Observed risks: phone-based student passwords; common fallback password; fixed administrator temporary credential described in onboarding; materials form encouraging publicly accessible Drive links despite Staff Only audience; powerful tenant deletion and credential/role controls; ambiguous cross-tenant academic pickers. HTTPS is visible, but that alone does not validate transport configuration or data security.
+MFA, credential expiry, brute-force defense, password hashing, token/cookie safety, session revocation, CSRF/XSS/injection defenses, file scanning, tenant enforcement, security headers, encryption, storage policies, audit completeness and backups cannot be concluded from this session. No security attack was performed. Use an approved security review with least-privilege test accounts.
+Authentication recommendations should follow established guidance for MFA, login throttling and re-authentication for sensitive operations. See OWASP Authentication Cheat Sheet. The site-specific observations above come from the LMS UI, not OWASP.
+Validation requiring backend infrastructure security access
+Area
+Required evidence
+Keycloak and LMS identity synchronization
+Role mapping, unique identity/membership rules, failed-import compensation and reconciled account counts
+Authorization
+Endpoint/object-level tests for every role and tenant; file and answer-key access; exports and WebSocket subscriptions
+Data model
+Foreign keys, tenant constraints, uniqueness, delete/archive dependencies, admission batch/session distinction and historical retention
+Exam engine
+Server-side deadlines, attempt transactions, durable answers, idempotency, concurrency controls, anti-tampering and grade versioning
+Security
+Approved penetration testing, dependency scan, session/auth configuration, secret management, file/ZIP validation, upload scanning and execution sandbox where applicable
+Operations
+Monitoring, alerting, audit protection, backup restoration, deployment rollback, database migrations and recovery objectives
+Privacy
+Student records, DM retention, GPS consent/retention, report access, certificate verification disclosure and protected cloud files
+Providers
+Identity provider, email/SMS/push, classroom/video and file/CDN limits, quotas and failure behavior
+7 500 Concurrent User Readiness Requirements
+Do not run these tests against production without a separate explicit authorization. Use production-like staging with comparable compute, database, Keycloak, cache, storage/CDN, reverse proxy, network and configuration. Document every difference. Seed at least 10,000 realistic synthetic identities across universities, branches, sessions and cohorts, including representative materials, question banks and historical submissions. Use 500 distinct authorized student identities taking the same Online Test, not one token reused 500 times.
+Required test suite
+Test
+Workload
+Required validation
+Smoke and correctness
+1–5 students complete full login/start/save/submit/result flow
+Check data integrity first; known correct/incorrect answers yield expected grades
+Volume
+10,000 users plus realistic academic/history data; admin searches/import preview/exports
+Query latency, bounded paging, memory, indexes, report correctness and tenant scope
+Gradual load
+50 → 100 → 250 → 500 active students with realistic think time
+Baseline bottlenecks and response distributions; every meaningful operation succeeds
+Login spike
+500 fresh logins within 30 seconds, then within 5–10 seconds; cold and warm caches
+IdP/token/session capacity, redirect correctness, throttling under shared campus NAT, error recovery
+Same-test start burst
+500 students waiting for one scheduled opening; start within 5–10 seconds
+One valid attempt per student; correct cohort/question set; no answer-key leakage or premature access
+Sustained exam
+500 students for 30–60 minutes; realistic navigation and answer-save patterns; mixed devices/networks
+Durable acknowledgements, latency, DB writes, timers and token refresh without interrupting attempts
+Autosave bursts
+Coordinated periodic saves and unsynchronized real-user pattern
+At 30-second save interval, about 16.7 saves/s average; if synchronized, 500 requests can arrive together. Measure actual save payload and behavior
+Submit/deadline burst
+500 manual submissions within 5–10 seconds; separate simultaneous deadline auto-submit scenario
+Atomic finalization, correct scoring, no duplicate results or lost answers; 500 receipts reconciled
+Retry and conflict
+Double click, request retry, refresh, two tabs/devices, lost acknowledgement and out-of-order saves
+Idempotent submit; defined concurrency policy; latest valid acknowledged answer retained; receipt retrievable
+Network faults
+Slow network, latency, packet loss, temporary offline then reconnect near deadline
+Clear status; recover acknowledged work; server deadline policy applied consistently
+Mixed workload
+Exam plus representative trainer grading/admin report activity and student materials access
+Background work does not starve saves/submissions; rate assumptions measured and documented
+Stress/headroom
+750, then 1,000 users until measured safe limit; authorized staging only
+Identify saturation point, graceful overload/backpressure and recovery; no cascading failure
+Soak
+500-user representative workload for 2–4 hours with several exams/token renewals
+No memory/connection leak, queue growth, progressive latency or stale sessions
+Resilience
+Restart/fail one app node, cache or queue worker; controlled DB/IdP failover per architecture
+Accepted answers survive; traffic resumes safely; no split attempt state; recovery objectives met
+Live classroom
+Test chosen mode for 500 viewers/participants with provider limits
+Separate bandwidth/media capacity from exam/API capacity; speaker limits, recording and reconnect behavior
+500 concurrent users is not a single requests-per-second number. Thirty-second autosaves average roughly 500/30 = 16.7 requests/s, while a five-second submission burst averages 100 submissions/s, before scoring, authentication, navigation, telemetry and retries. If submission is one shared deadline instant, the instantaneous burst can be larger. Model the measured browser/API workflow and actual payload sizes.
+Proposed initial acceptance gates Edulateral and engineering must approve
+These are suggested service objectives, not measured current performance or universal standards.
+Operation / property
+Initial gate
+End-to-end successful login
+p95 ≤ 5 s; p99 ≤ 10 s during the 500-login spike
+Start/resume Online Test
+p95 ≤ 3 s; p99 ≤ 5 s
+Answer-save acknowledgement
+p95 ≤ 1 s; p99 ≤ 2 s; UI accurately distinguishes pending/saved/failed
+Final submission receipt
+p95 ≤ 3 s; p99 ≤ 5 s; async scoring may complete separately with visible state
+Unexpected technical errors
+< 0.1% overall; report per operation and time interval, not only aggregate
+Exam integrity
+Zero lost acknowledged answers, duplicate finalized attempts, unauthorized starts, wrong grades or cross-user data exposure; all 500 attempts reconcile
+Grading
+Known-answer fixtures and manual release rules exact; every score lies within approved policy bounds
+Deadline fairness
+Server-side cutoff and accommodation rules consistent; client clock changes do not alter entitlement
+Capacity headroom
+No unbounded queues, sustained pool exhaustion or swap/OOM; document safe operating envelope and recovery
+Recovery
+No loss of acknowledged answers on tested failure; approve and prove RPO/RTO for disaster scenarios
+Instrument IdP login/token endpoints, LMS request p50/p95/p99, request rate/errors, application CPU/memory/GC, database CPU/locks/slow queries/connections, cache/queue utilization, storage latency, network and provider quotas. Correlate errors by attempt/request ID without logging passwords/tokens or unnecessary student PII.
+Engineering should evaluate indexes and tenant-scoped query plans, bounded pools, cache strategy, static asset/CDN delivery, horizontal application scaling and shared durable attempt state. Do not prescribe a server size from UI navigation; measure and size against the workload. Avoid fixing latency by making saves nondurable.
+Use a tool such as k6/JMeter/Locust for protocol-level load plus a smaller real-browser/device cohort for rendering and interaction. Establish explicit checks and thresholds and retain results; Grafana k6 API load testing guidance describes this approach. Include average, stress, spike and soak runs as distinct scenarios, as outlined in Grafana automated performance testing.
+Exam day operational gate
+Approve the tested build/configuration and maximum simultaneous load. Verify roster, published test/version, timezone, deadline, question key and marks; prohibit uncontrolled question edits during active attempts. Run a small rehearsal, health checks and backup verification. Have monitoring, technical contacts, incident communication, extension/retest policy and result reconciliation ready. Campus Wi-Fi/NAT and student devices need a rehearsal as well as backend testing.
+8 Final UAT Checklist
+Each item needs an owner, evidence, result, defect link and retest date. Unchecked items are not passed. Run changes and negative tests in approved staging.
+Admin and academic setup
+☐ College and scoped admin onboarding use unique secure activation and MFA.
+☐ Department/branch/program/session/batch/semester/section hierarchy supports each Edulateral program.
+☐ Parent changes clear incompatible selections; backend rejects foreign-tenant combinations.
+☐ One-current-session policy enforced in configured scope; close/reopen preserves history.
+☐ Section roster and direct/inherited course enrollments reconcile; promotions are repeat-safe.
+☐ Subject search, sorting, paging, bulk selection, archive and restore meet SUB-01–04.
+☐ Shared syllabus and offering overrides/versioning behave as approved.
+☐ Trainer assignment and prerequisites validate tenant, role and course dependencies.
+☐ Course status, student visibility and Dashboard counts agree.
+Users imports and permissions
+☐ Import sample download opens correctly and round-trips all documented columns.
+☐ Preview/dry-run rejects bad emails, invalid roles, duplicate/conflicting identities and wrong placements.
+☐ 10,000-row import succeeds or reports partial failures; retry is safe and SSO/LMS synchronize.
+☐ Student/Trainer/TA/College Admin/Super Admin authorization matrix tested on UI and endpoints.
+☐ Credential reset and role changes require authorized actors, secure setup and audit.
+☐ Search/paging/filter/reset works with the full seeded dataset.
+Student journey not reviewed in this session
+☐ Login/activation, recovery and logout work without exposing credentials.
+☐ Correct course/cohort appears; draft and foreign courses stay inaccessible.
+☐ Learning resources preview/download on mobile and laptop; staff-only links denied directly.
+☐ Online Test opening, late start, instructions, timer, accommodations and attempts behave as policy.
+☐ Answers autosave; refresh/offline/resume preserves work; submission receipt and deadline behavior correct.
+☐ Assignment upload, allowed formats, revision/late policy and receipt work.
+☐ Released grades/feedback and completion/certificates display correct values.
+☐ Live class, attendance, forum and chat permissions and workflows work.
+☐ Keyboard, narrow/mobile layout and low-bandwidth use tested.
+Trainer journey not reviewed in this session
+☐ Assigned-course dashboard and roster accurate; unauthorized courses denied.
+☐ Materials and question authoring/import validation work; keys protected.
+☐ Online Test/Assignment cohort preview, scheduling and publication accurate.
+☐ MCQ scoring, manual grading, moderation, release and audit history correct.
+☐ Gradebook breakdown, recalculation, export and finalized results match approved fixtures.
+☐ Live scheduling/hosting, attendance correction and discussion moderation work.
+☐ College Admin and TA rights differ according to the approved matrix.
+Reporting certificates and communication
+☐ Dashboard and Analytics metrics reconcile by scope/date/status; failures not shown as zeros.
+☐ Reports filter/drilldown/export correctly; PII and tenant boundaries respected.
+☐ Certificate eligibility, grading source, unique issuance, template, download, valid/invalid/revoked verification pass.
+☐ Notification recipient preview and delivery/opt-out behavior pass; no duplicate sends.
+☐ Calendar updates from live/test/assignment source schedules without duplicate events.
+☐ Rewards label removed or approved reward workflow tested.
+Security performance and operations
+☐ Authentication/session/MFA, tenant authorization, input/file security and approved penetration test findings resolved.
+☐ 500 login/start/save/submit load gates and data reconciliation pass.
+☐ Stress/headroom, soak, network faults, failover and restoration pass.
+☐ Monitoring, protected audit, incident ownership and backup/rollback evidence accepted.
+☐ All Critical and release-blocking High issues closed or explicitly accepted by Edulateral.
+9 Go Live Critical Issues
+Gate
+Current evidence / status
+Sign-off required
+Secure credential provisioning
+Predictable defaults described in UI; actual expiry/forced change not validated
+Replace unsafe policy and verify existing-account remediation with security owner
+Tenant and role enforcement
+Only privileged Super Admin session reviewed
+Independent negative/positive authorization test evidence
+Durable simultaneous Online Test
+Existing tests/submission visible; no concurrency or failure evidence
+500 distinct students complete same-test burst scenario with zero integrity failures
+Reliable grades and certificates
+AVIT submission scored; Gradebook empty; calculation policy not exposed
+Approved formula, fixture reconciliation, release/audit and certificate source validated
+Roster/placement/report reconciliation
+Cross-scope pickers; user/enrollment and test counts disagree
+Canonical data model, placement validation and metric reconciliation
+Recovery and operations
+No restore/monitoring evidence supplied
+Tested backup/restore, incident plan, audit and capacity envelope
+Role-specific UAT
+Student/Trainer/College Admin sessions unavailable
+End-to-end role checks completed before rollout
+Do not interpret this report as confirmation that the LMS fails at 500 users. Its capacity is unknown until the tests pass. Equally, smooth navigation with the present small dataset is not evidence that it is ready.
+Screenshot evidence
+Screenshots use the actual in-app browser panel width; they document that environment rather than full-width desktop behavior. Password field in the import screenshot remains masked. No credentials are reproduced in this report.
+Screenshot 1 Dashboard counts Part 1
+Screenshot 2 Dashboard counts Part 2
+Screenshot 3 Analytics counts Part 1
+Screenshot 4 Analytics counts Part 2
+Screenshot 5 Subjects catalog controls
+Screenshot 6 Archived view retaining draft subject and Archive action
+Screenshot 7 Academic Sessions
+Screenshot 8 Gradebook empty state for AVIT
+Screenshot 9 Bulk Import instructions and masked fallback field Part 1
+Screenshot 10 Bulk Import instructions and masked fallback field Part 2
+Screenshot 11 Bulk Import instructions and masked fallback field Part 3
+Screenshot 12 Course scoped Question Bank

@@ -40,6 +40,11 @@ export default function QuestionsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Question search & taxonomy filters (QB-02, QB-03)
+  const [qSearch, setQSearch] = useState('');
+  const [qDifficulty, setQDifficulty] = useState('ALL');
+  const [qType, setQType] = useState('ALL');
+
   const downloadSampleTemplate = () => {
     const csvContent =
       "Question Text,Question Type,Difficulty Level,Subject / Topic,Marks,Option A,Option B,Option C,Option D,Correct Answer,Explanation\n" +
@@ -237,7 +242,7 @@ export default function QuestionsPage() {
         setBranches(Array.isArray(brs) ? brs : []);
         setSemesters(Array.isArray(sems) ? sems : []);
         if (isSuperAdmin && active.length > 0) setCollegeId(active[0].id);
-        else if (Array.isArray(subjectsData) && subjectsData.length > 0) setSubjectId(subjectsData[0].id);
+        setSubjectId('');
       } catch { /* reference data unavailable */ }
     })();
   }, [isAdmin, isTrainer, isSuperAdmin]);
@@ -265,11 +270,12 @@ export default function QuestionsPage() {
   const collegeNameByTenant = (tid?: string) => colleges.find((c: any) => c.tenant_id === tid)?.name || '';
   const orgEmpty = visibleDepartments.length === 0;
 
-  // Keep the selected subject inside the selected college (super admin)
+  // Keep the selected subject inside the selected college if one is explicitly picked
   useEffect(() => {
-    if (visibleSubjects.length === 0) return;
-    if (!visibleSubjects.some((s: any) => s.id === subjectId)) setSubjectId(visibleSubjects[0].id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!subjectId) return;
+    if (visibleSubjects.length > 0 && !visibleSubjects.some((s: any) => s.id === subjectId)) {
+      setSubjectId('');
+    }
   }, [visibleSubjects, subjectId]);
 
   const selectedSubject = visibleSubjects.find((s: any) => s.id === subjectId);
@@ -399,6 +405,7 @@ export default function QuestionsPage() {
               <>
                 <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Subject:</label>
                 <select className="input-field" style={{ maxWidth: '240px' }} value={subjectId} onChange={e => setSubjectId(e.target.value)}>
+                  <option value="">All Subjects</option>
                   {visibleSubjects.map((s: any) => <option key={s.id} value={s.id}>{s.code ? `${s.code} · ` : ''}{s.name}</option>)}
                 </select>
               </>
@@ -545,52 +552,149 @@ export default function QuestionsPage() {
         </form>
       )}
 
-      {loading ? <p>Loading...</p> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {questions.length === 0 ? <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No questions yet for this selection. Add your first question above.</div>
-            : questions.map(q => (
-              <div className="panel" key={q.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : q.type === 'CODING' ? 'badge-warning' : 'badge-success'}`}>{q.type}</span>
-                      {q.subject_id && subjects.find((s: any) => s.id === q.subject_id) && (
-                        <span className="badge badge-info" style={{ background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
-                          {subjects.find((s: any) => s.id === q.subject_id).code || ''} {subjects.find((s: any) => s.id === q.subject_id).name}
-                        </span>
-                      )}
-                      <strong>{q.title}</strong>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>({q.marks} mark{q.marks > 1 ? 's' : ''})</span>
-                      {(q.department_id || q.branch_id || q.semester_id) && (
-                        <span className="badge badge-secondary" style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd' }}>scoped</span>
-                      )}
-                    </div>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{q.content}</p>
-                    {q.image_url && (
-                      <div style={{ marginTop: '8px' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={q.image_url} alt="Question diagram" style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
-                      </div>
-                    )}
-                    {q.options && (
-                      <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {(q.options as any[]).map((o: any) => (
-                          <span key={o.id} style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '13px', background: o.isCorrect ? 'rgba(0,200,100,0.2)' : 'rgba(255,255,255,0.05)', border: o.isCorrect ? '1px solid #00c864' : '1px solid rgba(255,255,255,0.1)', color: o.isCorrect ? '#00c864' : 'inherit' }}>
-                            {o.isCorrect ? ' ' : ''}{o.text}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px' }} onClick={() => startEdit(q)}>Edit</button>
-                    <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => handleDelete(q)}>Delete</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Search and Taxonomy Filter Bar (QB-02, QB-03) */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: '20px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        padding: '12px 18px',
+        borderRadius: '10px',
+        border: '1px solid rgba(255, 255, 255, 0.08)'
+      }}>
+        <input
+          type="text"
+          placeholder="Search question text, topic, or answer..."
+          value={qSearch}
+          onChange={e => setQSearch(e.target.value)}
+          className="input-field"
+          style={{ minWidth: '260px', flex: 1 }}
+        />
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Type:</label>
+          <select className="input-field" style={{ minWidth: '110px' }} value={qType} onChange={e => setQType(e.target.value)}>
+            <option value="ALL">All Types</option>
+            <option value="MCQ">MCQ</option>
+            <option value="CODING">Coding</option>
+            <option value="ESSAY">Essay</option>
+          </select>
         </div>
-      )}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Difficulty:</label>
+          <select className="input-field" style={{ minWidth: '120px' }} value={qDifficulty} onChange={e => setQDifficulty(e.target.value)}>
+            <option value="ALL">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        {(qSearch || qType !== 'ALL' || qDifficulty !== 'ALL') && (
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ fontSize: '12px', padding: '6px 12px' }}
+            onClick={() => { setQSearch(''); setQType('ALL'); setQDifficulty('ALL'); }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {(() => {
+        const filteredQuestions = questions.filter(q => {
+          if (qType !== 'ALL' && (q.type || 'MCQ').toUpperCase() !== qType.toUpperCase()) return false;
+          if (qDifficulty !== 'ALL' && (q.difficulty || 'Medium').toLowerCase() !== qDifficulty.toLowerCase()) return false;
+          if (qSearch.trim()) {
+            const s = qSearch.toLowerCase().trim();
+            const titleMatch = (q.title || '').toLowerCase().includes(s);
+            const contentMatch = (q.content || '').toLowerCase().includes(s);
+            const ansMatch = (q.answer_key || '').toLowerCase().includes(s);
+            const topicMatch = (q.topic || '').toLowerCase().includes(s);
+            if (!titleMatch && !contentMatch && !ansMatch && !topicMatch) return false;
+          }
+          return true;
+        });
+
+        return (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Showing <strong>{filteredQuestions.length}</strong> of <strong>{questions.length}</strong> question{questions.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {loading ? <p>Loading questions...</p> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {filteredQuestions.length === 0 ? (
+                  <div className="panel" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                    {questions.length === 0
+                      ? 'No questions found for this selection. Try selecting "All Subjects" or add a question above.'
+                      : 'No questions match the search filter.'}
+                  </div>
+                ) : (
+                  filteredQuestions.map(q => (
+                    <div className="panel" key={q.id}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', gap: '10px', marginBottom: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span className={`badge ${q.type === 'MCQ' ? 'badge-info' : q.type === 'CODING' ? 'badge-warning' : 'badge-success'}`}>{q.type}</span>
+                            {q.difficulty && (
+                              <span className="badge" style={{
+                                background: q.difficulty === 'Easy' ? 'rgba(16,185,129,0.15)' : q.difficulty === 'Hard' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                                color: q.difficulty === 'Easy' ? '#10b981' : q.difficulty === 'Hard' ? '#f87171' : '#f59e0b',
+                                border: '1px solid currentColor'
+                              }}>
+                                {q.difficulty}
+                              </span>
+                            )}
+                            {q.topic && (
+                              <span className="badge badge-secondary" style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8' }}>
+                                {q.topic}
+                              </span>
+                            )}
+                            {q.subject_id && subjects.find((s: any) => s.id === q.subject_id) && (
+                              <span className="badge badge-info" style={{ background: 'rgba(0,200,255,0.12)', color: '#67d8ff' }}>
+                                {subjects.find((s: any) => s.id === q.subject_id).code || ''} {subjects.find((s: any) => s.id === q.subject_id).name}
+                              </span>
+                            )}
+                            <strong>{q.title}</strong>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>({q.marks} mark{q.marks > 1 ? 's' : ''})</span>
+                            {(q.department_id || q.branch_id || q.semester_id) && (
+                              <span className="badge badge-secondary" style={{ background: 'rgba(139,92,246,0.15)', color: '#c4b5fd' }}>scoped</span>
+                            )}
+                          </div>
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{q.content}</p>
+                          {q.image_url && (
+                            <div style={{ marginTop: '8px' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={q.image_url} alt="Question diagram" style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                            </div>
+                          )}
+                          {q.options && (
+                            <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              {(q.options as any[]).map((o: any) => (
+                                <span key={o.id} style={{ padding: '4px 10px', borderRadius: '4px', fontSize: '13px', background: o.isCorrect ? 'rgba(0,200,100,0.2)' : 'rgba(255,255,255,0.05)', border: o.isCorrect ? '1px solid #00c864' : '1px solid rgba(255,255,255,0.1)', color: o.isCorrect ? '#00c864' : 'inherit' }}>
+                                  {o.isCorrect ? ' ' : ''}{o.text}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                          <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px' }} onClick={() => startEdit(q)}>Edit</button>
+                          <button className="btn-secondary" style={{ padding: '4px 12px', fontSize: '13px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => handleDelete(q)}>Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }

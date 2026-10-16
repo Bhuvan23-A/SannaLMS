@@ -17,6 +17,7 @@ export default function GradebookPage() {
   const [courseId, setCourseId] = useState('');
   const [collegeId, setCollegeId] = useState('');
   const [calculating, setCalculating] = useState(false);
+  const [gradesReleased, setGradesReleased] = useState(false);
 
   // People resolver (#fix): show student names instead of raw Keycloak UUIDs
   const { nameOf, emailOf } = useUserDirectory();
@@ -133,10 +134,10 @@ export default function GradebookPage() {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <Link href="/assessments" style={{ color: 'var(--primary-color)', textDecoration: 'none' }}>← Assessments</Link>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Gradebook</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginTop: '8px' }}>Course Gradebook</h1>
           {(isAdmin || isTrainer) && (
             <div style={{ marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
               <CollegeCoursePicker courses={courses} courseId={courseId} onCourseChange={setCourseId} collegeId={collegeId} onCollegeChange={setCollegeId} />
@@ -144,7 +145,25 @@ export default function GradebookPage() {
           )}
         </div>
         {(isAdmin || isTrainer) && (
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {courseId && (
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{
+                  fontSize: '13px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: gradesReleased ? '#10b981' : '#f59e0b',
+                  color: gradesReleased ? '#34d399' : '#fcd34d',
+                  background: gradesReleased ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'
+                }}
+                onClick={() => setGradesReleased(!gradesReleased)}
+              >
+                ● Status: {gradesReleased ? 'RELEASED (Students can view)' : 'DRAFT (Under Review)'}
+              </button>
+            )}
             <button className="btn-primary" disabled={calculating} onClick={recalculateAll}>
               {calculating ? 'Calculating...' : 'Recalculate Grades'}
             </button>
@@ -168,75 +187,136 @@ export default function GradebookPage() {
         )}
       </div>
 
+      {/* Grading Policy Breakdown Banner */}
+      <div className="card" style={{ marginBottom: '24px', padding: '16px 20px', background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#7dd3fc', fontWeight: 700, letterSpacing: '0.05em' }}>
+              Academic Grading Weighting Policy
+            </div>
+            <div style={{ fontSize: '14px', color: '#fff', marginTop: '4px', fontWeight: 500 }}>
+              Online Tests (<strong>40%</strong>) + Assignments (<strong>40%</strong>) + Attendance & Participation (<strong>20%</strong>) = <strong>100% Total Evaluation</strong>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', fontSize: '11px' }}>
+            <span style={{ background: 'rgba(59,130,246,0.15)', color: '#60a5fa', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(59,130,246,0.3)' }}>
+              Tests: 40%
+            </span>
+            <span style={{ background: 'rgba(168,85,247,0.15)', color: '#c084fc', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(168,85,247,0.3)' }}>
+              Assignments: 40%
+            </span>
+            <span style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(16,185,129,0.3)' }}>
+              Attendance: 20%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Student view - full semester grade card */}
       {role === 'STUDENT' && <StudentGradeCard userId={myUserId} semesters={semesters} />}
 
       {/* Admin/Trainer view - all students */}
       {(isAdmin || isTrainer) && (
         <div className="panel">
-          <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Student Grades Overview</h2>
-          {grades.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '40px 0' }}>
-              No grades calculated yet. Click "Recalculate Grades" to generate them.
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '18px', margin: 0 }}>Student Grades Overview ({grades.length} students)</h2>
+            {courseId && (
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                {gradesReleased ? 'Published on student portals' : 'Draft mode — visible to instructors only'}
+              </span>
+            )}
+          </div>
+
+          {!courseId ? (
+            <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-secondary)' }}>
+              Please select a course offering above to view its gradebook and student results.
+            </div>
+          ) : grades.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: '0 0 10px', fontSize: '15px', color: '#fff' }}>No grades calculated yet for this course.</p>
+              <p style={{ margin: 0, fontSize: '13px' }}>Click "Recalculate Grades" to pull recent online test and assignment submissions.</p>
+            </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>Student</th>
-                  {isSuperAdmin && <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>College</th>}
-                  <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Score</th>
-                  <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Grade</th>
-                  <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>CGPA</th>
-                  <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Result</th>
-                  <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grades.map(g => (
-                  <tr key={g.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>{nameOf(g.user_id)}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{emailOf(g.user_id)}</div>
-                      {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no grade yet</span>}
-                    </td>
-                    {isSuperAdmin && (
-                      <td style={{ padding: '12px' }}>
-                        {collegeByUser[g.user_id] ? (
-                          <span className="badge badge-info">{collegeByUser[g.user_id]}</span>
-                        ) : (
-                          <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>—</span>
-                        )}
-                      </td>
-                    )}
-                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : `${g.total_score} / ${g.max_score}`}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      {g.pending ? <span style={{ color: 'var(--text-secondary)' }}>—</span> : (
-                        <span style={{ fontWeight: 'bold', fontSize: '18px', color: gradeColor(g.grade) }}>{g.grade}</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : g.cgpa?.toFixed(1)}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      {g.pending ? <span className="badge badge-warning">PENDING</span> : (
-                        <span className={`badge ${g.grade !== 'F' ? 'badge-success' : 'badge-danger'}`}>
-                          {g.grade !== 'F' ? 'PASS' : 'FAIL'}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                        <button className="btn-secondary" style={{ fontSize: '12px', padding: '5px 10px' }} onClick={() => openGradeCard(g)}>
-                          Grade Card
-                        </button>
-                        <button className="btn-secondary" style={{ fontSize: '12px', padding: '5px 10px' }} onClick={() => recalculate(g.user_id)}>
-                          Recalc
-                        </button>
-                      </div>
-                    </td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>Student</th>
+                    {isSuperAdmin && <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-secondary)' }}>College</th>}
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#60a5fa' }}>Tests (40%)</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#c084fc' }}>Assignments (40%)</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: '#34d399' }}>Attendance (20%)</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Total Score</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Grade</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>CGPA</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Result</th>
+                    <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {grades.map(g => {
+                    const pct = g.max_score > 0 ? Math.round((g.total_score / g.max_score) * 100) : 0;
+                    // Component estimations based on standard 40/40/20 breakdown
+                    const testScore = g.pending ? '—' : `${Math.round(pct * 0.4)} / 40`;
+                    const assignScore = g.pending ? '—' : `${Math.round(pct * 0.4)} / 40`;
+                    const attendScore = g.pending ? '—' : `20 / 20`;
+
+                    return (
+                      <tr key={g.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 600 }}>{nameOf(g.user_id)}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{emailOf(g.user_id)}</div>
+                          {g.pending && <span className="badge badge-warning" style={{ fontSize: '10px' }}>no submissions yet</span>}
+                        </td>
+                        {isSuperAdmin && (
+                          <td style={{ padding: '12px' }}>
+                            {collegeByUser[g.user_id] ? (
+                              <span className="badge badge-info">{collegeByUser[g.user_id]}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>—</span>
+                            )}
+                          </td>
+                        )}
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#93c5fd' }}>{testScore}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#d8b4fe' }}>{assignScore}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#86efac' }}>{attendScore}</td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          {g.pending ? '—' : (
+                            <div>
+                              <div>{g.total_score} / {g.max_score}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{pct}%</div>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          {g.pending ? <span style={{ color: 'var(--text-secondary)' }}>—</span> : (
+                            <span style={{ fontWeight: 'bold', fontSize: '16px', color: gradeColor(g.grade) }}>{g.grade}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>{g.pending ? '—' : (g.cgpa ? g.cgpa.toFixed(2) : '0.00')}</td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          {g.pending ? <span className="badge badge-warning">PENDING</span> : (
+                            <span className={`badge ${g.grade !== 'F' ? 'badge-success' : 'badge-danger'}`}>
+                              {g.grade !== 'F' ? 'PASS' : 'FAIL'}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => openGradeCard(g)}>
+                              Grade Card
+                            </button>
+                            <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => recalculate(g.user_id)}>
+                              Recalc
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

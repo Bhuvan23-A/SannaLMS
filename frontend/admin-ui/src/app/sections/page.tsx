@@ -44,6 +44,7 @@ export default function SectionsPage() {
   const [rosterLoading, setRosterLoading] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [rosterBusy, setRosterBusy] = useState(false);
+  const [rosterSearch, setRosterSearch] = useState('');
 
   const load = async () => {
     try {
@@ -100,6 +101,7 @@ export default function SectionsPage() {
     setRosterSection(s);
     setRoster([]);
     setSelectedStudents([]);
+    setRosterSearch('');
     setRosterLoading(true);
     try {
       const data = await fetchApi(`/api/v1/rosters/${s.id}`);
@@ -374,54 +376,181 @@ export default function SectionsPage() {
       )}
 
       {/* Roster modal */}
-      {rosterSection && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '620px', maxWidth: '94vw', maxHeight: '88vh', overflowY: 'auto', padding: '26px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>Roster — {sectionLabel(rosterSection)}</h2>
-              <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setRosterSection(null)}> Close</button>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
-              Students added here are auto-enrolled in every course (offering) this section runs.
-            </p>
+      {rosterSection && (() => {
+        const rosterCollegeName = collegeNameByTenant(rosterSection.tenant_id) || 'Current Institution';
+        const eligibleStudents = studentUsers.filter((u: any) => {
+          if (roster.some((m: any) => m.user_id === u.id)) return false;
+          if (rosterSection?.tenant_id) {
+            if (u.tenant_id && u.tenant_id !== rosterSection.tenant_id) return false;
+            if (u.college_id) {
+              const c = activeColleges.find((col: any) => col.id === u.college_id);
+              if (c && c.tenant_id && c.tenant_id !== rosterSection.tenant_id) return false;
+            }
+          }
+          return true;
+        });
 
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px' }}>Add students ({selectedStudents.length} selected)</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select className="input-field" style={{ flex: 1 }} value={selectedStudents.length === 1 ? selectedStudents[0] : ''} onChange={e => {
-                  const v = e.target.value;
-                  if (v) setSelectedStudents([...new Set([...selectedStudents, v])]);
-                }}>
-                  <option value="">Select student to add…</option>
-                  {studentUsers.filter((u: any) => !roster.some((m: any) => m.user_id === u.id)).map((u: any) => (
-                    <option key={u.id} value={u.id}>{[u.first_name, u.last_name].filter(Boolean).join(' ')} — {u.email}</option>
-                  ))}
-                </select>
-                <button className="btn-primary" disabled={rosterBusy || selectedStudents.length === 0} onClick={addToRoster}>
-                  {rosterBusy ? 'Adding...' : `Add ${selectedStudents.length}`}
-                </button>
-              </div>
-              {selectedStudents.length > 1 && (
-                <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Selected: {selectedStudents.map(id => nameOf(id)).join(', ')}
-                </div>
-              )}
-            </div>
+        const filteredStudents = eligibleStudents.filter((u: any) => {
+          if (!rosterSearch.trim()) return true;
+          const q = rosterSearch.toLowerCase();
+          const name = [u.first_name, u.last_name].filter(Boolean).join(' ').toLowerCase();
+          const email = (u.email || '').toLowerCase();
+          const username = (u.username || '').toLowerCase();
+          return name.includes(q) || email.includes(q) || username.includes(q);
+        });
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Roster ({roster.length} students)</div>
-              {rosterLoading ? <p style={{ fontSize: '13px' }}>Loading...</p>
-                : roster.length === 0 ? <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>No students in this section yet.</p>
-                : roster.map((m: any) => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '6px', fontSize: '13px' }}>
-                    <span><strong>{nameOf(m.user_id)}</strong>{emailOf(m.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '6px' }}>{emailOf(m.user_id)}</span>}</span>
-                    <button className="btn-secondary" style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => removeFromRoster(m.user_id)}>Remove</button>
+        const toggleStudent = (id: string) => {
+          setSelectedStudents(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        };
+
+        const selectAllFiltered = () => {
+          const idsToAdd = filteredStudents.map((u: any) => u.id);
+          setSelectedStudents(prev => [...new Set([...prev, ...idsToAdd])]);
+        };
+
+        const clearSelection = () => {
+          setSelectedStudents([]);
+        };
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+            <div className="glass-panel animate-fade-in" style={{ width: '680px', maxWidth: '96vw', maxHeight: '90vh', overflowY: 'auto', padding: '26px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '20px' }}>Roster — {sectionLabel(rosterSection)}</h2>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '11px', background: 'rgba(59,130,246,0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      Tenant: {rosterCollegeName}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      Students strictly isolated to this institution
+                    </span>
                   </div>
-                ))}
+                </div>
+                <button className="btn-secondary" style={{ fontSize: '12px', padding: '4px 10px' }} onClick={() => setRosterSection(null)}>Close</button>
+              </div>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+                Students enrolled into this section are automatically enrolled in all course offerings for this semester.
+              </p>
+
+              {/* Add students picker */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '14px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <label style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                    Select Eligible Students ({filteredStudents.length} available · {selectedStudents.length} selected)
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {filteredStudents.length > 0 && (
+                      <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '2px 8px' }} onClick={selectAllFiltered}>
+                        Select All Filtered
+                      </button>
+                    )}
+                    {selectedStudents.length > 0 && (
+                      <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--danger-color)' }} onClick={clearSelection}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '10px' }}>
+                  <input
+                    type="text"
+                    className="input-field"
+                    style={{ width: '100%', fontSize: '13px', padding: '8px 12px' }}
+                    placeholder={`Search students in ${rosterCollegeName} by name or email...`}
+                    value={rosterSearch}
+                    onChange={e => setRosterSearch(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', background: 'rgba(0,0,0,0.2)' }}>
+                  {filteredStudents.length === 0 ? (
+                    <div style={{ padding: '14px', textAlign: 'center', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {eligibleStudents.length === 0 ? `No available students found in ${rosterCollegeName}.` : 'No matching students found for search query.'}
+                    </div>
+                  ) : (
+                    filteredStudents.map((u: any) => {
+                      const isSelected = selectedStudents.includes(u.id);
+                      const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => toggleStudent(u.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            background: isSelected ? 'rgba(59,130,246,0.15)' : 'transparent',
+                            transition: 'background 0.15s'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: isSelected ? 600 : 400 }}>{fullName}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{u.email}</div>
+                            </div>
+                          </div>
+                          {u.usn && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '3px' }}>
+                              {u.usn}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    className="btn-primary"
+                    disabled={rosterBusy || selectedStudents.length === 0}
+                    onClick={addToRoster}
+                    style={{ padding: '8px 16px', fontSize: '13px' }}
+                  >
+                    {rosterBusy ? 'Adding to Roster...' : `Add ${selectedStudents.length} Student${selectedStudents.length === 1 ? '' : 's'} to Section`}
+                  </button>
+                </div>
+              </div>
+
+              {/* Current Roster List */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600 }}>Active Roster ({roster.length} students)</div>
+                </div>
+                {rosterLoading ? (
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Loading roster...</p>
+                ) : roster.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '12px 0' }}>No students enrolled in this section yet.</p>
+                ) : (
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {roster.map((m: any) => (
+                      <div key={m.id || m.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(0,0,0,0.25)', borderRadius: '6px', fontSize: '13px' }}>
+                        <div>
+                          <strong>{nameOf(m.user_id)}</strong>
+                          {emailOf(m.user_id) && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px', fontSize: '12px' }}>{emailOf(m.user_id)}</span>}
+                        </div>
+                        <button className="btn-secondary" style={{ fontSize: '11px', padding: '3px 8px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => removeFromRoster(m.user_id)}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -42,15 +42,41 @@ export default function DepartmentsPage() {
     loadDepartments();
   }, []);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const filteredDepts = departments
+    .filter((d: any) => !collegeFilter || d.college_id === collegeFilter)
+    .filter((d: any) => !searchQuery || d.name?.toLowerCase().includes(searchQuery.toLowerCase()) || d.code?.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="animate-fade-in">
       <Topbar title="Departments Management" />
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0 }}>All Departments</h3>
+        <div>
+          <h3 style={{ margin: 0 }}>Academic Departments</h3>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            Showing {filteredDepts.length} of {departments.length} departments
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="🔍 Search department..."
+            style={{ width: '220px' }}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
           {isSuperAdmin && activeColleges.length > 0 && (
-            <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
+            <select className="input-field" style={{ maxWidth: '200px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
               <option value="">All colleges</option>
               {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -69,32 +95,71 @@ export default function DepartmentsPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Department Name</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College / Scope</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Created By</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Department ID</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Identifier</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
-            ) : departments.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>No departments found. Create a college and then add a department via API.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '25px', textAlign: 'center' }}>Loading departments...</td></tr>
+            ) : filteredDepts.length === 0 ? (
+              <tr><td colSpan={5} style={{ padding: '25px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                {searchQuery || collegeFilter ? 'No departments match your filter.' : 'No departments found. Create a department to get started.'}
+              </td></tr>
             ) : (
-              departments.filter((d: any) => !collegeFilter || d.college_id === collegeFilter).map((dept) => (
-                <tr key={dept.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{dept.name}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                    {isSuperAdmin ? collegeName(dept.college_id) : 'My College'}
-                  </td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{dept.created_by}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.85em' }}>{dept.id}</td>
-                  <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                    <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteDepartment(dept.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))
+              filteredDepts.map((dept) => {
+                const creator = !dept.created_by || dept.created_by === 'system-user' ? 'Super Administrator' : dept.created_by.includes('@') ? dept.created_by : 'Institutional Admin';
+                return (
+                  <tr key={dept.id} style={{ transition: 'background 0.2s ease' }} className="table-row">
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                      <div style={{ fontWeight: 600 }}>{dept.name}</div>
+                      {dept.code && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Code: {dept.code}</div>}
+                    </td>
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                      <span className="badge" style={{ fontSize: '11px', padding: '3px 8px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                        {isSuperAdmin ? collegeName(dept.college_id) : 'My College'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      <span title={dept.created_by || 'system'}>👤 {creator}</span>
+                      {dept.created_at && (
+                        <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>
+                          {new Date(dept.created_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                      <button
+                        onClick={() => copyId(dept.id)}
+                        title={`Click to copy UUID: ${dept.id}`}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid var(--panel-border)',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          fontFamily: 'monospace',
+                          cursor: 'pointer',
+                          color: copiedId === dept.id ? '#10b981' : 'var(--text-secondary)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {dept.id.substring(0, 8)}... {copiedId === dept.id ? '✓ Copied' : '📋'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
+                      <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteDepartment(dept.id)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

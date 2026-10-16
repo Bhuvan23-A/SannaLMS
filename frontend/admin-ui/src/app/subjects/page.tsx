@@ -15,8 +15,8 @@ export default function SubjectsPage() {
   // Super admin sees every college's subjects — filter by college (tenant).
   const { isSuperAdmin, activeColleges, collegeNameByTenant } = useColleges();
   const [collegeFilter, setCollegeFilter] = useState('');
-  // Archived subjects are hidden by default — toggle to see/unarchive/delete them.
-  const [showArchived, setShowArchived] = useState(false);
+  // 3-state filter (SUB-03): 'ACTIVE' (default), 'ARCHIVED', or 'ALL'
+  const [archiveFilter, setArchiveFilter] = useState<'ACTIVE' | 'ARCHIVED' | 'ALL'>('ACTIVE');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -47,7 +47,7 @@ export default function SubjectsPage() {
     try {
       setLoading(true);
       const [subs, brs, depts] = await Promise.all([
-        fetchApi(`/api/v1/subjects${showArchived ? '?include_archived=true' : ''}`).catch(() => []),
+        fetchApi('/api/v1/subjects?include_archived=true').catch(() => []),
         fetchApi('/api/v1/branches').catch(() => []),
         fetchApi('/api/v1/departments').catch(() => []),
       ]);
@@ -62,7 +62,7 @@ export default function SubjectsPage() {
     }
   };
 
-  useEffect(() => { load(); }, [showArchived]);
+  useEffect(() => { load(); }, []);
 
   const branchName = (id: string) => branches.find((b: any) => b.id === id)?.name;
   // College-scoped cascading dropdowns: pick the college first, then its
@@ -182,16 +182,17 @@ export default function SubjectsPage() {
 
   const bulkDeleteSubjects = async () => {
     if (selectedIds.length === 0) return;
-    const confirmMsg = showArchived
+    const isArchivedTab = archiveFilter === 'ARCHIVED';
+    const confirmMsg = isArchivedTab
       ? `Permanently delete all ${selectedIds.length} selected subject(s) and their syllabi? This action cannot be undone.`
-      : `Archive/delete all ${selectedIds.length} selected subject(s)? Their historical marks and course offerings will remain safely preserved.`;
+      : `Archive all ${selectedIds.length} selected subject(s)? Their historical marks and course offerings will remain safely preserved.`;
     if (!confirm(confirmMsg)) return;
 
     setBulkLoading(true);
     try {
       await Promise.all(
         selectedIds.map(id =>
-          showArchived
+          isArchivedTab
             ? fetchApi(`/api/v1/subjects/${id}/permanent?cascade=true`, { method: 'DELETE' }).catch(() => null)
             : fetchApi(`/api/v1/subjects/${id}`, { method: 'DELETE' }).catch(() => null)
         )
@@ -288,12 +289,18 @@ export default function SubjectsPage() {
     <div className="animate-fade-in">
       <Topbar title="Subject Catalog" />
 
+      {/* Header and Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '16px', flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0 }}>All Subjects</h3>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>Subject Catalog</h3>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+            Curriculum master library — subjects define syllabi, credits, and branches reused across course offerings.
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="Search subjects by code or name..."
+            placeholder="Search by code or subject name..."
             value={searchTerm}
             onChange={e => { setSearchTerm(e.target.value); setSelectedIds([]); }}
             className="input-field"
@@ -305,18 +312,66 @@ export default function SubjectsPage() {
               {activeColleges.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          <button className="btn-secondary" onClick={() => { setShowArchived(!showArchived); setSelectedIds([]); }}>
-            {showArchived ? ' Showing Archived' : 'View Archived'}
-          </button>
           <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setDepartmentId(''); setBranchId(''); setModalOpen(true); }}>+ Add Subject</button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>ℹ️ Note on Catalog:</span>
-        <span>
-          <strong>Active subjects</strong> can be used to create new courses and enroll students. <strong>Archived subjects</strong> are safely retired from the active catalog without deleting historical student grades, past courses, or syllabus data.
-        </span>
+      {/* 3-State Filter Tabs (SUB-03) */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '8px' }}>
+        <button
+          type="button"
+          onClick={() => { setArchiveFilter('ACTIVE'); setSelectedIds([]); }}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: 'none',
+            background: archiveFilter === 'ACTIVE' ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)',
+            color: archiveFilter === 'ACTIVE' ? '#fff' : 'var(--text-secondary)',
+          }}
+        >
+          Active Catalog ({subjects.filter(s => !s.deleted_at).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => { setArchiveFilter('ARCHIVED'); setSelectedIds([]); }}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: 'none',
+            background: archiveFilter === 'ARCHIVED' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)',
+            color: archiveFilter === 'ARCHIVED' ? '#f87171' : 'var(--text-secondary)',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: archiveFilter === 'ARCHIVED' ? 'rgba(239, 68, 68, 0.4)' : 'transparent',
+          }}
+        >
+          Archived Only ({subjects.filter(s => !!s.deleted_at).length})
+        </button>
+        <button
+          type="button"
+          onClick={() => { setArchiveFilter('ALL'); setSelectedIds([]); }}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: 'none',
+            background: archiveFilter === 'ALL' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
+            color: archiveFilter === 'ALL' ? '#38bdf8' : 'var(--text-secondary)',
+            borderWidth: '1px',
+            borderStyle: 'solid',
+            borderColor: archiveFilter === 'ALL' ? 'rgba(56, 189, 248, 0.4)' : 'transparent',
+          }}
+        >
+          All Subjects ({subjects.length})
+        </button>
       </div>
 
       {selectedIds.length > 0 && (
@@ -338,7 +393,7 @@ export default function SubjectsPage() {
             </span>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {showArchived ? (
+            {archiveFilter === 'ARCHIVED' ? (
               <>
                 <button
                   className="btn-primary"
@@ -364,7 +419,7 @@ export default function SubjectsPage() {
                 disabled={bulkLoading}
                 onClick={bulkDeleteSubjects}
               >
-                {bulkLoading ? 'Processing...' : `Delete / Archive Selected (${selectedIds.length})`}
+                {bulkLoading ? 'Processing...' : `Archive Selected (${selectedIds.length})`}
               </button>
             )}
             <button
@@ -386,6 +441,9 @@ export default function SubjectsPage() {
 
       {(() => {
         const filteredSubjects = subjects.filter((s: any) => {
+          if (archiveFilter === 'ACTIVE' && s.deleted_at) return false;
+          if (archiveFilter === 'ARCHIVED' && !s.deleted_at) return false;
+
           if (collegeFilter) {
             const col = activeColleges.find((x: any) => x.id === collegeFilter);
             if (col && s.tenant_id !== col.tenant_id) return false;
@@ -422,7 +480,7 @@ export default function SubjectsPage() {
                   <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
                   <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Credits</th>
                   <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
-                  {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
+                  <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Scope &amp; Ownership</th>
                   <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Status</th>
                   <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -432,56 +490,85 @@ export default function SubjectsPage() {
                   <tr><td colSpan={8} style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
                 ) : filteredSubjects.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '20px', textAlign: 'center' }}>
+                    <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                       {searchTerm.trim()
                         ? `No subjects match "${searchTerm}".`
-                        : showArchived ? 'No archived subjects.' : 'No subjects yet. Add the subjects your college teaches.'}
+                        : archiveFilter === 'ARCHIVED'
+                          ? 'No archived subjects found.'
+                          : 'No subjects found. Click "+ Add Subject" to create one.'}
                     </td>
                   </tr>
                 ) : (
-                  filteredSubjects.map((s) => (
-                    <tr key={s.id} className="table-row" style={{ transition: 'background 0.2s ease', background: selectedIds.includes(s.id) ? 'rgba(56, 189, 248, 0.05)' : undefined }}>
-                      <td style={{ width: '40px', padding: '15px 12px 15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select subject ${s.code}`}
-                          checked={selectedIds.includes(s.id)}
-                          onChange={() => {
-                            setSelectedIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]);
-                          }}
-                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                        />
-                      </td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace', fontSize: '0.9em' }}>{s.code}</td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontWeight: 500 }}>{s.name}</td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{s.credits}</td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{branchName(s.branch_id) || '—'}</td>
-                      {isSuperAdmin && (
-                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeNameByTenant(s.tenant_id) || '—'}</td>
-                      )}
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '12px',
-                          background: s.status === 'ARCHIVED' ? 'rgba(239,68,68,0.15)' : s.status === 'PUBLISHED' ? 'var(--success-color)' : 'rgba(255,255,255,0.1)',
-                          color: s.status === 'ARCHIVED' ? '#f87171' : undefined }}>{s.status}</span>
-                      </td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                        {s.deleted_at ? (
-                          <>
-                            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => restoreSubject(s.id)}>↩ Restore</button>
-                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
-                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>Delete Forever</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openSyllabus(s)}>Syllabus</button>
-                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(s)}>Edit</button>
-                            <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', marginRight: '6px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
-                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>Delete</button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                  filteredSubjects.map((s) => {
+                    const isArchived = Boolean(s.deleted_at);
+                    const isGlobal = !s.tenant_id || s.tenant_id === 'master';
+                    const collegeName = collegeNameByTenant(s.tenant_id);
+
+                    return (
+                      <tr key={s.id} className="table-row" style={{ transition: 'background 0.2s ease', background: selectedIds.includes(s.id) ? 'rgba(56, 189, 248, 0.05)' : undefined }}>
+                        <td style={{ width: '40px', padding: '15px 12px 15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select subject ${s.code}`}
+                            checked={selectedIds.includes(s.id)}
+                            onChange={() => {
+                              setSelectedIds(prev => prev.includes(s.id) ? prev.filter(x => x !== s.id) : [...prev, s.id]);
+                            }}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                          />
+                        </td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontFamily: 'monospace', fontSize: '0.9em', fontWeight: 600 }}>{s.code}</td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', fontWeight: 500 }}>
+                          {s.name}
+                          {isArchived && (
+                            <span style={{ display: 'block', fontSize: '11px', color: '#f87171', marginTop: '2px' }}>
+                              Archived: {new Date(s.deleted_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{s.credits}</td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{branchName(s.branch_id) || '—'}</td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                          {isGlobal ? (
+                            <span style={{ fontSize: '11px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', padding: '3px 8px', borderRadius: '4px', fontWeight: 600, border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                              Global Template
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '3px 8px', borderRadius: '4px', fontWeight: 600, border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                              {collegeName || s.tenant_id}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
+                          {isArchived ? (
+                            <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '11px', background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 600 }}>
+                              ARCHIVED
+                            </span>
+                          ) : (
+                            <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600 }}>
+                              ACTIVE
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
+                          {isArchived ? (
+                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                              <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => restoreSubject(s.id)}>↩ Restore to Catalog</button>
+                              <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => openEdit(s)}>Edit</button>
+                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSubjectForever(s)}>Delete Permanently</button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                              <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => openSyllabus(s)}>Syllabus</button>
+                              <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => openEdit(s)}>Edit</button>
+                              <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={() => deleteSubject(s.id)}>Archive</button>
+                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteWithCascade(s)}>Delete</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

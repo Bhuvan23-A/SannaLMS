@@ -5,6 +5,8 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
 
+import UserSearchPicker from '@/components/UserSearchPicker';
+
 const ROLE_LABELS: Record<string, string> = {
   PRIMARY_TRAINER: 'Primary Trainer',
   TEACHING_ASSISTANT: 'Teaching Assistant',
@@ -42,6 +44,7 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
 
   const assignTrainer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) return;
     try {
       await fetchApi('/api/v1/course-trainers', {
         method: 'POST',
@@ -89,20 +92,25 @@ export default function CourseTrainersTab({ courseId }: { courseId: string }) {
       <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Course Trainers</h2>
 
       {isAdmin && (
-        <form onSubmit={assignTrainer} style={{ display: 'flex', gap: '15px', marginBottom: '30px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Trainer User ID</label>
-            <input required className="input-field" value={userId} onChange={e => setUserId(e.target.value)} placeholder="Paste the trainer's user ID" />
+        <form onSubmit={assignTrainer} style={{ display: 'flex', gap: '15px', marginBottom: '30px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 2, minWidth: '240px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Select Faculty / Trainer *</label>
+            <UserSearchPicker
+              value={userId}
+              onChange={setUserId}
+              roleFilter={['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'GUEST_FACULTY', 'COLLEGE_ADMIN', 'SUPER_ADMIN']}
+              placeholder="Search faculty by name or email..."
+            />
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Role</label>
-            <select className="input-field" value={role} onChange={e => setRole(e.target.value)}>
+          <div style={{ flex: 1, minWidth: '180px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Role</label>
+            <select className="input-field" value={role} onChange={e => setRole(e.target.value)} style={{ height: '42px' }}>
               <option value="PRIMARY_TRAINER">Primary Trainer</option>
               <option value="TEACHING_ASSISTANT">Teaching Assistant</option>
               <option value="GUEST_FACULTY">Guest Faculty</option>
             </select>
           </div>
-          <button type="submit" className="btn-primary" style={{ padding: '12px 20px', height: '44px' }}>Assign</button>
+          <button type="submit" className="btn-primary" disabled={!userId} style={{ padding: '10px 24px', height: '42px', fontWeight: 600 }}>Assign Trainer</button>
         </form>
       )}
 

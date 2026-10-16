@@ -403,7 +403,9 @@ export default function ResourcesPage() {
                 </label>
                 <select className="input-field" style={{ padding: '6px 10px', fontSize: '12px' }} value={filterDepartment} onChange={e => setFilterDepartment(e.target.value)}>
                   <option value="">All Departments</option>
-                  {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {departments
+                    .filter((d: any) => !selectedCourse?.college_id || d.college_id === selectedCourse.college_id)
+                    .map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div style={{ flex: 1, minWidth: '220px' }}>
@@ -720,7 +722,7 @@ export default function ResourcesPage() {
                     onChange={e => setUploadLinkUrl(e.target.value)}
                   />
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Info size={14} color="var(--accent-color)" /> In Google Drive, click <strong>Share &gt; Anyone with the link can view</strong> so enrolled students can open this resource.
+                    <Lock size={14} color="#10b981" /> <span><strong>Secure Access:</strong> Ensure file sharing permissions match your course audience (e.g. your institution's Google Workspace domain or enrolled students only). Do not make confidential assessment rubrics or test keys publicly viewable.</span>
                   </div>
                 </div>
               ) : (

@@ -1037,7 +1037,17 @@ export const Dashboard: React.FC = () => {
     }
     setPickedQuiz(quiz);
     setQuizQuestionIndex(0);
-    setQuizAnswers({});
+
+    // OT-02: Check for existing draft in localStorage to restore answers on accidental refresh
+    let initialAnswers = {};
+    try {
+      const savedDraft = localStorage.getItem(`testDraft:${quiz.id}:${keycloak.subject || ''}`);
+      if (savedDraft) {
+        initialAnswers = JSON.parse(savedDraft) || {};
+      }
+    } catch { }
+
+    setQuizAnswers(initialAnswers);
     setExamStarted(true);
     setTimeLeft((quiz.duration_mins || 10) * 60);
     setQuizSubmitResult(null);
@@ -1049,8 +1059,27 @@ export const Dashboard: React.FC = () => {
   const currentQuizQuestion = currentQuizQuestions[quizQuestionIndex]?.question;
 
   const pickQuizAnswer = (questionId: string, optionId: string) => {
-    setQuizAnswers(prev => ({ ...prev, [questionId]: optionId }));
+    setQuizAnswers(prev => {
+      const next = { ...prev, [questionId]: optionId };
+      if (pickedQuiz) {
+        try {
+          localStorage.setItem(`testDraft:${pickedQuiz.id}:${keycloak.subject || ''}`, JSON.stringify(next));
+        } catch { }
+      }
+      return next;
+    });
   };
+
+  // OT-03: Autosave interval every 15 seconds while test is active
+  useEffect(() => {
+    if (!examStarted || !pickedQuiz) return;
+    const interval = setInterval(() => {
+      try {
+        localStorage.setItem(`testDraft:${pickedQuiz.id}:${keycloak.subject || ''}`, JSON.stringify(quizAnswers));
+      } catch { }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [examStarted, pickedQuiz, quizAnswers]);
 
   const submitRealQuiz = async () => {
     if (!pickedQuiz || submittingRef.current) return;
@@ -1074,8 +1103,9 @@ export const Dashboard: React.FC = () => {
         graded: res.is_graded !== false,
       });
       setExamStarted(false);
-      // Record completion so the quiz list shows a "Completed" state, and award XP
+      // Clean up test draft from localStorage upon successful submission
       try {
+        localStorage.removeItem(`testDraft:${pickedQuiz.id}:${keycloak.subject || ''}`);
         localStorage.setItem(`quizDone:${pickedQuiz.id}:${keycloak.subject || ''}`, JSON.stringify({ score: res.score ?? 0, maxScore, at: Date.now() }));
       } catch { /* ignore */ }
       if (res.is_graded !== false) {
@@ -1088,8 +1118,8 @@ export const Dashboard: React.FC = () => {
     } catch (err: any) {
       const status = err?.response?.status;
       alert(status === 409
-        ? 'You have already submitted this quiz — retakes are not allowed.'
-        : 'Failed to submit quiz: ' + (err?.response?.data?.message || err?.message));
+        ? 'You have already submitted this test — retakes are not allowed.'
+        : 'Failed to submit test: ' + (err?.response?.data?.message || err?.message));
       if (status === 409) {
         setExamStarted(false);
         setPickedQuiz(null);

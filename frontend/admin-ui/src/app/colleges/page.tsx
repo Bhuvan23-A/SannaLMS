@@ -4,7 +4,7 @@ import Topbar from "@/components/Topbar";
 import CreateCollegeModal from "@/components/CreateCollegeModal";
 import RoleGuard from "@/components/RoleGuard";
 import { fetchApi } from "@/lib/api";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Copy, Check, AlertTriangle, ShieldAlert, Trash2, Power } from 'lucide-react';
 
 export default function CollegesPage() {
   const [colleges, setColleges] = useState<any[]>([]);
@@ -17,19 +17,27 @@ export default function CollegesPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [flash, setFlash] = useState('');
-  // College-admin access: assign an admin and/or reset their password (#fix)
+  // College-admin access: assign an admin and/or reset their password
   const [assignAdminCollege, setAssignAdminCollege] = useState<any>(null);
   const [assignAdminEmail, setAssignAdminEmail] = useState('');
   const [assignAdminSaving, setAssignAdminSaving] = useState(false);
   const [assignAdminError, setAssignAdminError] = useState('');
   const [assignAdminResult, setAssignAdminResult] = useState<any>(null);
+  const [assignCopied, setAssignCopied] = useState(false);
+
   const [resetPasswordCollege, setResetPasswordCollege] = useState<any>(null);
   const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState('');
   const [resetPasswordResult, setResetPasswordResult] = useState<any>(null);
+  const [resetCopied, setResetCopied] = useState(false);
+
   const [showAssignPassword, setShowAssignPassword] = useState(true);
   const [showResetPassword, setShowResetPassword] = useState(true);
   const [busy, setBusy] = useState(''); // college id currently being held/restored/deleted
+
+  // Danger Zone state
+  const [dangerCollege, setDangerCollege] = useState<any>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 4000); };
 
@@ -224,30 +232,22 @@ export default function CollegesPage() {
                   </td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>{college.created_by}</td>
                   <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {held ? (
-                      <>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => restoreCollege(college)} disabled={isBusy}>Restore</button>
-                        <button
-                          className="btn-secondary"
-                          style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
-                          onClick={() => deleteCollegeForever(college)}
-                          disabled={isBusy}
-                        >Delete Forever</button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openEdit(college)}>Edit</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openAssignAdmin(college)}>Admin</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>Reset Pwd</button>
-                        <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '8px' }} onClick={() => holdCollege(college)} disabled={isBusy}> Hold</button>
-                        <button
-                          className="btn-secondary"
-                          style={{ padding: '5px 12px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.4)' }}
-                          onClick={() => deleteCollegeForever(college)}
-                          disabled={isBusy}
-                        >Delete Forever</button>
-                      </>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '6px' }} onClick={() => openEdit(college)}>Edit</button>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '6px' }} onClick={() => openAssignAdmin(college)}>Admin</button>
+                    <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '6px' }} onClick={() => openResetPassword(college)} disabled={resetPasswordSaving}>Reset Pwd</button>
+                    {held && (
+                      <button className="btn-secondary" style={{ padding: '5px 12px', fontSize: '12px', marginRight: '6px', color: '#00c864', borderColor: '#00c864' }} onClick={() => restoreCollege(college)} disabled={isBusy}>
+                        Restore
+                      </button>
                     )}
+                    <button
+                      className="btn-secondary"
+                      style={{ padding: '5px 12px', fontSize: '12px', color: '#f87171', borderColor: 'rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)' }}
+                      onClick={() => { setDangerCollege(college); setDeleteConfirmInput(''); }}
+                      disabled={isBusy}
+                    >
+                      ⚠️ Danger Zone
+                    </button>
                   </td>
                 </tr>
                 );
@@ -267,7 +267,126 @@ export default function CollegesPage() {
         />
       )}
 
-      {/* Assign College Admin modal — how a super admin hands access to a college (#fix) */}
+      {/* Danger Zone Modal */}
+      {dangerCollege && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
+          zIndex: 1000
+        }}>
+          <div className="panel animate-fade-in" style={{ width: '520px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(239, 68, 68, 0.5)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger-color)' }}>
+                <AlertTriangle size={22} />
+                <h2 style={{ margin: 0, fontSize: '18px' }}>Danger Zone: {dangerCollege.name}</h2>
+              </div>
+              <button type="button" onClick={() => setDangerCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '18px' }}>
+              Destructive tenant management actions for <strong>{dangerCollege.name}</strong> ({dangerCollege.tenant_id || dangerCollege.id}).
+            </p>
+
+            {/* Action 1: Hold / Restore */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                    {dangerCollege.status === 'HELD' ? 'Restore College Access' : 'Hold College Access'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '300px' }}>
+                    {dangerCollege.status === 'HELD'
+                      ? 'Re-enables student/faculty logins and restores the college on the platform.'
+                      : 'Blocks all logins (admin, faculty, students) and hides college from standard directory. Reversible.'}
+                  </div>
+                </div>
+                {dangerCollege.status === 'HELD' ? (
+                  <button
+                    className="btn-primary"
+                    style={{ background: '#059669', borderColor: '#059669', fontSize: '12px', padding: '6px 14px' }}
+                    onClick={() => {
+                      const c = dangerCollege;
+                      setDangerCollege(null);
+                      restoreCollege(c);
+                    }}
+                  >
+                    Restore
+                  </button>
+                ) : (
+                  <button
+                    className="btn-secondary"
+                    style={{ borderColor: '#f59e0b', color: '#f59e0b', fontSize: '12px', padding: '6px 14px' }}
+                    onClick={() => {
+                      const c = dangerCollege;
+                      setDangerCollege(null);
+                      holdCollege(c);
+                    }}
+                  >
+                    Hold College
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Action 2: Delete Forever with typed confirmation */}
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '16px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--danger-color)', marginBottom: '4px' }}>
+                Permanently Delete College
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.4 }}>
+                This will <strong>irreversibly purge</strong> all departments, sections, course offerings, attendance, gradebooks, assessments, and user accounts belonging to this institution.
+              </p>
+              <label style={{ display: 'block', fontSize: '12px', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                To confirm, type <strong>{dangerCollege.name}</strong> below:
+              </label>
+              <input
+                type="text"
+                className="input-field"
+                style={{ width: '100%', fontSize: '13px', marginBottom: '12px' }}
+                placeholder={`Type "${dangerCollege.name}"`}
+                value={deleteConfirmInput}
+                onChange={e => setDeleteConfirmInput(e.target.value)}
+              />
+              <button
+                className="btn-secondary"
+                disabled={deleteConfirmInput !== dangerCollege.name || busy === dangerCollege.id}
+                onClick={async () => {
+                  const c = dangerCollege;
+                  setDangerCollege(null);
+                  try {
+                    setBusy(c.id);
+                    await fetchApi(`/api/v1/colleges/${c.id}`, { method: 'DELETE' });
+                    showFlash(`"${c.name}" permanently deleted`);
+                    loadColleges();
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to delete college');
+                  } finally {
+                    setBusy('');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  background: deleteConfirmInput === dangerCollege.name ? 'rgba(239,68,68,0.85)' : 'rgba(239,68,68,0.2)',
+                  borderColor: 'var(--danger-color)',
+                  color: '#fff',
+                  padding: '8px 14px',
+                  fontSize: '13px',
+                  cursor: deleteConfirmInput === dangerCollege.name ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Permanently Delete This Tenant
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button className="btn-secondary" onClick={() => setDangerCollege(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign College Admin modal */}
       {assignAdminCollege && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -275,25 +394,43 @@ export default function CollegesPage() {
           display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
           zIndex: 1000
         }}>
-          <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>College Admin Access</h2>
-              <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}></button>
+          <form onSubmit={submitAssignAdmin} className="panel" style={{ width: '460px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>College Admin Access</h2>
+              <button type="button" onClick={() => setAssignAdminCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               College: <strong>{assignAdminCollege.name}</strong>
             </p>
             {assignAdminError && (
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{assignAdminError}</div>
             )}
             {assignAdminResult ? (
-              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', marginBottom: '8px' }}>Admin created / linked. Share these credentials with the college admin:</div>
+              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    Temporary Password
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `College: ${assignAdminCollege.name}\nUsername: ${assignAdminResult.admin_username}\nTemporary Password: ${assignAdminResult.admin_password}\nLogin URL: ${window.location.origin}\nNote: Password must be changed upon first login.`;
+                      navigator.clipboard.writeText(text);
+                      setAssignCopied(true);
+                      setTimeout(() => setAssignCopied(false), 3000);
+                    }}
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {assignCopied ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
+                    {assignCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{assignAdminResult.admin_username}</strong>
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Password: <strong>{showAssignPassword ? assignAdminResult.admin_password : '••••••••••••'}</strong></span>
+                  <span>Password: <strong style={{ color: '#60a5fa' }}>{showAssignPassword ? assignAdminResult.admin_password : '••••••••••••'}</strong></span>
                   <button
                     type="button"
                     onClick={() => setShowAssignPassword(!showAssignPassword)}
@@ -303,7 +440,9 @@ export default function CollegesPage() {
                     {showAssignPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>Sign in at the student portal — the platform routes admins to the admin dashboard automatically.</div>
+                <div style={{ fontSize: '12px', color: '#fef08a', background: 'rgba(234,179,8,0.1)', padding: '8px', borderRadius: '4px', marginTop: '10px' }}>
+                  Keycloak will require the admin to set their own permanent password on their first login.
+                </div>
               </div>
             ) : (
               <div style={{ marginBottom: '16px' }}>
@@ -321,7 +460,7 @@ export default function CollegesPage() {
         </div>
       )}
 
-      {/* Reset admin password modal — shows the fresh credentials once (#fix) */}
+      {/* Reset admin password modal */}
       {resetPasswordCollege && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -329,25 +468,43 @@ export default function CollegesPage() {
           display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
           zIndex: 1000
         }}>
-          <div className="panel" style={{ width: '440px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>Reset Admin Password</h2>
-              <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}></button>
+          <div className="panel" style={{ width: '460px', maxWidth: '92vw', padding: '28px', border: '1px solid rgba(59, 130, 246, 0.4)', background: '#0f172a', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>Reset Admin Password</h2>
+              <button type="button" onClick={() => setResetPasswordCollege(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               College: <strong>{resetPasswordCollege.name}</strong>
             </p>
             {resetPasswordError && (
               <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>{resetPasswordError}</div>
             )}
             {resetPasswordResult ? (
-              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', marginBottom: '8px' }}>Password reset. Share these credentials with the college admin:</div>
+              <div style={{ background: 'rgba(0,200,100,0.08)', border: '1px solid rgba(0,200,100,0.3)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', background: 'rgba(16,185,129,0.15)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    Temporary Password
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `College: ${resetPasswordCollege.name}\nUsername: ${resetPasswordResult.admin_username}\nTemporary Password: ${resetPasswordResult.admin_password}\nLogin URL: ${window.location.origin}\nNote: Password must be changed upon first login.`;
+                      navigator.clipboard.writeText(text);
+                      setResetCopied(true);
+                      setTimeout(() => setResetCopied(false), 3000);
+                    }}
+                    className="btn-secondary"
+                    style={{ fontSize: '11px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {resetCopied ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
+                    {resetCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Username: <strong>{resetPasswordResult.admin_username}</strong>
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Password: <strong>{showResetPassword ? resetPasswordResult.admin_password : '••••••••••••'}</strong></span>
+                  <span>Password: <strong style={{ color: '#60a5fa' }}>{showResetPassword ? resetPasswordResult.admin_password : '••••••••••••'}</strong></span>
                   <button
                     type="button"
                     onClick={() => setShowResetPassword(!showResetPassword)}
@@ -357,9 +514,12 @@ export default function CollegesPage() {
                     {showResetPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
+                <div style={{ fontSize: '12px', color: '#fef08a', background: 'rgba(234,179,8,0.1)', padding: '8px', borderRadius: '4px', marginTop: '10px' }}>
+                  Temporary password reset. The admin will be prompted by Keycloak to choose a new password on login.
+                </div>
               </div>
             ) : (
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>{resetPasswordSaving ? 'Resetting...' : 'This resets the college admin password to the default and shows it here once.'}</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>{resetPasswordSaving ? 'Generating secure credentials...' : 'This generates a secure temporary password and requires password reset on next login.'}</p>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button type="button" className="btn-secondary" onClick={() => setResetPasswordCollege(null)}>Close</button>

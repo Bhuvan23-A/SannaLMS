@@ -147,15 +147,25 @@ export class KeycloakAdminService {
   }
 
   /**
-   * Reset a user's password to the given value (non-temporary). Used when a
-   * college-admin email already exists so the returned credentials are always
-   * valid instead of silently keeping the previous owner's unknown password.
+   * Reset a user's password to the given value. Supports temporary=true to force
+   * change on next login.
    */
-  async resetUserPassword(userId: string, password: string): Promise<void> {
+  async resetUserPassword(userId: string, password: string, temporary = false): Promise<void> {
     if (!userId) throw new Error('Empty user id for password reset');
     await this.req(`/users/${userId}/reset-password`, {
       method: 'PUT',
-      body: JSON.stringify({ type: 'password', value: password, temporary: false }),
+      body: JSON.stringify({ type: 'password', value: password, temporary }),
+    });
+  }
+
+  /**
+   * Set required actions for a user (e.g. ['UPDATE_PASSWORD']).
+   */
+  async setUserRequiredActions(userId: string, actions: string[]): Promise<void> {
+    if (!userId) return;
+    await this.req(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ requiredActions: actions }),
     });
   }
 

@@ -43,6 +43,11 @@ export default function AcademicSessionsPage() {
     e.preventDefault();
     setCreating(true);
     setFormError('');
+    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+      setFormError('Session End Date must be after the Start Date.');
+      setCreating(false);
+      return;
+    }
     try {
       await fetchApi('/api/v1/academic-sessions', {
         method: 'POST',
@@ -91,7 +96,12 @@ export default function AcademicSessionsPage() {
       <Topbar title="Academic Sessions" />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0 }}>Academic Years</h3>
+        <div>
+          <h3 style={{ margin: 0 }}>Academic Sessions & Terms</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
+            Operational academic years (e.g. <strong>2026–2027</strong>) or training cohorts. Exactly one session is <strong>current per college/tenant</strong>.
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           {isSuperAdmin && activeColleges.length > 0 && (
             <select className="input-field" style={{ maxWidth: '240px' }} value={collegeFilter} onChange={e => setCollegeFilter(e.target.value)}>
@@ -102,9 +112,6 @@ export default function AcademicSessionsPage() {
           <button className="btn-primary" onClick={() => { setCreateCollegeId(collegeFilter); setModalOpen(true); }}>+ Add Session</button>
         </div>
       </div>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '-12px', marginBottom: '20px' }}>
-        The running academic year (e.g. <strong>2026-27</strong>). Exactly one session is <strong>current</strong> — sections and courses belong to a session.
-      </p>
 
       {error && (
         <div className="glass-panel" style={{ padding: '15px', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', marginBottom: '20px' }}>

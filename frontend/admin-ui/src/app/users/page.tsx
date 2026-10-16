@@ -5,7 +5,8 @@ import { fetchApi } from '@/lib/api';
 import { useRole } from '@/hooks/useRole';
 import { 
   Users, Key, Search, Building2, Shield, Eye, EyeOff, Lock, 
-  RefreshCw, Check, X, UserPlus, UserCheck, AlertCircle, Copy
+  RefreshCw, Check, X, UserPlus, UserCheck, AlertCircle, Copy,
+  ArrowUpDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 export default function UsersDirectoryPage() {
@@ -18,6 +19,12 @@ export default function UsersDirectoryPage() {
   const [search, setSearch] = useState('');
   const [selectedCollege, setSelectedCollege] = useState('');
   const [selectedRole, setSelectedRole] = useState('ALL');
+
+  // Pagination & Sorting State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'role' | 'college'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Password reset modal state
   const [resetModalUser, setResetModalUser] = useState<any | null>(null);
@@ -38,6 +45,10 @@ export default function UsersDirectoryPage() {
   useEffect(() => {
     loadData();
   }, [selectedCollege, selectedRole]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCollege, selectedRole]);
 
   const loadData = async () => {
     setLoading(true);
@@ -120,7 +131,8 @@ export default function UsersDirectoryPage() {
 
   const copyCredentials = () => {
     if (!resetModalUser) return;
-    const text = `SannaLMS Credentials:\nEmail: ${resetModalUser.email}\nPassword: ${newPassword}\nPortal: https://sannalms.sannainnovations.com`;
+    const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sannalms.sannainnovations.com';
+    const text = `Portal Credentials:\nEmail: ${resetModalUser.email}\nTemporary Password: ${newPassword}\nPortal: ${portalUrl}\nNote: Password must be changed upon login.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -133,6 +145,41 @@ export default function UsersDirectoryPage() {
     const matchesSearch = !q || fullName.includes(q) || email.includes(q);
     return matchesSearch;
   });
+
+  const sortedUsers = [...filteredUsers].sort((a: any, b: any) => {
+    let valA = '';
+    let valB = '';
+    if (sortBy === 'name') {
+      valA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+      valB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+    } else if (sortBy === 'email') {
+      valA = (a.email || '').toLowerCase();
+      valB = (b.email || '').toLowerCase();
+    } else if (sortBy === 'role') {
+      valA = (a.role || '').toLowerCase();
+      valB = (b.role || '').toLowerCase();
+    } else if (sortBy === 'college') {
+      const colA = colleges.find((c: any) => c.id === a.college_id)?.name || a.tenant_id || '';
+      const colB = colleges.find((c: any) => c.id === b.college_id)?.name || b.tenant_id || '';
+      valA = colA.toLowerCase();
+      valB = colB.toLowerCase();
+    }
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / pageSize));
+  const paginatedUsers = sortedUsers.slice((page - 1) * pageSize, page * pageSize);
+
+  const toggleSort = (col: 'name' | 'email' | 'role' | 'college') => {
+    if (sortBy === col) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setSortOrder('asc');
+    }
+  };
 
   const studentsCount = users.filter((u: any) => u.role === 'STUDENT').length;
   const facultyCount = users.filter((u: any) => ['PRIMARY_TRAINER', 'TEACHING_ASSISTANT', 'INSTRUCTOR'].includes(u.role)).length;
@@ -248,7 +295,7 @@ export default function UsersDirectoryPage() {
             <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 1rem', color: '#38bdf8' }} />
             <p>Loading user directory...</p>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : sortedUsers.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
             <Users size={32} style={{ margin: '0 auto 1rem', color: 'var(--text-secondary)' }} />
             <p>No users matching the selected filters.</p>
@@ -258,14 +305,38 @@ export default function UsersDirectoryPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: 'rgba(14, 165, 233, 0.1)', borderBottom: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>User / Candidate</th>
-                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>Role</th>
-                  <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600 }}>Institution / Cohort</th>
+                  <th
+                    style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => toggleSort('name')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      User / Candidate
+                      <ArrowUpDown size={13} opacity={sortBy === 'name' ? 1 : 0.4} />
+                    </div>
+                  </th>
+                  <th
+                    style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => toggleSort('role')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      Role
+                      <ArrowUpDown size={13} opacity={sortBy === 'role' ? 1 : 0.4} />
+                    </div>
+                  </th>
+                  <th
+                    style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => toggleSort('college')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      Institution / Cohort
+                      <ArrowUpDown size={13} opacity={sortBy === 'college' ? 1 : 0.4} />
+                    </div>
+                  </th>
                   <th style={{ padding: '14px 16px', color: '#7dd3fc', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((u: any) => {
+                {paginatedUsers.map((u: any) => {
                   const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email.split('@')[0];
                   const initials = fullName.slice(0, 2).toUpperCase();
                   const collegeName = colleges.find((c: any) => c.id === u.college_id)?.name || u.tenant_id || '—';
@@ -326,6 +397,54 @@ export default function UsersDirectoryPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid rgba(56, 189, 248, 0.15)', background: 'rgba(7, 21, 43, 0.6)', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Showing <strong>{(page - 1) * pageSize + 1}</strong> to <strong>{Math.min(page * pageSize, sortedUsers.length)}</strong> of <strong>{sortedUsers.length}</strong> users
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <span>Per page:</span>
+                  <select
+                    className="input-field"
+                    style={{ padding: '4px 8px', fontSize: '12px', height: 'auto' }}
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={250}>250</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '12px', display: 'flex', alignItems: 'center' }}
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    title="Previous Page"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span style={{ fontSize: '12px', padding: '0 8px', color: 'var(--text-primary)' }}>
+                    Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                  </span>
+                  <button
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '12px', display: 'flex', alignItems: 'center' }}
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    title="Next Page"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

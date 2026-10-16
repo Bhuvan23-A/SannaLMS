@@ -1,13 +1,25 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { KeycloakAdminService } from '../keycloak-admin.service';
+import * as crypto from 'crypto';
 
-// Single source of truth for the default password of runtime-created accounts.
-// MUST match the password of the seeded demo accounts (docs/DEMO_SCRIPT.md uses
-// `Test@1234` for test_superadmin / test_collegeadmin / ...) so every test
-// credential is consistent. The UI shows this to admins when a college admin
-// is auto-created so nobody has to guess it.
+// Default password fallback for demo environments
 export const DEFAULT_PASSWORD = 'Test@1234';
+
+/**
+ * SEC-02: Generates a high-entropy, cryptographically secure temporary password.
+ * Format: Prefix# + 4 letters + 3 digits + 1 special symbol
+ */
+export function generateSecureTemporaryPassword(prefix = 'EduAdmin'): string {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%&*';
+  let result = prefix + '#';
+  for (let i = 0; i < 4; i++) result += letters[crypto.randomInt(letters.length)];
+  for (let i = 0; i < 3; i++) result += digits[crypto.randomInt(digits.length)];
+  result += symbols[crypto.randomInt(symbols.length)];
+  return result;
+}
 
 export interface ImportUser {
   email: string;
@@ -99,7 +111,8 @@ export class UsersService {
       try {
         if (!u.email || !u.email.includes('@')) throw new Error('Missing or invalid email');
 
-        const requireChange = body.require_password_change === true;
+        // SEC-01: Default to secure temporary password with forced first-login reset
+        const requireChange = body.require_password_change !== false;
         const rawPhone = String(u.phone || u.phone_number || u.mobile || u.contact || '').trim();
         // Clean phone number (strip whitespace, dashes, underscores, parens)
         const cleanedPhone = rawPhone.replace(/[\s\-_()]/g, '');
@@ -108,8 +121,17 @@ export class UsersService {
           ? cleanedPhone.slice(3)
           : (cleanedPhone.length === 11 && cleanedPhone.startsWith('0') ? cleanedPhone.slice(1) : cleanedPhone);
         const finalPhone = phonePassword || rawPhone;
-        // For students and users, default password is their phone number if present (>= 6 chars), otherwise custom password or default
-        const userPassword = u.password || (finalPhone && finalPhone.length >= 6 ? finalPhone : defaultPassword);
+        
+        // SEC-01: Do NOT use phone number as password unless explicitly requested.
+        // Use custom row password, default password, or generate a secure temporary secret.
+        let userPassword = u.password;
+        if (!userPassword) {
+          if ((body as any).use_phone_as_password === true && finalPhone && finalPhone.length >= 6) {
+            userPassword = finalPhone;
+          } else {
+            userPassword = defaultPassword || ('Edu#' + Math.random().toString(36).substring(2, 9) + '!');
+          }
+        }
 
         // Academic placement: per-row CSV columns override bulk dropdown selections
         const userDept = (u.department || body.department || '').trim();
@@ -217,6 +239,8 @@ export class UsersService {
   async assignCollegeAdmin(college: any, admin: { email: string; first_name?: string; last_name?: string; password?: string }) {
     if (!admin.email || !admin.email.includes('@')) throw new BadRequestException('Admin email is required');
 
+    const tempPassword = admin.password || generateSecureTemporaryPassword('Admin');
+
     const kc = await this.keycloak.createUser({
       username: admin.email,
       email: admin.email,
@@ -224,19 +248,19 @@ export class UsersService {
       emailVerified: true,
       firstName: admin.first_name || 'College',
       lastName: admin.last_name || 'Admin',
-      credentials: [{ type: 'password', value: admin.password || DEFAULT_PASSWORD, temporary: false }],
+      credentials: [{ type: 'password', value: tempPassword, temporary: true }],
       attributes: {
         tenant_id: [college.tenant_id || 'test-college'],
         college_id: [college.id],
       },
+      requiredActions: ['UPDATE_PASSWORD'],
     });
     if (kc.id) {
       await this.keycloak.assignRealmRole(kc.id, 'tenantadmin');
-      // If the Keycloak user already existed (createUser returned existing:true)
-      // their old password would silently stay in place — reset it to the
-      // documented default so the returned credentials are always valid (#fix).
+      // If the Keycloak user already existed, set the new temporary password and force change
       if (kc.existing) {
-        await this.keycloak.resetUserPassword(kc.id, admin.password || DEFAULT_PASSWORD).catch(() => {});
+        await this.keycloak.resetUserPassword(kc.id, tempPassword, true).catch(() => {});
+        await this.keycloak.setUserRequiredActions(kc.id, ['UPDATE_PASSWORD']).catch(() => {});
       }
     }
 
@@ -268,7 +292,8 @@ export class UsersService {
       college_id: college.id,
       admin_email: admin.email,
       admin_username: admin.email,
-      admin_password: admin.password || DEFAULT_PASSWORD,
+      admin_password: tempPassword,
+      temporary: true,
       keycloak_id: kc.id || null,
     };
   }
@@ -282,7 +307,7 @@ export class UsersService {
   /**
    * Super-admin action: reset the college admin's Keycloak password so access
    * can be handed over after onboarding (or recovered when it's lost). Returns
-   * the new credentials — shown to the super admin exactly once.
+   * a high-entropy temporary password with forced change on first login.
    */
   async resetCollegeAdminPassword(collegeId: string) {
     const college = await this.prisma.extendedClient.college.findUnique({ where: { id: collegeId } });
@@ -308,13 +333,17 @@ export class UsersService {
       throw new BadRequestException('Admin user not found in Keycloak.');
     }
 
-    await this.keycloak.resetUserPassword(keycloakId, DEFAULT_PASSWORD);
+    const newTempPassword = generateSecureTemporaryPassword('Admin');
+    await this.keycloak.resetUserPassword(keycloakId, newTempPassword, true);
+    await this.keycloak.setUserRequiredActions(keycloakId, ['UPDATE_PASSWORD']).catch(() => {});
+
     return {
       college_id: college.id,
       admin_email: email,
       admin_username: email,
-      admin_password: DEFAULT_PASSWORD,
-      note: 'Password reset — share these credentials with the college admin.',
+      admin_password: newTempPassword,
+      temporary: true,
+      note: 'Temporary password generated. The college admin will be prompted to choose a new password on their next login.',
     };
   }
 

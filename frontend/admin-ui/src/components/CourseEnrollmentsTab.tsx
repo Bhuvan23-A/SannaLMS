@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useUserDirectory } from '@/hooks/useUserDirectory';
+import UserSearchPicker from '@/components/UserSearchPicker';
 
 export default function CourseEnrollmentsTab({ courseId }: { courseId: string }) {
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -56,18 +57,23 @@ export default function CourseEnrollmentsTab({ courseId }: { courseId: string })
     <div>
       <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Course Enrollments</h2>
 
-      <div className="panel" style={{ background: 'rgba(0,0,0,0.1)', border: '1px solid var(--primary-color)' }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '10px', color: 'var(--primary-color)' }}>Enroll a Student</h3>
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-          Paste the student&apos;s user ID to enroll them in this course. The college is applied automatically.
+      <div className="panel" style={{ background: 'rgba(0,0,0,0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '16px', marginBottom: '6px', color: '#38bdf8' }}>Enroll Student into Course</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+          Select a registered student by searching their name or email. Institutional scope is applied automatically.
         </p>
 
-        <form onSubmit={enrollStudent} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
-          <div style={{ flex: 2 }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Student User ID</label>
-            <input required className="input-field" value={userId} onChange={e => setUserId(e.target.value)} placeholder="Paste the student's user ID" />
+        <form onSubmit={enrollStudent} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 2, minWidth: '280px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>Select Student *</label>
+            <UserSearchPicker
+              value={userId}
+              onChange={setUserId}
+              roleFilter="STUDENT"
+              placeholder="Search student by name or email..."
+            />
           </div>
-          <button type="submit" className="btn-primary" style={{ padding: '12px 20px', height: '44px' }}>
+          <button type="submit" className="btn-primary" disabled={!userId} style={{ padding: '10px 24px', height: '42px', fontWeight: 600 }}>
             Enroll Student
           </button>
         </form>
