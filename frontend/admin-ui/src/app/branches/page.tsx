@@ -133,7 +133,7 @@ export default function BranchesPage() {
               {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Department</th>
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Semesters</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Actions</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', minWidth: '180px', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -159,12 +159,12 @@ export default function BranchesPage() {
                       <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
                         <input type="number" min={1} max={12} className="input-field" value={editTotalSemesters} onChange={e => setEditTotalSemesters(e.target.value)} style={{ width: '80px' }} />
                       </td>
-                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-primary" style={{ fontSize: '13px', padding: '5px 12px' }} disabled={saving} onClick={saveEdit}>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', whiteSpace: 'nowrap' }}>
+                          <button className="btn-primary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center' }} disabled={saving} onClick={saveEdit}>
                             {saving ? 'Saving...' : 'Save'}
                           </button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => setEditingId(null)}>Cancel</button>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center' }} onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
                       </td>
                     </>
@@ -177,10 +177,10 @@ export default function BranchesPage() {
                         <span className="badge badge-info">{branch.semesters?.length || 0}</span>
                         <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '6px' }}>/ {branch.total_semesters ?? 8}</span>
                       </td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(branch)}>Edit</button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteBranch(branch)}>Delete</button>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', whiteSpace: 'nowrap' }}>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => startEdit(branch)}>✏️ Edit</button>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)', display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => deleteBranch(branch)}>🗑️ Delete</button>
                         </div>
                       </td>
                     </>

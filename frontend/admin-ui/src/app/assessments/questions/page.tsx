@@ -442,7 +442,7 @@ export default function QuestionsPage() {
         </div>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
           gap: '14px',
           alignItems: 'start'
         }}>

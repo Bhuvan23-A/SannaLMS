@@ -226,7 +226,7 @@ export default function SemestersPage() {
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Name</th>
               {isSuperAdmin && <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>College</th>}
               <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Branch</th>
-              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>Actions</th>
+              <th style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', minWidth: '240px', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -252,12 +252,12 @@ export default function SemestersPage() {
                           {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       </td>
-                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-primary" style={{ fontSize: '13px', padding: '5px 12px' }} disabled={saving} onClick={saveEdit}>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', whiteSpace: 'nowrap' }}>
+                          <button className="btn-primary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center' }} disabled={saving} onClick={saveEdit}>
                             {saving ? 'Saving...' : 'Save'}
                           </button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => setEditingId(null)}>Cancel</button>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center' }} onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
                       </td>
                     </>
@@ -269,12 +269,12 @@ export default function SemestersPage() {
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{semester.name}</td>
                       {isSuperAdmin && <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{collegeName(deptCollege(semester.branch?.department_id))}</td>}
                       <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>{branchName(semester.branch_id)}</td>
-                      <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)' }}>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px' }} onClick={() => startEdit(semester)}>Edit</button>
+                      <td style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', whiteSpace: 'nowrap' }}>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => startEdit(semester)}>✏️ Edit</button>
                           <button
                             className="btn-secondary"
-                            style={{ fontSize: '13px', padding: '5px 12px', color: isFinalSemester(semester) ? 'var(--text-secondary)' : '#00c864', borderColor: isFinalSemester(semester) ? 'rgba(255,255,255,0.2)' : '#00c864' }}
+                            style={{ fontSize: '12px', height: '32px', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: isFinalSemester(semester) ? 'var(--text-secondary)' : '#00c864', borderColor: isFinalSemester(semester) ? 'rgba(255,255,255,0.2)' : '#00c864' }}
                             onClick={() => startPromote(semester)}
                             title={nextSemester(semester)
                               ? `Promote students to ${nextSemester(semester)?.name}`
@@ -282,9 +282,9 @@ export default function SemestersPage() {
                                 ? `Final semester of the ${branchTotal(semester)}-semester program`
                                 : `Add Semester ${semNumber(semester) + 1} first to enable promotion`}
                           >
-                            {isFinalSemester(semester) ? 'Final' : 'Promote'}
+                            {isFinalSemester(semester) ? 'Final' : '⬆️ Promote'}
                           </button>
-                          <button className="btn-secondary" style={{ fontSize: '13px', padding: '5px 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteSemester(semester)}>Delete</button>
+                          <button className="btn-secondary" style={{ fontSize: '12px', height: '32px', padding: '0 12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)', display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => deleteSemester(semester)}>🗑️ Delete</button>
                         </div>
                       </td>
                     </>

@@ -367,7 +367,7 @@ export default function CoursesPage() {
                 : visibleSemesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           {/* Only the college admin creates courses in their college (#fix) */}
-          {isCollegeAdmin && (
+          {(isAdmin || isCollegeAdmin) && (
             <>
               <button className="btn-secondary" onClick={openBulkEnroll}>Bulk Enroll</button>
               <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Create Course</button>
@@ -452,20 +452,10 @@ export default function CoursesPage() {
                       <Link 
                         href={`/courses/${course.id}`} 
                         className="btn-primary" 
-                        style={{ padding: '6px 14px', fontSize: '12px', height: '32px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        style={{ padding: '0 14px', fontSize: '12px', height: '32px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         {(isAdmin || isTrainer) ? 'Manage' : 'View'}
                       </Link>
-
-                      {isAdmin && (
-                        <button 
-                          className="btn-secondary" 
-                          style={{ padding: '6px 12px', fontSize: '12px', height: '32px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
-                          onClick={() => setEditingCourse(course)}
-                        >
-                          Edit
-                        </button>
-                      )}
 
                       {/* Dropdown Menu for Auxiliary Actions */}
                       <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
@@ -473,18 +463,19 @@ export default function CoursesPage() {
                           type="button"
                           className="btn-secondary"
                           style={{
-                            padding: '6px 10px',
+                            padding: '0 12px',
                             fontSize: '12px',
                             height: '32px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            background: actionMenuOpenId === course.id ? 'rgba(56, 189, 248, 0.15)' : undefined,
+                            background: actionMenuOpenId === course.id ? 'rgba(56, 189, 248, 0.18)' : undefined,
                             borderColor: actionMenuOpenId === course.id ? '#38bdf8' : undefined,
+                            color: actionMenuOpenId === course.id ? '#38bdf8' : undefined,
                           }}
                           onClick={() => setActionMenuOpenId(actionMenuOpenId === course.id ? null : course.id)}
                         >
-                          <span>More</span> ▾
+                          <span>Actions</span> ▾
                         </button>
 
                         {actionMenuOpenId === course.id && (
@@ -497,13 +488,35 @@ export default function CoursesPage() {
                               border: '1px solid rgba(56, 189, 248, 0.45)',
                               boxShadow: '0 20px 30px rgba(0, 0, 0, 0.95), 0 0 15px rgba(56, 189, 248, 0.2)',
                               borderRadius: '8px',
-                              
                               zIndex: 1000,
-                              minWidth: '180px',
+                              minWidth: '190px',
                               padding: '6px 0',
                               textAlign: 'left'
                             }}
                           >
+                            {isAdmin && (
+                              <button
+                                style={{
+                                  width: '100%',
+                                  padding: '9px 14px',
+                                  fontSize: '12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#e2e8f0',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                onClick={() => { setActionMenuOpenId(null); setEditingCourse(course); }}
+                              >
+                                ✏️ Edit Course Details
+                              </button>
+                            )}
+
                             {(isAdmin || isTrainer) && (
                               <button
                                 style={{

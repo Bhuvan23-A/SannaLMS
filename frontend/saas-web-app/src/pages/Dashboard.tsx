@@ -1704,10 +1704,10 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="lms-dashboard-wrapper" style={{ display: 'flex', minHeight: '100vh', background: '#090d16', color: '#f8fafc' }}>
+    <div className="lms-dashboard-wrapper" style={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', background: '#090d16', color: '#f8fafc' }}>
       
       {/* ─── SIDEBAR NAVIGATION ─── */}
-      <aside className="sidebar" style={{ width: '280px', borderRight: '1px solid rgba(255,255,255,0.06)', background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(20px)', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <aside className="sidebar" style={{ width: '280px', minWidth: '280px', maxWidth: '280px', flexShrink: 0, height: '100vh', position: 'sticky', top: 0, overflowY: 'auto', borderRight: '1px solid rgba(255,255,255,0.06)', background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(20px)', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div>
           <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}>
             <div style={{ background: 'linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan))', padding: '8px', borderRadius: '10px' }}>
@@ -1856,7 +1856,7 @@ export const Dashboard: React.FC = () => {
       </aside>
 
       {/* ─── MAIN CONTENT PLANE ─── */}
-      <main className="main-content" style={{ flex: 1, padding: '2.5rem 3rem', overflowY: 'auto' }}>
+      <main className="main-content" style={{ flex: 1, minWidth: 0, width: 'calc(100% - 280px)', maxWidth: 'calc(100vw - 280px)', padding: '2.5rem 3rem', overflowY: 'auto', overflowX: 'hidden' }}>
         
         {/* Top Header Row */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
