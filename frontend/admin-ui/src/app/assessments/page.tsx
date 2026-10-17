@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRole } from '@/hooks/useRole';
-import { HelpCircle, CheckSquare, FileText, Award, ArrowRight } from 'lucide-react';
+import { HelpCircle, CheckSquare, FileText, Award, ArrowRight, FileCode2 } from 'lucide-react';
 
 export default function AssessmentsPage() {
   const router = useRouter();
@@ -24,6 +24,15 @@ export default function AssessmentsPage() {
       title: 'Question Bank',
       description: 'Create, categorize, and manage MCQ, Coding, and Essay questions across your course subjects.',
       href: '/assessments/questions',
+      roles: 'Trainers & Admins',
+      badge: 'admin',
+      restricted: !isAdmin && !isTrainer
+    },
+    {
+      icon: FileCode2,
+      title: 'CodeLab Live Monitor & Similarity',
+      description: 'Observe active coding assessments, monitor server-authoritative timers, review tab-switch integrity alerts, and inspect code similarity flags.',
+      href: '/assessments/codelab',
       roles: 'Trainers & Admins',
       badge: 'admin',
       restricted: !isAdmin && !isTrainer
@@ -56,6 +65,7 @@ export default function AssessmentsPage() {
       restricted: false
     },
   ];
+
 
   return (
     <div className="animate-fade-in">

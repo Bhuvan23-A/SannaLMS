@@ -137,10 +137,54 @@ async function finalizeSession(tenantId, studentId, testId) {
   return JSON.parse(rawAnswers || '{}');
 }
 
+/**
+ * Autosave student attempt data (CL-017, CL-018)
+ */
+async function autosaveSession(tenantId, studentId, testId, data) {
+  const key = `autosave:${tenantId}:${studentId}:${testId}`;
+  const payload = {
+    ...data,
+    updatedAt: Date.now(),
+  };
+  await redis.set(key, JSON.stringify(payload), 'EX', 86400); // 24 hours retention
+  return payload;
+}
+
+/**
+ * Retrieve autosaved state for connection recovery (CL-018)
+ */
+async function getAutosaveSession(tenantId, studentId, testId) {
+  const key = `autosave:${tenantId}:${studentId}:${testId}`;
+  const raw = await redis.get(key);
+  return raw ? JSON.parse(raw) : null;
+}
+
+/**
+ * Log integrity/proctoring events (CL-019)
+ */
+async function logIntegrityEvent(tenantId, studentId, testId, event) {
+  const key = `integrity_events:${tenantId}:${testId}:${studentId}`;
+  const record = {
+    ...event,
+    timestamp: new Date().toISOString(),
+  };
+  await redis.rpush(key, JSON.stringify(record));
+  await redis.expire(key, 86400 * 7); // 7 days retention
+
+  // Increment session violation count
+  const sessionKey = `test_session:${tenantId}:${studentId}:${testId}`;
+  const count = await redis.hincrby(sessionKey, 'violationCount', 1);
+  return { record, violationCount: count };
+}
+
 module.exports = {
   startSession,
   validateSession,
   saveProgress,
   finalizeSession,
+  autosaveSession,
+  getAutosaveSession,
+  logIntegrityEvent,
   redis,
 };
+

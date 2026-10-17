@@ -121,6 +121,7 @@ export default function Sidebar() {
           title: 'Assessments',
           items: [
             { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
+            { name: 'CodeLab Monitor', href: '/assessments/codelab', icon: FileCode2 },
             { name: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
             { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
             { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
@@ -160,11 +161,13 @@ export default function Sidebar() {
           title: 'Assessments',
           items: [
             { name: 'Question Bank', href: '/assessments/questions', icon: HelpCircle },
+            { name: 'CodeLab Monitor', href: '/assessments/codelab', icon: FileCode2 },
             { name: 'Online Tests', href: '/assessments/quizzes', icon: CheckSquare },
             { name: 'Assignments', href: '/assessments/assignments', icon: FileText },
             { name: 'Gradebook', href: '/assessments/gradebook', icon: Award },
           ]
         },
+
         {
           title: 'Communication',
           items: [

@@ -14,8 +14,8 @@ export default function Part3Console() {
     assignment: '/api/v1/assignment',
   };
 
-  // --- TAB 1: Code Sandbox State ---
-  const [codeLanguage, setCodeLanguage] = useState<'python' | 'cpp' | 'java'>('python');
+  // --- TAB 1: Edulateral CodeLab State ---
+  const [codeLanguage, setCodeLanguage] = useState<'python' | 'c' | 'cpp' | 'java' | 'javascript' | 'sql'>('python');
   const [sandboxCode, setSandboxCode] = useState<string>(
     `# Write your Python code here\nname = input("Enter name: ")\nprint(f"Hello, {name}!")\nprint("Sandbox environment isolated successfully.")`
   );
@@ -28,12 +28,19 @@ export default function Part3Console() {
   useEffect(() => {
     if (codeLanguage === 'python') {
       setSandboxCode(`# Write your Python code here\nname = input("Enter name: ")\nprint(f"Hello, {name}!")`);
+    } else if (codeLanguage === 'c') {
+      setSandboxCode(`#include <stdio.h>\nint main() {\n    char name[100];\n    if (scanf("%99s", name) == 1) {\n        printf("Hello, %s!\\n", name);\n    }\n    return 0;\n}`);
     } else if (codeLanguage === 'cpp') {
       setSandboxCode(`#include <iostream>\nusing namespace std;\nint main() {\n    string name;\n    if (cin >> name) {\n        cout << "Hello, " << name << "!" << endl;\n    }\n    return 0;\n}`);
     } else if (codeLanguage === 'java') {
       setSandboxCode(`import java.util.Scanner;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        if (sc.hasNext()) {\n            System.out.println("Hello, " + sc.next() + "!");\n        }\n    }\n}`);
+    } else if (codeLanguage === 'javascript') {
+      setSandboxCode(`const readline = require('readline');\nconst rl = readline.createInterface({ input: process.stdin, output: process.stdout });\nrl.on('line', (line) => {\n    console.log(\`Hello, \${line.trim()}!\`);\n    process.exit(0);\n});`);
+    } else if (codeLanguage === 'sql') {
+      setSandboxCode(`-- SQL Query\nSELECT * FROM employees WHERE salary >= 50000;`);
     }
   }, [codeLanguage]);
+
 
   const runSandboxCode = async () => {
     setIsSandboxRunning(true);
@@ -416,7 +423,7 @@ export default function Part3Console() {
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Isolated Runner Environment</h2>
               
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {(['python', 'cpp', 'java'] as const).map(lang => (
+                {(['python', 'c', 'cpp', 'java', 'javascript', 'sql'] as const).map(lang => (
                   <button
                     key={lang}
                     onClick={() => setCodeLanguage(lang)}

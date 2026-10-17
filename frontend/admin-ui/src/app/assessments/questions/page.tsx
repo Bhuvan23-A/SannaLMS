@@ -27,6 +27,18 @@ export default function QuestionsPage() {
   const [semId, setSemId] = useState('');
 
   const [form, setForm] = useState({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '', image_url: '' });
+  const [codingSpec, setCodingSpec] = useState({
+    problemId: '',
+    difficulty: 'Medium',
+    domain: 'Data Structures & Algorithms',
+    workflowState: 'Published',
+    languages: ['python', 'c', 'cpp', 'java', 'javascript', 'sql'],
+    constraints: '1 <= N <= 10^5\nTime Limit: 2.0s\nMemory Limit: 128MB',
+    hints: 'Consider using a hash map to look up complements in O(1) time.',
+    complexity: 'Time: O(N), Space: O(N)',
+    visibleTests: 'Input: 4\n2 7 11 15\n9\nExpected: 0 1',
+    hiddenTests: 'Input: 3\n3 2 4\n6\nExpected: 1 2',
+  });
   const [options, setOptions] = useState([
     { id: 1, text: '', isCorrect: false },
     { id: 2, text: '', isCorrect: false },
@@ -37,6 +49,7 @@ export default function QuestionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -324,6 +337,18 @@ export default function QuestionsPage() {
   const resetForm = () => {
     setEditingId(null);
     setForm({ type: 'MCQ', title: '', content: '', marks: 1, answer_key: '', image_url: '' });
+    setCodingSpec({
+      problemId: '',
+      difficulty: 'Medium',
+      domain: 'Data Structures & Algorithms',
+      workflowState: 'Published',
+      languages: ['python', 'c', 'cpp', 'java', 'javascript', 'sql'],
+      constraints: '1 <= N <= 10^5\nTime Limit: 2.0s\nMemory Limit: 128MB',
+      hints: 'Consider using a hash map to look up complements in O(1) time.',
+      complexity: 'Time: O(N), Space: O(N)',
+      visibleTests: 'Input: 4\n2 7 11 15\n9\nExpected: 0 1',
+      hiddenTests: 'Input: 3\n3 2 4\n6\nExpected: 1 2',
+    });
     setOptions([
       { id: 1, text: '', isCorrect: false },
       { id: 2, text: '', isCorrect: false },
@@ -341,6 +366,9 @@ export default function QuestionsPage() {
     ];
     setEditingId(q.id);
     setForm({ type: q.type || 'MCQ', title: q.title || '', content: q.content || '', marks: q.marks || 1, answer_key: q.answer_key || '', image_url: q.image_url || '' });
+    if (q.type === 'CODING' && q.options && typeof q.options === 'object') {
+      setCodingSpec(prev => ({ ...prev, ...q.options }));
+    }
     setOptions(qOptions.map((o: any, i: number) => ({ id: i + 1, text: o.text || '', isCorrect: !!o.isCorrect })));
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -360,7 +388,7 @@ export default function QuestionsPage() {
     try {
       const body: any = {
         ...form,
-        options: form.type === 'MCQ' ? options : undefined
+        options: form.type === 'MCQ' ? options : (form.type === 'CODING' ? codingSpec : undefined)
       };
       if (subjectId) body.subject_id = subjectId;
       if (courseId) body.course_id = courseId;
@@ -377,6 +405,7 @@ export default function QuestionsPage() {
       loadQuestions();
     } catch { alert(editingId ? 'Failed to update question' : 'Failed to create question'); }
   };
+
 
   if (!isAdmin && !isTrainer) return (
     <div className="fade-in panel" style={{ textAlign: 'center', padding: '60px' }}>
@@ -626,12 +655,158 @@ export default function QuestionsPage() {
               <small style={{ color: 'var(--text-secondary)' }}>Select the radio button next to the correct answer.</small>
             </div>
           )}
-          {(form.type === 'ESSAY' || form.type === 'CODING') && (
+          {form.type === 'ESSAY' && (
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Answer Key / Expected Output</label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Answer Key / Model Answer</label>
               <textarea className="input-field" rows={3} value={form.answer_key} onChange={e => setForm({ ...form, answer_key: e.target.value })} />
             </div>
           )}
+
+          {form.type === 'CODING' && (
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.04)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              borderRadius: '12px',
+              padding: '18px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  💻 Edulateral CodeLab Problem Specification
+                </span>
+                <span className="badge badge-info" style={{ fontSize: '11px' }}>
+                  Status: {codingSpec.workflowState}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Problem ID (e.g. DSA-ARR-0023)
+                  </label>
+                  <input
+                    className="input-field"
+                    placeholder="DSA-ARR-0023"
+                    value={codingSpec.problemId}
+                    onChange={e => setCodingSpec({ ...codingSpec, problemId: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Difficulty Level
+                  </label>
+                  <select
+                    className="input-field"
+                    value={codingSpec.difficulty}
+                    onChange={e => setCodingSpec({ ...codingSpec, difficulty: e.target.value })}
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Workflow State (CL-006)
+                  </label>
+                  <select
+                    className="input-field"
+                    value={codingSpec.workflowState}
+                    onChange={e => setCodingSpec({ ...codingSpec, workflowState: e.target.value })}
+                  >
+                    <option value="Draft">Draft</option>
+                    <option value="Review">Review</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Published">Published</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Expected Complexity
+                  </label>
+                  <input
+                    className="input-field"
+                    placeholder="Time: O(N), Space: O(1)"
+                    value={codingSpec.complexity}
+                    onChange={e => setCodingSpec({ ...codingSpec, complexity: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Execution Constraints
+                </label>
+                <textarea
+                  className="input-field"
+                  rows={2}
+                  placeholder="1 <= N <= 10^5, Time Limit: 2.0s, Memory Limit: 128MB"
+                  value={codingSpec.constraints}
+                  onChange={e => setCodingSpec({ ...codingSpec, constraints: e.target.value })}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Hints (ordered, revealed on demand during practice)
+                </label>
+                <textarea
+                  className="input-field"
+                  rows={2}
+                  placeholder="Hint 1: Use two pointers... Hint 2: Notice the array is sorted..."
+                  value={codingSpec.hints}
+                  onChange={e => setCodingSpec({ ...codingSpec, hints: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#38bdf8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Visible Test Cases (Input & Expected Output)
+                  </label>
+                  <textarea
+                    className="input-field"
+                    rows={4}
+                    style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                    placeholder={"Input: 4\\n2 7 11 15\\n9\\nExpected: 0 1"}
+                    value={codingSpec.visibleTests}
+                    onChange={e => setCodingSpec({ ...codingSpec, visibleTests: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: '#f59e0b', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Hidden Evaluation Test Cases (Grading only)
+                  </label>
+                  <textarea
+                    className="input-field"
+                    rows={4}
+                    style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                    placeholder={"Input: 3\\n3 2 4\\n6\\nExpected: 1 2"}
+                    value={codingSpec.hiddenTests}
+                    onChange={e => setCodingSpec({ ...codingSpec, hiddenTests: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Reference Solution Code (Restricted to Trainers & Admins)
+                </label>
+                <textarea
+                  className="input-field"
+                  rows={4}
+                  style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                  placeholder="def solve(nums, target): ..."
+                  value={form.answer_key}
+                  onChange={e => setForm({ ...form, answer_key: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn-primary">{editingId ? 'Update Question' : 'Save Question'}</button>
             <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</button>
