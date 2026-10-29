@@ -45,6 +45,42 @@ export default function DepartmentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Edit department state (available for both college admin and superadmin)
+  const [editingDept, setEditingDept] = useState<any>(null);
+  const [editName, setEditName] = useState('');
+  const [editCollegeId, setEditCollegeId] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const openEdit = (dept: any) => {
+    setEditingDept(dept);
+    setEditName(dept.name || '');
+    setEditCollegeId(dept.college_id || '');
+    setEditError('');
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDept) return;
+    try {
+      setEditSaving(true);
+      setEditError('');
+      await fetchApi(`/api/v1/departments/${editingDept.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editName.trim(),
+          college_id: editCollegeId || editingDept.college_id,
+        }),
+      });
+      setEditingDept(null);
+      loadDepartments();
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update department');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const copyId = (id: string) => {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
@@ -152,8 +188,19 @@ export default function DepartmentsPage() {
                         {dept.id.substring(0, 8)}... {copiedId === dept.id ? '✓ Copied' : '📋'}
                       </button>
                     </td>
-                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right' }}>
-                      <button className="btn-secondary" style={{ padding: '4px 10px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} onClick={() => deleteDepartment(dept.id)}>
+                    <td style={{ padding: '15px 20px', borderBottom: '1px solid var(--panel-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '4px 10px', fontSize: '12px', marginRight: '8px' }} 
+                        onClick={() => openEdit(dept)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '4px 10px', fontSize: '12px', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }} 
+                        onClick={() => deleteDepartment(dept.id)}
+                      >
                         Delete
                       </button>
                     </td>
@@ -173,6 +220,84 @@ export default function DepartmentsPage() {
             loadDepartments();
           }} 
         />
+      )}
+
+      {/* Edit Department Modal (accessible for both College Admin and Super Admin) */}
+      {editingDept && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+          display: 'flex', justifyContent: 'center', overflowY: 'auto', padding: '20px',
+          zIndex: 1000,
+          width: '100vw', height: '100vh'
+        }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '420px', padding: '30px', margin: 'auto', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>Edit Department</h2>
+              <button
+                type="button"
+                onClick={() => setEditingDept(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer', lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {editError && (
+              <div style={{ padding: '10px', background: 'rgba(239,68,68,0.2)', color: 'var(--danger-color)', borderRadius: '8px', marginBottom: '15px', fontSize: '14px' }}>
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={saveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>Department Name</label>
+                <input
+                  required
+                  className="input-field"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  placeholder="e.g. Computer Science (CSE)"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              {isSuperAdmin && activeColleges.length > 0 && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: 'var(--text-secondary)' }}>College</label>
+                  <select
+                    className="input-field"
+                    value={editCollegeId}
+                    onChange={e => setEditCollegeId(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    {activeColleges.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setEditingDept(null)}
+                  disabled={editSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={editSaving || !editName.trim()}
+                >
+                  {editSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
