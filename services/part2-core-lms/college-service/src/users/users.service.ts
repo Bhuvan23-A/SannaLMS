@@ -111,11 +111,8 @@ export class UsersService {
       try {
         if (!u.email || !u.email.includes('@')) throw new Error('Missing or invalid email');
 
-        // Credential strategy: Phone number as password (standard LMS student login)
-        const isPhoneStrategy = (body as any).use_phone_as_password === true || (body as any).password_strategy === 'PHONE' || (body as any).use_phone_as_password !== false;
-        const requireChange = isPhoneStrategy
-          ? (body.require_password_change === true)
-          : (body.require_password_change !== false);
+        // SEC-01: Default to secure temporary password with forced first-login reset
+        const requireChange = body.require_password_change !== false;
         const rawPhone = String(u.phone || u.phone_number || u.mobile || u.contact || '').trim();
         // Clean phone number (strip whitespace, dashes, underscores, parens)
         const cleanedPhone = rawPhone.replace(/[\s\-_()]/g, '');
@@ -125,10 +122,11 @@ export class UsersService {
           : (cleanedPhone.length === 11 && cleanedPhone.startsWith('0') ? cleanedPhone.slice(1) : cleanedPhone);
         const finalPhone = phonePassword || rawPhone;
         
-        // Password assignment: row password -> phone number (if available) -> default/fallback password
+        // SEC-01: Do NOT use phone number as password unless explicitly requested.
+        // Use custom row password, default password, or generate a secure temporary secret.
         let userPassword = u.password;
         if (!userPassword) {
-          if (isPhoneStrategy && finalPhone && finalPhone.length >= 6) {
+          if ((body as any).use_phone_as_password === true && finalPhone && finalPhone.length >= 6) {
             userPassword = finalPhone;
           } else {
             userPassword = defaultPassword || ('Edu#' + Math.random().toString(36).substring(2, 9) + '!');
@@ -586,148 +584,6 @@ export class UsersService {
     return {
       success: true,
       message: 'Password reset successfully! You can now log in with your updated password.',
-    };
-  }
-
-  /**
-   * Preview all students across the entire LMS and inspect their registered phone numbers in Keycloak.
-   * Completely read-only: does not modify any password or record.
-   */
-  async previewStudentPhones() {
-    const studentRoles = await this.prisma.extendedClient.userRole.findMany({
-      where: { role: 'STUDENT' },
-      include: { user: true, college: true },
-    });
-
-    let withPhone = 0;
-    let withoutPhone = 0;
-    const samples: any[] = [];
-
-    for (const ur of studentRoles) {
-      const email = ur.user?.email;
-      const lmsId = ur.user?.id;
-      if (!email) continue;
-
-      let kcUser = await this.keycloak.findUserByEmail(email);
-      if (!kcUser && lmsId) {
-        kcUser = await this.keycloak.getUser(lmsId).catch(() => null);
-      }
-
-      const attrs = kcUser?.attributes || {};
-      const rawPhone = String(
-        attrs.phone?.[0] ||
-        attrs.phone_number?.[0] ||
-        attrs.mobile?.[0] ||
-        attrs.contact?.[0] ||
-        ''
-      ).trim();
-
-      const cleanedPhone = rawPhone.replace(/[\s\-_()]/g, '');
-      const phone = cleanedPhone.length >= 12 && cleanedPhone.startsWith('+91')
-        ? cleanedPhone.slice(3)
-        : (cleanedPhone.length === 11 && cleanedPhone.startsWith('0') ? cleanedPhone.slice(1) : cleanedPhone);
-
-      const hasValidPhone = Boolean(phone && phone.length >= 6);
-      if (hasValidPhone) {
-        withPhone++;
-      } else {
-        withoutPhone++;
-      }
-
-      if (samples.length < 50) {
-        samples.push({
-          email,
-          name: `${ur.user?.first_name || ''} ${ur.user?.last_name || ''}`.trim() || 'Student',
-          college: ur.college?.name || 'My College',
-          hasPhone: hasValidPhone,
-          phone: hasValidPhone ? phone : '(none)',
-        });
-      }
-    }
-
-    return {
-      total_students: studentRoles.length,
-      students_with_phone: withPhone,
-      students_without_phone: withoutPhone,
-      sample: samples,
-    };
-  }
-
-  /**
-   * Batch updates all existing students' Keycloak passwords to their registered phone number.
-   * If a student doesn't have a phone number, their password remains as-is (e.g. Student@123) so they are never locked out.
-   */
-  async syncStudentPhonePasswords() {
-    const studentRoles = await this.prisma.extendedClient.userRole.findMany({
-      where: { role: 'STUDENT' },
-      include: { user: true, college: true },
-    });
-
-    let updated = 0;
-    let keptUnchanged = 0;
-    let failed = 0;
-    const logDetails: any[] = [];
-
-    for (const ur of studentRoles) {
-      const email = ur.user?.email;
-      const lmsId = ur.user?.id;
-      if (!email) continue;
-
-      try {
-        let kcUser = await this.keycloak.findUserByEmail(email);
-        if (!kcUser && lmsId) {
-          kcUser = await this.keycloak.getUser(lmsId).catch(() => null);
-        }
-
-        if (!kcUser) {
-          keptUnchanged++;
-          continue;
-        }
-
-        const attrs = kcUser.attributes || {};
-        const rawPhone = String(
-          attrs.phone?.[0] ||
-          attrs.phone_number?.[0] ||
-          attrs.mobile?.[0] ||
-          attrs.contact?.[0] ||
-          ''
-        ).trim();
-
-        const cleanedPhone = rawPhone.replace(/[\s\-_()]/g, '');
-        const phone = cleanedPhone.length >= 12 && cleanedPhone.startsWith('+91')
-          ? cleanedPhone.slice(3)
-          : (cleanedPhone.length === 11 && cleanedPhone.startsWith('0') ? cleanedPhone.slice(1) : cleanedPhone);
-
-        if (phone && phone.length >= 6) {
-          // Set password directly to phone number (not temporary, so student logs in seamlessly)
-          await this.keycloak.resetUserPassword(kcUser.id, phone, false);
-          await this.keycloak.setUserRequiredActions(kcUser.id, []);
-          updated++;
-          if (logDetails.length < 50) {
-            logDetails.push({ email, phone, status: 'updated_to_phone' });
-          }
-        } else {
-          keptUnchanged++;
-          if (logDetails.length < 50) {
-            logDetails.push({ email, status: 'kept_current_password', reason: 'No phone number registered' });
-          }
-        }
-      } catch (err: any) {
-        failed++;
-        if (logDetails.length < 50) {
-          logDetails.push({ email, status: 'failed', error: err.message });
-        }
-      }
-    }
-
-    return {
-      success: true,
-      message: `Successfully synchronized student credentials across the LMS.`,
-      total_students: studentRoles.length,
-      updated_to_phone: updated,
-      kept_existing_password: keptUnchanged,
-      failed,
-      sample_log: logDetails,
     };
   }
 }
