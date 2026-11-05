@@ -165,7 +165,10 @@ export class UsersService {
         // If the user already existed in Keycloak, update their password and attributes
         if (kc.existing && kc.id) {
           if (userPassword) {
-            await this.keycloak.resetUserPassword(kc.id, userPassword).catch(() => {});
+            await this.keycloak.resetUserPassword(kc.id, userPassword, requireChange).catch(() => {});
+            if (requireChange) {
+              await this.keycloak.setUserRequiredActions(kc.id, ['UPDATE_PASSWORD']).catch(() => {});
+            }
           }
           await this.keycloak.updateUserAttributes(kc.id, userAttributes).catch(() => {});
         }
