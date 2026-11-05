@@ -32,10 +32,10 @@ export default function BulkImportPage() {
   const [selectedSem, setSelectedSem] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
 
-  // SEC-01 Security & Credentials settings
-  const [passwordStrategy, setPasswordStrategy] = useState<'RANDOM_SECURE' | 'CUSTOM'>('RANDOM_SECURE');
-  const [defaultPassword, setDefaultPassword] = useState('EduLMS@2026!');
-  const [requirePasswordChange, setRequirePasswordChange] = useState(true);
+  // Credential Strategy settings (Default: Student Phone Number)
+  const [passwordStrategy, setPasswordStrategy] = useState<'PHONE' | 'RANDOM_SECURE' | 'CUSTOM'>('PHONE');
+  const [defaultPassword, setDefaultPassword] = useState('Student@123');
+  const [requirePasswordChange, setRequirePasswordChange] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [importing, setImporting] = useState(false);
@@ -194,9 +194,10 @@ export default function BulkImportPage() {
         method: 'POST',
         body: JSON.stringify({
           users: parsedRows,
-          default_password: passwordStrategy === 'CUSTOM' ? defaultPassword : undefined,
+          default_password: passwordStrategy === 'CUSTOM' ? defaultPassword : (passwordStrategy === 'RANDOM_SECURE' ? undefined : 'Student@123'),
           require_password_change: requirePasswordChange,
-          use_phone_as_password: false, // SEC-01: Disallow phone-derived passwords
+          use_phone_as_password: passwordStrategy === 'PHONE',
+          password_strategy: passwordStrategy,
           college_id: collegeId,
           department: deptObj?.name || selectedDept || undefined,
           branch: branchObj?.name || selectedBranch || undefined,
@@ -358,26 +359,29 @@ export default function BulkImportPage() {
           </div>
         </div>
 
-        {/* Security & Credential Provisioning Policy (SEC-01) */}
-        <div style={{ background: 'rgba(16, 185, 129, 0.04)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+        {/* Credential Provisioning Policy */}
+        <div style={{ background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <ShieldCheck size={18} color="#10b981" />
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>Credential Provisioning Policy (Security Standard)</h3>
-            <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>SEC-01 Compliant</span>
+            <Key size={18} color="#38bdf8" />
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>Student Credential Provisioning Policy</h3>
+            <span style={{ fontSize: '11px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>Active LMS Policy</span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-            Phone numbers are <strong>never</strong> used as passwords. Users receive unique temporary credentials and must set their private password on first login.
+            Student <strong>Login ID is their registered Email</strong>. By default, their <strong>initial Password is their respective Phone Number</strong> (clean 10-digit format).
           </p>
 
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: passwordStrategy === 'PHONE' ? '#38bdf8' : '#fff', fontWeight: passwordStrategy === 'PHONE' ? 600 : 400 }}>
               <input
                 type="radio"
                 name="pwd_strategy"
-                checked={passwordStrategy === 'RANDOM_SECURE'}
-                onChange={() => setPasswordStrategy('RANDOM_SECURE')}
+                checked={passwordStrategy === 'PHONE'}
+                onChange={() => {
+                  setPasswordStrategy('PHONE');
+                  setRequirePasswordChange(false);
+                }}
               />
-              <span>Generate unique random temporary passwords</span>
+              <span>Use student's registered Phone Number as password (Recommended)</span>
             </label>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
@@ -385,9 +389,12 @@ export default function BulkImportPage() {
                 type="radio"
                 name="pwd_strategy"
                 checked={passwordStrategy === 'CUSTOM'}
-                onChange={() => setPasswordStrategy('CUSTOM')}
+                onChange={() => {
+                  setPasswordStrategy('CUSTOM');
+                  setRequirePasswordChange(false);
+                }}
               />
-              <span>Set unified temporary password:</span>
+              <span>Set unified password:</span>
             </label>
 
             {passwordStrategy === 'CUSTOM' && (
@@ -408,16 +415,29 @@ export default function BulkImportPage() {
                 </button>
               </div>
             )}
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="pwd_strategy"
+                checked={passwordStrategy === 'RANDOM_SECURE'}
+                onChange={() => {
+                  setPasswordStrategy('RANDOM_SECURE');
+                  setRequirePasswordChange(true);
+                }}
+              />
+              <span>Generate unique random temporary passwords</span>
+            </label>
           </div>
 
           <div style={{ marginTop: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#10b981', fontWeight: 500 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
               <input
                 type="checkbox"
                 checked={requirePasswordChange}
                 onChange={e => setRequirePasswordChange(e.target.checked)}
               />
-              <span>Enforce immediate password change on student first login (Keycloak UPDATE_PASSWORD)</span>
+              <span>Force password change on student first login (Optional)</span>
             </label>
           </div>
         </div>

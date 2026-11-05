@@ -6,7 +6,7 @@ import { useRole } from '@/hooks/useRole';
 import { 
   Users, Key, Search, Building2, Shield, Eye, EyeOff, Lock, 
   RefreshCw, Check, X, UserPlus, UserCheck, AlertCircle, Copy,
-  ArrowUpDown, ChevronLeft, ChevronRight
+  ArrowUpDown, ChevronLeft, ChevronRight, Phone, CheckCircle2
 } from 'lucide-react';
 
 export default function UsersDirectoryPage() {
@@ -34,6 +34,43 @@ export default function UsersDirectoryPage() {
   const [resetSuccess, setResetSuccess] = useState('');
   const [resetError, setResetError] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Phone Sync modal state
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+  const [syncError, setSyncError] = useState('');
+
+  const openSyncModal = async () => {
+    setSyncModalOpen(true);
+    setPreviewLoading(true);
+    setSyncError('');
+    setSyncResult(null);
+    try {
+      const res = await fetchApi('/api/v1/users/student-phone-preview');
+      setPreviewData(res);
+    } catch (err: any) {
+      setSyncError(err.message || 'Failed to load preview');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleSyncAllStudents = async () => {
+    setSyncing(true);
+    setSyncError('');
+    try {
+      const res = await fetchApi('/api/v1/users/sync-student-phone-passwords', { method: 'POST' });
+      setSyncResult(res);
+      loadData();
+    } catch (err: any) {
+      setSyncError(err.message || 'Failed to synchronize passwords');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Role change modal state
   const [roleModalUser, setRoleModalUser] = useState<any | null>(null);
@@ -198,7 +235,7 @@ export default function UsersDirectoryPage() {
             {isCollegeAdmin ? 'Manage your institution student and faculty accounts, control login credentials, and reset passwords' : 'Manage student & faculty accounts, recover credentials, and set secure passwords'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button 
             onClick={loadData}
             className="btn-secondary"
@@ -206,6 +243,16 @@ export default function UsersDirectoryPage() {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
+          {!isCollegeAdmin && (
+            <button
+              onClick={openSyncModal}
+              className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', borderColor: '#38bdf8', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.08)' }}
+              title="Audit and set all students' Keycloak passwords to their registered phone number"
+            >
+              <Phone size={14} /> Sync Student Passwords (Phone)
+            </button>
+          )}
           <Link
             href="/users/import"
             className="btn-primary"
@@ -699,6 +746,135 @@ export default function UsersDirectoryPage() {
                 </div>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Student Phone Password Synchronization Modal */}
+      {syncModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
+          <div className="panel animate-fade-in" style={{
+            width: '640px', maxWidth: '95vw', padding: '28px',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            boxShadow: '0 0 40px rgba(56, 189, 248, 0.2), 0 24px 60px rgba(0,0,0,0.6)',
+            background: '#0a192f', maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={20} color="#38bdf8" />
+                <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>Sync All Student Passwords to Phone Number</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSyncModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '22px', cursor: 'pointer' }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+              This operation scans <strong>all students across the entire LMS</strong> in Keycloak. For each student with a registered phone number in their profile attributes, their login password will be updated directly to their <strong>10-digit phone number</strong>. Login ID remains their registered email.
+            </p>
+
+            {previewLoading && (
+              <div style={{ padding: '30px', textAlign: 'center', color: '#38bdf8' }}>
+                <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto' }} />
+                <div>Scanning all LMS students and inspecting phone numbers...</div>
+              </div>
+            )}
+
+            {syncError && (
+              <div style={{ padding: '12px', background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                {syncError}
+              </div>
+            )}
+
+            {syncResult && (
+              <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontWeight: 600, fontSize: '1rem', marginBottom: '8px' }}>
+                  <CheckCircle2 size={18} /> Password Synchronization Complete!
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#fff', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '10px' }}>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '6px' }}>Total Students: <strong>{syncResult.total_students}</strong></div>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '6px', color: '#38bdf8' }}>Updated to Phone: <strong>{syncResult.updated_to_phone}</strong></div>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: '6px', color: 'var(--text-secondary)' }}>Kept Existing: <strong>{syncResult.kept_existing_password}</strong></div>
+                </div>
+              </div>
+            )}
+
+            {previewData && !syncResult && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Students</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', marginTop: '4px' }}>{previewData.total_students}</div>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#38bdf8', textTransform: 'uppercase' }}>With Phone Number</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#38bdf8', marginTop: '4px' }}>{previewData.students_with_phone}</div>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>No Phone (Keep Pass)</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '4px' }}>{previewData.students_without_phone}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>Sample Verification (First {previewData.sample?.length || 0} Students):</div>
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(0,0,0,0.3)', color: 'var(--text-secondary)' }}>
+                          <th style={{ padding: '8px 12px' }}>Student</th>
+                          <th style={{ padding: '8px 12px' }}>Email (Login ID)</th>
+                          <th style={{ padding: '8px 12px' }}>Phone (New Password)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(previewData.sample || []).map((s: any, idx: number) => (
+                          <tr key={idx} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <td style={{ padding: '6px 12px' }}>{s.name}</td>
+                            <td style={{ padding: '6px 12px', color: '#38bdf8' }}>{s.email}</td>
+                            <td style={{ padding: '6px 12px', fontFamily: 'monospace', color: s.hasPhone ? '#10b981' : 'var(--text-secondary)' }}>
+                              {s.hasPhone ? s.phone : 'No phone (Student@123)'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setSyncModalOpen(false)}
+                disabled={syncing}
+              >
+                Close
+              </button>
+              {!syncResult && previewData && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleSyncAllStudents}
+                  disabled={syncing || previewLoading}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#0284c7' }}
+                >
+                  <Phone size={14} />
+                  {syncing ? 'Synchronizing Passwords...' : `Sync All ${previewData.students_with_phone} Students' Passwords`}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -48,6 +48,20 @@ export class UsersController {
     return this.usersService.changePassword(userId, newPass);
   }
 
+  // Super Admin: Preview student phone numbers across LMS (read-only audit)
+  @Get('users/student-phone-preview')
+  @Roles('SUPER_ADMIN')
+  previewStudentPhones() {
+    return this.usersService.previewStudentPhones();
+  }
+
+  // Super Admin: Sync all existing students' Keycloak passwords to their registered phone number
+  @Post('users/sync-student-phone-passwords')
+  @Roles('SUPER_ADMIN')
+  syncStudentPhonePasswords() {
+    return this.usersService.syncStudentPhonePasswords();
+  }
+
   // Admin action: College Admin, Super Admin, or Trainer resets a student or user password
   @Post('users/:id/reset-password')
   @Roles('SUPER_ADMIN', 'COLLEGE_ADMIN', 'PRIMARY_TRAINER')
