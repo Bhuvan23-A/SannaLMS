@@ -32,8 +32,8 @@ export default function BulkImportPage() {
   const [selectedSem, setSelectedSem] = useState('');
   const [selectedSection, setSelectedSection] = useState('');
 
-  // SEC-01 Security & Credentials settings
-  const [passwordStrategy, setPasswordStrategy] = useState<'RANDOM_SECURE' | 'CUSTOM'>('RANDOM_SECURE');
+  // SEC-01 Security & Credentials settings (Default: Unified Temporary Password with First-Login Reset)
+  const [passwordStrategy, setPasswordStrategy] = useState<'RANDOM_SECURE' | 'CUSTOM'>('CUSTOM');
   const [defaultPassword, setDefaultPassword] = useState('EduLMS@2026!');
   const [requirePasswordChange, setRequirePasswordChange] = useState(true);
   const [showPassword, setShowPassword] = useState(false);

@@ -3,8 +3,8 @@ import { PrismaService } from '../prisma.service';
 import { KeycloakAdminService } from '../keycloak-admin.service';
 import * as crypto from 'crypto';
 
-// Default password fallback for demo environments
-export const DEFAULT_PASSWORD = 'Test@1234';
+// Default password fallback for demo environments and student onboarding
+export const DEFAULT_PASSWORD = 'EduLMS@2026!';
 
 /**
  * SEC-02: Generates a high-entropy, cryptographically secure temporary password.

@@ -28,7 +28,7 @@ export default function UsersDirectoryPage() {
 
   // Password reset modal state
   const [resetModalUser, setResetModalUser] = useState<any | null>(null);
-  const [newPassword, setNewPassword] = useState('Student@123');
+  const [newPassword, setNewPassword] = useState('EduLMS@2026!');
   const [showPassword, setShowPassword] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState('');
@@ -99,7 +99,7 @@ export default function UsersDirectoryPage() {
 
   const openResetModal = (user: any) => {
     setResetModalUser(user);
-    setNewPassword(user.role === 'STUDENT' ? 'Student@123' : 'Admin@123');
+    setNewPassword(user.role === 'STUDENT' ? 'EduLMS@2026!' : 'Admin@123');
     setShowPassword(false);
     setResetSuccess('');
     setResetError('');
@@ -542,10 +542,10 @@ export default function UsersDirectoryPage() {
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={() => setNewPassword('Student@123')}
+                      onClick={() => setNewPassword('EduLMS@2026!')}
                       style={{ background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8', fontSize: '0.75rem', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
                     >
-                      Use "Student@123"
+                      Use "EduLMS@2026!"
                     </button>
                     <button
                       type="button"
