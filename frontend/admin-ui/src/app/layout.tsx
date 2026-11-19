@@ -10,7 +10,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Sanna LMS Admin Platform",
+  title: "Edulateral LMS Admin Platform",
   description: "Enterprise Multi-Tenant Learning Management System",
 };
 

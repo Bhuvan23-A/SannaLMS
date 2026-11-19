@@ -715,7 +715,7 @@ export const Dashboard: React.FC = () => {
 <body>
   <div class="header">
     <div>
-      <div style="font-size: 10px; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.1em;">SannaLMS Academic Examination System</div>
+      <div style="font-size: 10px; font-weight: 800; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.1em;">Edulateral LMS Academic Examination System</div>
       <h1 style="font-size: 20px; font-weight: 800; margin: 4px 0 2px 0; color: #111827;">${data.quiz?.title}</h1>
       <div style="font-size: 11px; color: #6b7280;">Official Candidate Performance Report</div>
     </div>
@@ -758,7 +758,7 @@ export const Dashboard: React.FC = () => {
   ${questionsHtml}
 
   <div class="footer">
-    <span>Generated securely via SannaLMS Assessment Engine</span>
+    <span>Generated securely via Edulateral LMS Assessment Engine</span>
     <span>Candidate Ref: ${keycloak.subject || 'student-record'}</span>
   </div>
 
@@ -1463,7 +1463,7 @@ export const Dashboard: React.FC = () => {
           .flatMap((c: any) => (c.modules || []).flatMap((m: any) => (m.lessons || []).map((l: any) => l.transcript).filter(Boolean)))
           .join('\n')
           || activeLesson?.transcript
-          || 'This is SannaLMS course context.',
+          || 'This is Edulateral LMS course context.',
       });
 
       const data = response.data || {};

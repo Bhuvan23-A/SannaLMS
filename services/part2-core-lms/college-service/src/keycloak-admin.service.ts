@@ -113,7 +113,7 @@ export class KeycloakAdminService {
    * Create a Keycloak user. Returns { existing: boolean, id: string }.
    */
   async createUser(payload: any): Promise<{ existing: boolean; id: string }> {
-    const existing = await this.findUserByEmail(payload.email);
+    const existing = await this.findUserByUsernameOrEmail(payload.email || payload.username) || (payload.username ? await this.findUserByUsernameOrEmail(payload.username) : null);
     if (existing) return { existing: true, id: existing.id };
 
     const token = await this.getToken();
@@ -123,7 +123,7 @@ export class KeycloakAdminService {
       body: JSON.stringify(payload),
     });
     if (res.status === 409) {
-      const found = await this.findUserByEmail(payload.email);
+      const found = await this.findUserByUsernameOrEmail(payload.email || payload.username) || (payload.username ? await this.findUserByUsernameOrEmail(payload.username) : null);
       return { existing: true, id: found?.id || '' };
     }
     if (!res.ok) {

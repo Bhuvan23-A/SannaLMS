@@ -47,12 +47,12 @@ body {
     text-transform: none !important;
 }
 #kc-page-title::before {
-    content: "SannaLMS" !important;
+    content: "Edulateral LMS" !important;
     display: block !important;
     font-size: 32px !important;
     font-weight: 900 !important;
     letter-spacing: -0.03em !important;
-    background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%) !important;
+    background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     margin-bottom: 6px !important;

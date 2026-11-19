@@ -36,7 +36,7 @@ export const EDULATERAL_BRAND: BrandConfig = {
 
 export function getBrandConfig(): BrandConfig {
   if (typeof window === 'undefined') {
-    return SANNA_BRAND;
+    return EDULATERAL_BRAND;
   }
 
   const host = window.location.hostname.toLowerCase();
@@ -48,26 +48,17 @@ export function getBrandConfig(): BrandConfig {
     storedBrand = localStorage.getItem('preferred_brand') || localStorage.getItem('preferred_tenant') || '';
   } catch (_) {}
 
-  const hasCookieBrand = typeof document !== 'undefined' && (
-    document.cookie.includes('preferred_brand=edulateral') ||
-    document.cookie.includes('preferred_tenant=edulateral')
-  );
-
-  if (
-    host.includes('edulateral') ||
-    host.includes('edulms') ||
-    tenantParam === 'edulateral' ||
-    storedBrand === 'edulateral' ||
-    hasCookieBrand
-  ) {
-    try {
-      localStorage.setItem('preferred_brand', 'edulateral');
-      localStorage.setItem('preferred_tenant', 'edulateral');
-      document.cookie = "preferred_brand=edulateral; path=/; max-age=31536000; SameSite=Lax";
-      document.cookie = "preferred_tenant=edulateral; path=/; max-age=31536000; SameSite=Lax";
-    } catch (_) {}
-    return EDULATERAL_BRAND;
+  // Allow explicit override if someone requests sannalms, otherwise default to Edulateral everywhere
+  if (tenantParam === 'sannalms' || storedBrand === 'sannalms') {
+    return SANNA_BRAND;
   }
 
-  return SANNA_BRAND;
+  try {
+    localStorage.setItem('preferred_brand', 'edulateral');
+    localStorage.setItem('preferred_tenant', 'edulateral');
+    document.cookie = "preferred_brand=edulateral; path=/; max-age=31536000; SameSite=Lax";
+    document.cookie = "preferred_tenant=edulateral; path=/; max-age=31536000; SameSite=Lax";
+  } catch (_) {}
+
+  return EDULATERAL_BRAND;
 }

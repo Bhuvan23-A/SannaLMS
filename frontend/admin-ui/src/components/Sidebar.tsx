@@ -47,14 +47,14 @@ interface NavSection {
   items: NavItem[];
 }
 
-import { getBrandConfig, BrandConfig, SANNA_BRAND } from '@/utils/branding';
+import { getBrandConfig, BrandConfig, EDULATERAL_BRAND } from '@/utils/branding';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, isTrainer } = useRole();
   const isSuperAdmin = role === 'SUPER_ADMIN';
   const isCollegeAdmin = role === 'COLLEGE_ADMIN';
-  const [brand, setBrand] = useState<BrandConfig>(SANNA_BRAND);
+  const [brand, setBrand] = useState<BrandConfig>(EDULATERAL_BRAND);
 
   const [username, setUsername] = useState('User');
   const [email, setEmail] = useState('');

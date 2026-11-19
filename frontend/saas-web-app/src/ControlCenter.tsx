@@ -16,7 +16,7 @@ export default function ControlCenter() {
     <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#090d16', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' }}>
       <header className="header-banner" style={{ position: 'relative', textAlign: 'center', padding: '3rem 2rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1rem', backdropFilter: 'blur(16px)', maxWidth: '850px', width: '90%' }}>
         <span className="badge" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.2)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>Multi-Tenant SaaS Platform</span>
-        <h1 className="title" style={{ fontSize: '2.5rem', fontWeight: 800, background: 'linear-gradient(135deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '1rem 0' }}>SannaLMS Architecture Control Center</h1>
+        <h1 className="title" style={{ fontSize: '2.5rem', fontWeight: 800, background: 'linear-gradient(135deg, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '1rem 0' }}>Edulateral LMS Architecture Control Center</h1>
         <p className="subtitle" style={{ color: '#94a3b8', fontSize: '1.1rem', marginBottom: '2.5rem' }}>
           Fully Integrated Multi-Tenant SaaS Platform (All 4 Parts Merged & Live)
         </p>
