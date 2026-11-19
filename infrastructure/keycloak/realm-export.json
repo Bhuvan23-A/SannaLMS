@@ -1,10 +1,10 @@
 {
   "id": "sannalms",
   "realm": "sannalms",
-  "displayName": "SannaLMS",
+  "displayName": "Edulateral LMS",
   "loginTheme": "sannalms",
   "accountTheme": "sannalms",
-  "displayNameHtml": "<div class=\"kc-logo-text\"><span>SannaLMS</span></div>",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Edulateral LMS</span></div>",
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": true,
