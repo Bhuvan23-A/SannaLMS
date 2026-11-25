@@ -131,7 +131,9 @@ export default function UsersDirectoryPage() {
 
   const copyCredentials = () => {
     if (!resetModalUser) return;
-    const portalUrl = typeof window !== 'undefined' ? window.location.origin : 'https://sannalms.sannainnovations.com';
+    const portalUrl = typeof window !== 'undefined' && window.location.hostname.includes('edulateral')
+      ? 'https://lms.edulateral.com'
+      : (typeof window !== 'undefined' ? window.location.origin : 'https://sannalms.sannainnovations.com');
     const text = `Portal Credentials:\nEmail: ${resetModalUser.email}\nTemporary Password: ${newPassword}\nPortal: ${portalUrl}\nNote: Password must be changed upon login.`;
     navigator.clipboard.writeText(text);
     setCopied(true);

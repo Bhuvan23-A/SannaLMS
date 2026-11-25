@@ -42,11 +42,11 @@ export function getBrandConfig(): BrandConfig {
   const host = window.location.hostname.toLowerCase();
   const searchParams = new URLSearchParams(window.location.search);
   const tenantParam = searchParams.get('tenant')?.toLowerCase() || searchParams.get('brand')?.toLowerCase();
-  
+
   let storedBrand = '';
   try {
     storedBrand = localStorage.getItem('preferred_brand') || localStorage.getItem('preferred_tenant') || '';
-  } catch (_) {}
+  } catch (_) { }
 
   // Allow explicit override if someone requests sannalms, otherwise default to Edulateral everywhere
   if (tenantParam === 'sannalms' || storedBrand === 'sannalms') {
@@ -58,7 +58,7 @@ export function getBrandConfig(): BrandConfig {
     localStorage.setItem('preferred_tenant', 'edulateral');
     document.cookie = "preferred_brand=edulateral; path=/; max-age=31536000; SameSite=Lax";
     document.cookie = "preferred_tenant=edulateral; path=/; max-age=31536000; SameSite=Lax";
-  } catch (_) {}
+  } catch (_) { }
 
   return EDULATERAL_BRAND;
 }

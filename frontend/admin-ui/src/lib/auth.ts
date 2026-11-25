@@ -1,9 +1,23 @@
 // Shared auth helpers for the admin UI.
 
-// The canonical public domains for the SannaLMS platform.
-export const ADMIN_DOMAIN = 'https://admin.sannalms.sannainnovations.com';
-export const PORTAL_URL = 'https://sannalms.sannainnovations.com';
-const KEYCLOAK_BASE = 'https://sannalms.sannainnovations.com/auth';
+const isEdulateralHost = typeof window !== 'undefined' && (
+  window.location.hostname.includes('edulateral') ||
+  window.location.hostname.includes('edulms')
+);
+
+// The canonical public domains for the platform (supports both Edulateral and legacy domains)
+export const ADMIN_DOMAIN = isEdulateralHost
+  ? 'https://admin-lms.edulateral.com'
+  : 'https://admin.sannalms.sannainnovations.com';
+
+export const PORTAL_URL = isEdulateralHost
+  ? 'https://lms.edulateral.com'
+  : 'https://sannalms.sannainnovations.com';
+
+const KEYCLOAK_BASE = isEdulateralHost
+  ? 'https://lms.edulateral.com/auth'
+  : 'https://sannalms.sannainnovations.com/auth';
+
 const KEYCLOAK_REALM = 'sannalms';
 const KEYCLOAK_CLIENT = 'sannalms-client';
 

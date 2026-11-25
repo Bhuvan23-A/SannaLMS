@@ -214,8 +214,15 @@ export const Dashboard: React.FC = () => {
     document.title = brand.portalTitle;
   }, [brand.portalTitle]);
 
-  // Admin dashboard base URL — override for local dev via .env (VITE_ADMIN_URL=http://localhost:3000)
-  const ADMIN_URL: string = (import.meta.env.VITE_ADMIN_URL as string) || 'https://admin.sannalms.sannainnovations.com';
+  // Admin dashboard base URL — dynamically matches current domain or overrides via env
+  const isEdulateralHost = typeof window !== 'undefined' && (
+    window.location.hostname.includes('edulateral') ||
+    window.location.hostname.includes('edulms')
+  );
+  const DEFAULT_ADMIN_URL = isEdulateralHost
+    ? 'https://admin-lms.edulateral.com'
+    : 'https://admin.sannalms.sannainnovations.com';
+  const ADMIN_URL: string = (import.meta.env.VITE_ADMIN_URL as string) || DEFAULT_ADMIN_URL;
   const adminRedirectedRef = useRef(false);
   
   // Navigation & Role State
@@ -2096,13 +2103,13 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'chat' ? 'active' : ''}`} onClick={() => setActiveTab('chat')}>
                   <MessagesSquare size={18} /> Chat
                 </button>
-                <a href={`https://admin.sannalms.sannainnovations.com/courses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/courses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <BookOpen size={18} /> Course Builder
                 </a>
-                <a href={`https://admin.sannalms.sannainnovations.com/liveclasses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/liveclasses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Calendar size={18} /> Live Scheduler
                 </a>
-                <a href={`https://admin.sannalms.sannainnovations.com/assessments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/assessments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CheckSquare size={18} /> Gradebooks
                 </a>
               </>
@@ -2113,16 +2120,16 @@ export const Dashboard: React.FC = () => {
                 <button className={`nav-link-btn ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
                   <Activity size={18} /> Overview
                 </button>
-                <a href={`https://admin.sannalms.sannainnovations.com/colleges?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/colleges?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Layers size={18} /> Colleges Portal
                 </a>
-                <a href={`https://admin.sannalms.sannainnovations.com/departments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/departments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <BookOpen size={18} /> Departments
                 </a>
-                <a href={`https://admin.sannalms.sannainnovations.com/branches?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/branches?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Layers size={18} /> Branches Portal
                 </a>
-                <a href={`https://admin.sannalms.sannainnovations.com/semesters?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a href={`${ADMIN_URL}/semesters?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="nav-link-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Calendar size={18} /> Semesters
                 </a>
               </>
@@ -2383,17 +2390,17 @@ export const Dashboard: React.FC = () => {
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center' }}>
                     <h4 style={{ marginBottom: '0.5rem' }}>Course Constructor</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Build curriculum, upload lesson notes and HLS video segments.</p>
-                    <a href={`https://admin.sannalms.sannainnovations.com/courses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Courses</a>
+                    <a href={`${ADMIN_URL}/courses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Courses</a>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center' }}>
                     <h4 style={{ marginBottom: '0.5rem' }}>Live Class Scheduler</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Schedule virtual sessions, assign links, and manage calendar logs.</p>
-                    <a href={`https://admin.sannalms.sannainnovations.com/liveclasses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Live Classes</a>
+                    <a href={`${ADMIN_URL}/liveclasses?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Live Classes</a>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center' }}>
                     <h4 style={{ marginBottom: '0.5rem' }}>Gradebooks & Quizzes</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Review student scorecards, upload quiz questions, and manage grade logs.</p>
-                    <a href={`https://admin.sannalms.sannainnovations.com/assessments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Assessments</a>
+                    <a href={`${ADMIN_URL}/assessments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'inline-block', textDecoration: 'none', padding: '8px 16px', borderRadius: '6px' }}>Manage Assessments</a>
                   </div>
                 </div>
               </div>
@@ -2404,9 +2411,9 @@ export const Dashboard: React.FC = () => {
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '1.25rem', padding: '2rem' }}>
                   <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>SaaS Admin Directories Console</h3>
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '2.5rem' }}>
-                    <a href={`https://admin.sannalms.sannainnovations.com/colleges?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Colleges Portal</a>
-                    <a href={`https://admin.sannalms.sannainnovations.com/departments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Departments Directory</a>
-                    <a href={`https://admin.sannalms.sannainnovations.com/branches?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Branches Portal</a>
+                    <a href={`${ADMIN_URL}/colleges?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Colleges Portal</a>
+                    <a href={`${ADMIN_URL}/departments?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Departments Directory</a>
+                    <a href={`${ADMIN_URL}/branches?token=${keycloak.token || ''}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 20px', borderRadius: '8px' }}>Branches Portal</a>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
