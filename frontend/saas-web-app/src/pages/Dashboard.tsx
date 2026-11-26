@@ -3272,11 +3272,18 @@ export const Dashboard: React.FC = () => {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {quizList.map((quiz: any) => {
-                      // Server-authoritative completion state (blocks retakes);
-                      // localStorage is only a fallback for older records.
-                      const done = quiz.my_submission?.submitted ? quiz.my_submission : getQuizDone(quiz.id);
-                      const isExpired = quiz.end_time && new Date(quiz.end_time) < new Date();
-                      const isUpcoming = !done && !isExpired && quiz.start_time && new Date(quiz.start_time) > new Date();
+                      const isUpcoming = quiz.start_time && new Date(quiz.start_time) > new Date();
+                      // Server-authoritative completion state (blocks retakes).
+                      // If the test has not started yet (isUpcoming), it cannot be completed.
+                      // Also clear any stale localStorage drafts/completion records.
+                      if (isUpcoming || quiz.my_submission === null) {
+                        try {
+                          localStorage.removeItem(`quizDone:${quiz.id}:${keycloak.subject || ''}`);
+                          localStorage.removeItem(`testDraft:${quiz.id}:${keycloak.subject || ''}`);
+                        } catch { }
+                      }
+                      const done = isUpcoming ? null : (quiz.my_submission?.submitted ? quiz.my_submission : (quiz.my_submission === null ? null : getQuizDone(quiz.id)));
+                      const isExpired = !isUpcoming && quiz.end_time && new Date(quiz.end_time) < new Date();
                       const isDisabled = !!done || isExpired || isUpcoming;
                       return (
                       <div key={quiz.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
