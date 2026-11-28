@@ -156,11 +156,20 @@ export default function QuizzesPage() {
         if (qType === 'MCQ') {
           const optTexts = [cols[3], cols[4], cols[5], cols[6]].filter(Boolean);
           if (optTexts.length > 0) {
-            const rawAns = (cols[7] || '').toUpperCase();
+            const rawAns = (cols[7] || '').trim();
+            const upperAns = rawAns.toUpperCase();
             let correctIdx = 0;
-            if (rawAns.includes('B') || rawAns === '2') correctIdx = 1;
-            else if (rawAns.includes('C') || rawAns === '3') correctIdx = 2;
-            else if (rawAns.includes('D') || rawAns === '4') correctIdx = 3;
+
+            // 1. Check if the answer key matches the literal text of one of the options
+            const textMatchIdx = optTexts.findIndex(txt => txt && txt.trim().toLowerCase() === rawAns.toLowerCase());
+            if (textMatchIdx >= 0) {
+              correctIdx = textMatchIdx;
+            }
+            // 2. Flexible detection: accepts 'Option B', 'Option2', 'Option 2', 'B', '2'
+            else if (upperAns.includes('B') || upperAns.includes('2')) correctIdx = 1;
+            else if (upperAns.includes('C') || upperAns.includes('3')) correctIdx = 2;
+            else if (upperAns.includes('D') || upperAns.includes('4')) correctIdx = 3;
+            else if (upperAns.includes('A') || upperAns.includes('1')) correctIdx = 0;
 
             qOptions = optTexts.map((txt, idx) => ({
               id: idx + 1,
@@ -195,7 +204,16 @@ export default function QuizzesPage() {
         question_ids: Array.from(new Set([...prev.question_ids, ...newQuestionIds]))
       }));
 
-      setUploadMessage({ ok: true, text: `Uploaded and added ${newQuestionIds.length} question(s) directly to this assessment!` });
+      const allOptionA = newQuestionObjects.length > 5 && newQuestionObjects.every(q => {
+        const correct = (q.options || []).find((o: any) => o.isCorrect);
+        return correct?.id === 1 || q.answer_key === '1';
+      });
+
+      if (allOptionA) {
+        setUploadMessage({ ok: true, text: `Uploaded ${newQuestionIds.length} question(s). Note: All questions have Option A as the answer key. Please review to ensure answer keys are diverse.` });
+      } else {
+        setUploadMessage({ ok: true, text: `Uploaded and added ${newQuestionIds.length} question(s) directly to this assessment!` });
+      }
     } catch (err: any) {
       setUploadMessage({ ok: false, text: err.message || 'Failed to parse CSV file.' });
     } finally {

@@ -189,10 +189,20 @@ export default function QuestionsPage() {
         if (qType === 'MCQ') {
           const optTexts = [optA, optB, optC, optD].filter(Boolean);
           if (optTexts.length > 0) {
+            const rawAnsTrimmed = rawAns.trim();
+            const upperAns = rawAnsTrimmed.toUpperCase();
             let correctIdx = 0;
-            if (rawAns.includes('B') || rawAns === '2') correctIdx = 1;
-            else if (rawAns.includes('C') || rawAns === '3') correctIdx = 2;
-            else if (rawAns.includes('D') || rawAns === '4') correctIdx = 3;
+
+            // 1. Check if the answer key matches the literal text of one of the options
+            const textMatchIdx = optTexts.findIndex(txt => txt && txt.trim().toLowerCase() === rawAnsTrimmed.toLowerCase());
+            if (textMatchIdx >= 0) {
+              correctIdx = textMatchIdx;
+            }
+            // 2. Flexible detection: accepts 'Option B', 'Option2', 'Option 2', 'B', '2'
+            else if (upperAns.includes('B') || upperAns.includes('2')) correctIdx = 1;
+            else if (upperAns.includes('C') || upperAns.includes('3')) correctIdx = 2;
+            else if (upperAns.includes('D') || upperAns.includes('4')) correctIdx = 3;
+            else if (upperAns.includes('A') || upperAns.includes('1')) correctIdx = 0;
 
             qOptions = optTexts.map((txt, idx) => ({
               id: idx + 1,
